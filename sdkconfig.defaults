@@ -1,0 +1,15 @@
+# Target
+CONFIG_IDF_TARGET="esp32c3"
+
+# Flash (adjust to your board, 4MB is the common default)
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+# LVGL: 16-bit color (RGB565) to match the GC9A01 SPI panel
+CONFIG_LV_COLOR_DEPTH_16=y
+
+# Give the main task a bit more stack for LVGL/UI setup
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144
+
+# FreeRTOS tick at 1000 Hz gives smoother LVGL timing
+CONFIG_FREERTOS_HZ=1000
