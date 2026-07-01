@@ -12,6 +12,7 @@
 #include "esp_lcd_gc9a01.h"
 #include "esp_log.h"
 #include "lvgl.h"
+#include "ui.h"
 
 #define TAG "MAGI"
 
@@ -196,19 +197,12 @@ void app_main(void)
                 LVGL_TASK_PRIORITY, NULL);
 
     // ── UI (Step 1: just a label to prove the pipeline works) ─
-    if (lvgl_lock(1000)) {
-        lv_obj_t *scr = lv_display_get_screen_active(disp);
-        lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
-        lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
-
-        lv_obj_t *label = lv_label_create(scr);
-        lv_label_set_text(label, "GOLDEN LAB");
-        lv_obj_set_style_text_color(label, lv_color_hex(0x0000FF), 0);
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-
+    if(lvgl_lock(1000)) {
+        ui_init();
         lvgl_unlock();
-        ESP_LOGI(TAG, "LVGL UI OK");
-    } else {
-        ESP_LOGE(TAG, "LVGL lock failed");
-    }
-}
+        ESP_LOGI(TAG, "UI init OK");
+    };
+
+     
+    
+};
