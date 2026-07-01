@@ -27,6 +27,7 @@ lv_obj_t * ui____initial_actions0;
 #endif
 
 ///////////////////// ANIMATIONS ////////////////////
+
 lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -381,7 +382,59 @@ lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay)
 }
 
 ///////////////////// FUNCTIONS ////////////////////
+// ── انیمیشن کمان‌ها ──────────────────────────────────────────
+static void arc_angle_cb(void * obj, int32_t v)
+{
+    lv_arc_set_value((lv_obj_t *)obj, v);
+}
+void startArcAnimations(int delay)
+{
+    lv_anim_t a;
 
+    // ArcRed
+    lv_obj_set_style_opa(ui_ArcRed, 255, 0);
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, ui_ArcRed);
+    lv_anim_set_exec_cb(&a, arc_angle_cb);
+    lv_anim_set_values(&a, 0, 100);
+    lv_anim_set_duration(&a, 500);
+    lv_anim_set_delay(&a, delay);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+
+    // ArcGreen
+    lv_obj_set_style_opa(ui_ArcGreen, 255, 0);
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, ui_ArcGreen);
+    lv_anim_set_exec_cb(&a, arc_angle_cb);
+    lv_anim_set_values(&a, 0, 100);
+    lv_anim_set_duration(&a, 500);
+    lv_anim_set_delay(&a, delay);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+
+    // ArcBlue
+    lv_obj_set_style_opa(ui_ArcBlue, 255, 0);
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, ui_ArcBlue);
+    lv_anim_set_exec_cb(&a, arc_angle_cb);
+    lv_anim_set_values(&a, 0, 100);
+    lv_anim_set_duration(&a, 500);
+    lv_anim_set_delay(&a, delay);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+
+    // ArcYellow
+    lv_obj_set_style_opa(ui_ArcYellow, 255, 0);
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, ui_ArcYellow);
+    lv_anim_set_exec_cb(&a, arc_angle_cb);
+    lv_anim_set_values(&a, 0, 100);
+    lv_anim_set_duration(&a, 500);
+    lv_anim_set_delay(&a, delay);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+}
 ///////////////////// SCREENS ////////////////////
 
 void ui_init(void)
