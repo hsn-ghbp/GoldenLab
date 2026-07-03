@@ -5,6 +5,56 @@
 
 #include "ui.h"
 #include "ui_helpers.h"
+#include <math.h>     // برای M_PI
+
+// ====================== ثابت‌های انیمیشن ======================
+#define CX     120
+#define CY     120
+#define CR      8
+#define REACH   90
+#define TRIGO_MAX 32767
+
+const uint32_t DOT_COLORS[4] = {0xFF2020, 0x20FF50, 0x2090FF, 0xFFE020};
+const float   DOT_ANGLES[4]  = {-M_PI/2.0f, 0.0f, M_PI/2.0f, M_PI};
+
+
+// Static variables for rotation+scale animation
+
+static float spin_angle = 0.0f;    // in degrees
+static float scale_factor = 1.0f;
+static bool shrinking = true;
+static bool arcs_ready = false; // فقط بعد از اتمام رسم شروع کن
+static bool animation_finished = false;
+static bool dots_deleted = false;
+static bool rays_started = false;   // جلوگیری از فراخوانی چندباره‌ی startRaysPhase
+static lv_color_t gold_color;
+static float color_progress = 0.0f;
+
+typedef struct {
+    float start;
+    float end;
+    float x;
+    float y;
+} arc_orig_t;
+
+static const arc_orig_t arc_original[] = {
+    {270, 90,   0, -50},  // Red
+    {180, 360, -50,   0}, // Yellow
+    {90,  270,  0,  50},  // Blue
+    {0,   180, 50,   0},  // Green
+};
+#define RAY_COUNT 18
+
+typedef struct {
+    lv_obj_t *line;
+    lv_point_precise_t pts[2];
+    float angle;      // رادیان
+    int   max_len;
+    int   delay;       // ms - نسبت به شروع فاز rays
+    int   width;
+} ray_t;
+
+static ray_t rays[RAY_COUNT];
 
 ///////////////////// VARIABLES ////////////////////
 lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay);
@@ -19,12 +69,15 @@ lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay);
 // EVENTS
 lv_obj_t * ui____initial_actions0;
 
+
+
 // IMAGES AND IMAGE SETS
 
 ///////////////////// TEST LVGL SETTINGS ////////////////////
 #if LV_COLOR_DEPTH != 16
     #error "LV_COLOR_DEPTH should be 16bit to match SquareLine Studio's settings"
 #endif
+
 
 ///////////////////// ANIMATIONS ////////////////////
 
@@ -382,10 +435,169 @@ lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay)
 }
 
 ///////////////////// FUNCTIONS ////////////////////
+
+
+
+
 // ── انیمیشن کمان‌ها ──────────────────────────────────────────
 static void arc_angle_cb(void * obj, int32_t v)
 {
     lv_arc_set_value((lv_obj_t *)obj, v);
+}
+
+// ── فاز پرتوها (rays) ────────────────────────────────────────
+// نکته: lv_trigo_sin/cos زاویه را در واحد "دهم درجه" (0..3600) می‌گیرد
+// و مقدار خروجی در بازه‌ی -32767..32767 است.
+static void ray_anim_len_cb(void *var, int32_t v)
+{
+    ray_t *r = (ray_t *)var;
+    int16_t angle_x10 = (int16_t)(r->angle * (1800.0f / (float)M_PI)); // رادیان -> دهم‌درجه
+
+    int32_t cos_v = lv_trigo_cos(angle_x10);
+    int32_t sin_v = lv_trigo_sin(angle_x10);
+
+    r->pts[0].x = CX;
+    r->pts[0].y = CY;
+    r->pts[1].x = CX + (lv_coord_t)((cos_v * v) / TRIGO_MAX);
+    r->pts[1].y = CY + (lv_coord_t)((sin_v * v) / TRIGO_MAX);
+
+    lv_line_set_points(r->line, r->pts, 2);
+}
+
+static void ray_anim_opa_cb(void *var, int32_t v)
+{
+    ray_t *r = (ray_t *)var;
+    lv_obj_set_style_line_opa(r->line, v, 0);
+}
+
+void startRaysPhase(lv_obj_t *parent, int base_delay)
+{
+    for (int i = 0; i < RAY_COUNT; i++) {
+        rays[i].angle   = (float)i * (2.0f * (float)M_PI / RAY_COUNT);
+        rays[i].max_len = 60 + (i % 5) * 15;       // نامنظم مثل seed در HTML
+        rays[i].delay   = base_delay + (i * 25);   // تأخیر پلکانی هر پرتو
+        rays[i].width   = 2 + (i % 3);
+
+        rays[i].line = lv_line_create(parent);
+        lv_obj_set_style_line_color(rays[i].line, lv_color_hex(0xFFD700), 0);
+        lv_obj_set_style_line_width(rays[i].line, rays[i].width, 0);
+        lv_obj_set_style_line_rounded(rays[i].line, false, 0);
+        lv_obj_set_style_line_opa(rays[i].line, LV_OPA_TRANSP, 0);
+
+        // مقدار اولیه‌ی نقاط تا قبل از اجرای انیمیشن، خط نامعتبر نباشد
+        rays[i].pts[0].x = CX;
+        rays[i].pts[0].y = CY;
+        rays[i].pts[1].x = CX;
+        rays[i].pts[1].y = CY;
+        lv_line_set_points(rays[i].line, rays[i].pts, 2);
+
+        // انیمیشن طول پرتو (۰ تا max_len پیکسل)
+        lv_anim_t a_len;
+        lv_anim_init(&a_len);
+        lv_anim_set_var(&a_len, &rays[i]);
+        lv_anim_set_exec_cb(&a_len, ray_anim_len_cb);
+        lv_anim_set_values(&a_len, 0, rays[i].max_len);
+        lv_anim_set_duration(&a_len, 500);
+        lv_anim_set_delay(&a_len, rays[i].delay);
+        lv_anim_set_path_cb(&a_len, lv_anim_path_ease_out);
+        lv_anim_start(&a_len);
+
+        // انیمیشن opacity (fade-in)
+        lv_anim_t a_opa;
+        lv_anim_init(&a_opa);
+        lv_anim_set_var(&a_opa, &rays[i]);
+        lv_anim_set_exec_cb(&a_opa, ray_anim_opa_cb);
+        lv_anim_set_values(&a_opa, LV_OPA_TRANSP, LV_OPA_70);
+        lv_anim_set_duration(&a_opa, 300);
+        lv_anim_set_delay(&a_opa, rays[i].delay);
+        lv_anim_start(&a_opa);
+    }
+}
+
+// ── انیمیشن چرخش/انقباض کمان‌ها ──────────────────────────────
+static void arc_spin_scale_timer_cb(lv_timer_t * timer)
+{
+    LV_UNUSED(timer);
+    if (!arcs_ready) return;   // منتظر اتمام رسم اولیه
+
+    //////////////////////حذف خطوط رنگی //////////////////
+    if (!dots_deleted) {
+        if (ui_RedDot)    { lv_obj_del(ui_RedDot);    ui_RedDot = NULL; }
+        if (ui_GreenDot)  { lv_obj_del(ui_GreenDot);  ui_GreenDot = NULL; }
+        if (ui_BlueDot)   { lv_obj_del(ui_BlueDot);   ui_BlueDot = NULL; }
+        if (ui_YellowDot) { lv_obj_del(ui_YellowDot); ui_YellowDot = NULL; }
+        dots_deleted = true;
+        gold_color = lv_color_hex(0xFFD700);
+    }
+
+    if (animation_finished) {
+        if (!rays_started) {
+            rays_started = true;
+            startRaysPhase(ui_Screen1, 0);
+        }
+        return;
+    }
+
+    spin_angle += 25.0f;
+    if (spin_angle >= 360.0f) spin_angle -= 360.0f;
+
+    if (shrinking) {
+        scale_factor -= 0.04f;
+        if (scale_factor <= 0.03f) { scale_factor = 0.03f; animation_finished = true; }
+    } else {
+        scale_factor += 0.005f;
+        if (scale_factor >= 1.0f) { scale_factor = 1.0f; shrinking = true; }
+    }
+    if (scale_factor > 0.3f) {
+        spin_angle += 20.0f;
+        if (spin_angle >= 360.0f) spin_angle -= 360.0f;
+    }
+    lv_obj_t * arcs[] = { ui_ArcRed, ui_ArcYellow, ui_ArcBlue, ui_ArcGreen };
+    float spin_rad = spin_angle * (float)M_PI / 180.0f;
+    float cs = cosf(spin_rad), sn = sinf(spin_rad);
+
+    for (int i = 0; i < 4; i++) {
+        // 1) اندازه
+        int16_t new_size = (int16_t)(110 * scale_factor);
+        lv_obj_set_size(arcs[i], new_size, new_size);
+
+        // 2) موقعیت: چرخاندن (x,y) اصلی حول مرکز، سپس اسکیل
+        float rx = arc_original[i].x * cs - arc_original[i].y * sn;
+        float ry = arc_original[i].x * sn + arc_original[i].y * cs;
+        rx *= scale_factor;
+        ry *= scale_factor;
+        lv_obj_set_x(arcs[i], (int16_t)rx);
+        lv_obj_set_y(arcs[i], (int16_t)ry);
+
+        // 3-4) زاویه شروع/پایان
+        float start_rotated = arc_original[i].start + spin_angle;
+        float end_rotated   = arc_original[i].end   + spin_angle;
+        while (start_rotated >= 360.0f) start_rotated -= 360.0f;
+        while (start_rotated < 0.0f)    start_rotated += 360.0f;
+        while (end_rotated   >= 360.0f) end_rotated   -= 360.0f;
+        while (end_rotated   < 0.0f)    end_rotated   += 360.0f;
+
+        lv_arc_set_bg_angles(arcs[i], (uint16_t)start_rotated, (uint16_t)end_rotated);
+    }
+
+    /////////////////////تغییر رنگ////////////////////////
+    color_progress = 1.0f - ((scale_factor - 0.03f) / (1.0f - 0.03f));
+    if (color_progress < 0.0f) color_progress = 0.0f;
+    if (color_progress > 1.0f) color_progress = 1.0f;
+
+    uint8_t mix = (uint8_t)(color_progress * 255);
+
+    lv_obj_set_style_arc_color(ui_ArcRed,    lv_color_mix(gold_color, lv_color_hex(0xFF0000), mix), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(ui_ArcYellow, lv_color_mix(gold_color, lv_color_hex(0xFFFF00), mix), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(ui_ArcBlue,   lv_color_mix(gold_color, lv_color_hex(0x0000FF), mix), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(ui_ArcGreen,  lv_color_mix(gold_color, lv_color_hex(0x00FF00), mix), LV_PART_INDICATOR);
+}
+
+static void arcs_draw_done_cb(lv_anim_t * a)
+{
+    LV_UNUSED(a);
+    arcs_ready = true;
+    lv_timer_create(arc_spin_scale_timer_cb, 33, NULL);  // حالا شروع کن
 }
 void startArcAnimations(int delay)
 {
@@ -433,20 +645,29 @@ void startArcAnimations(int delay)
     lv_anim_set_duration(&a, 500);
     lv_anim_set_delay(&a, delay);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_completed_cb(&a, arcs_draw_done_cb);
     lv_anim_start(&a);
 }
+
+
+
+
 ///////////////////// SCREENS ////////////////////
 
 void ui_init(void)
 {
     lv_disp_t * dispp = lv_display_get_default();
-    lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
-                                               true, LV_FONT_DEFAULT);
+    lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE),
+                                                 lv_palette_main(LV_PALETTE_RED), true, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
     ui_Screen1_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
     lv_disp_load_scr(ui_Screen1);
+
+    // startArcAnimations(0);
+    // lv_timer_create(arc_spin_scale_timer_cb, 66, NULL);  // خودش با arcs_ready صبر می‌کند
 }
+
 
 void ui_destroy(void)
 {

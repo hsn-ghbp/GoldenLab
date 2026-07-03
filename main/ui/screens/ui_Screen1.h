@@ -19,10 +19,11 @@ extern lv_obj_t * ui_RedDot;
 extern lv_obj_t * ui_GreenDot;
 extern lv_obj_t * ui_BlueDot;
 extern lv_obj_t * ui_YellowDot;
+extern lv_obj_t * ui_uiArcContainer;
 extern lv_obj_t * ui_ArcRed;
-extern lv_obj_t * ui_ArcGreen;
-extern lv_obj_t * ui_ArcBlue;
 extern lv_obj_t * ui_ArcYellow;
+extern lv_obj_t * ui_ArcBlue;
+extern lv_obj_t * ui_ArcGreen;
 // CUSTOM VARIABLES
 extern lv_obj_t * uic_RedDot;
 

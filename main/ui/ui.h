@@ -38,6 +38,7 @@ extern lv_obj_t * ui____initial_actions0;
 // UI INIT
 
 void startArcAnimations(int delay);
+
 void ui_init(void);
 void ui_destroy(void);
 
