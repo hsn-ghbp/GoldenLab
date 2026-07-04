@@ -43,7 +43,9 @@ static const arc_orig_t arc_original[] = {
     {90,  270,  0,  50},  // Blue
     {0,   180, 50,   0},  // Green
 };
-#define RAY_COUNT 18
+
+
+#define RAY_COUNT 36
 
 typedef struct {
     lv_obj_t *line;
@@ -52,6 +54,7 @@ typedef struct {
     int   max_len;
     int   delay;       // ms - نسبت به شروع فاز rays
     int   width;
+    lv_opa_t target_opa;
 } ray_t;
 
 static ray_t rays[RAY_COUNT];
@@ -448,18 +451,26 @@ static void arc_angle_cb(void * obj, int32_t v)
 // ── فاز پرتوها (rays) ────────────────────────────────────────
 // نکته: lv_trigo_sin/cos زاویه را در واحد "دهم درجه" (0..3600) می‌گیرد
 // و مقدار خروجی در بازه‌ی -32767..32767 است.
+// انیمیشن طول: هر دو نقطه از مرکز به بیرون حرکت می‌کنند (افکت پرتاب)
 static void ray_anim_len_cb(void *var, int32_t v)
 {
     ray_t *r = (ray_t *)var;
-    int16_t angle_x10 = (int16_t)(r->angle * (1800.0f / (float)M_PI)); // رادیان -> دهم‌درجه
 
-    int32_t cos_v = lv_trigo_cos(angle_x10);
-    int32_t sin_v = lv_trigo_sin(angle_x10);
+    // نسبت پیشرفت 0..1 بر اساس v که 0..max_len است
+    float t = (float)v / (float)r->max_len;
+    if(t < 0) t = 0;
+    if(t > 1) t = 1;
 
-    r->pts[0].x = CX;
-    r->pts[0].y = CY;
-    r->pts[1].x = CX + (lv_coord_t)((cos_v * v) / TRIGO_MAX);
-    r->pts[1].y = CY + (lv_coord_t)((sin_v * v) / TRIGO_MAX);
+    // نقطه‌ی داخلی (pts[0]) کمی عقب‌تر از نقطه‌ی بیرونی حرکت می‌کند
+    // تا حس "پرتاب شدن از مرکز" ایجاد شود
+    float inner_dist = t * r->max_len * 0.35f; // نقطه‌ی داخلی کندتر پیش می‌رود
+    float outer_dist = t * r->max_len;          // نقطه‌ی بیرونی سریع‌تر
+
+    r->pts[0].x = CX + (lv_coord_t)(cosf(r->angle) * inner_dist);
+    r->pts[0].y = CY + (lv_coord_t)(sinf(r->angle) * inner_dist);
+
+    r->pts[1].x = CX + (lv_coord_t)(cosf(r->angle) * outer_dist);
+    r->pts[1].y = CY + (lv_coord_t)(sinf(r->angle) * outer_dist);
 
     lv_line_set_points(r->line, r->pts, 2);
 }
@@ -470,50 +481,86 @@ static void ray_anim_opa_cb(void *var, int32_t v)
     lv_obj_set_style_line_opa(r->line, v, 0);
 }
 
+// حذف کامل خط بعد از پایان fade-out
+static void ray_delete_cb(lv_anim_t * a)
+{
+    ray_t *r = (ray_t *)lv_anim_get_user_data(a);
+    if(r && r->line) {
+        lv_obj_del(r->line);
+        r->line = NULL;
+    }
+}
+
+/*==================== فاز Rays ====================*/
 void startRaysPhase(lv_obj_t *parent, int base_delay)
 {
-    for (int i = 0; i < RAY_COUNT; i++) {
-        rays[i].angle   = (float)i * (2.0f * (float)M_PI / RAY_COUNT);
-        rays[i].max_len = 60 + (i % 5) * 15;       // نامنظم مثل seed در HTML
-        rays[i].delay   = base_delay + (i * 25);   // تأخیر پلکانی هر پرتو
-        rays[i].width   = 2 + (i % 3);
+    for(int i = 0; i < RAY_COUNT; i++) {
+
+        // 2) زاویه‌ی کاملاً تصادفی به‌جای توزیع یکنواخت
+        float rand_angle = ((float)(rand() % 36000) / 100.0f) * (float)M_PI / 180.0f;
+        rays[i].angle = rand_angle;
+
+        // طول تصادفی برای تنوع بیشتر
+        rays[i].max_len = 50 + (rand() % 70); // 50..119
+
+        // تأخیر پخش‌شده برای اینکه همه هم‌زمان شلیک نشوند
+        rays[i].delay = base_delay + (rand() % 300);
+
+        rays[i].width = 1 + (rand() % 3); // 1..3
+
+        // 3) opacity هدف متفاوت برای هر پرتو
+        rays[i].target_opa = (lv_opa_t)(80 + (rand() % 176)); // 80..255
 
         rays[i].line = lv_line_create(parent);
         lv_obj_set_style_line_color(rays[i].line, lv_color_hex(0xFFD700), 0);
         lv_obj_set_style_line_width(rays[i].line, rays[i].width, 0);
-        lv_obj_set_style_line_rounded(rays[i].line, false, 0);
+        lv_obj_set_style_line_rounded(rays[i].line, true, 0);
         lv_obj_set_style_line_opa(rays[i].line, LV_OPA_TRANSP, 0);
 
-        // مقدار اولیه‌ی نقاط تا قبل از اجرای انیمیشن، خط نامعتبر نباشد
+
+        // 4) هر دو نقطه ابتدا در مرکز
         rays[i].pts[0].x = CX;
         rays[i].pts[0].y = CY;
         rays[i].pts[1].x = CX;
         rays[i].pts[1].y = CY;
         lv_line_set_points(rays[i].line, rays[i].pts, 2);
 
-        // انیمیشن طول پرتو (۰ تا max_len پیکسل)
+        // انیمیشن طول (پرتاب از مرکز به بیرون)
         lv_anim_t a_len;
         lv_anim_init(&a_len);
         lv_anim_set_var(&a_len, &rays[i]);
         lv_anim_set_exec_cb(&a_len, ray_anim_len_cb);
         lv_anim_set_values(&a_len, 0, rays[i].max_len);
-        lv_anim_set_duration(&a_len, 500);
+        lv_anim_set_duration(&a_len, 450);
         lv_anim_set_delay(&a_len, rays[i].delay);
         lv_anim_set_path_cb(&a_len, lv_anim_path_ease_out);
         lv_anim_start(&a_len);
 
-        // انیمیشن opacity (fade-in)
-        lv_anim_t a_opa;
-        lv_anim_init(&a_opa);
-        lv_anim_set_var(&a_opa, &rays[i]);
-        lv_anim_set_exec_cb(&a_opa, ray_anim_opa_cb);
-        lv_anim_set_values(&a_opa, LV_OPA_TRANSP, LV_OPA_70);
-        lv_anim_set_duration(&a_opa, 300);
-        lv_anim_set_delay(&a_opa, rays[i].delay);
-        lv_anim_start(&a_opa);
+        // انیمیشن fade-in (ظهور)
+        lv_anim_t a_opa_in;
+        lv_anim_init(&a_opa_in);
+        lv_anim_set_var(&a_opa_in, &rays[i]);
+        lv_anim_set_exec_cb(&a_opa_in, ray_anim_opa_cb);
+        lv_anim_set_values(&a_opa_in, LV_OPA_TRANSP, rays[i].target_opa);
+        lv_anim_set_duration(&a_opa_in, 250);
+        lv_anim_set_delay(&a_opa_in, rays[i].delay);
+        lv_anim_set_path_cb(&a_opa_in, lv_anim_path_ease_out);
+        lv_anim_start(&a_opa_in);
+
+        // 5) انیمیشن fade-out کامل در انتها + حذف شیء
+        lv_anim_t a_opa_out;
+        lv_anim_init(&a_opa_out);
+        lv_anim_set_var(&a_opa_out, &rays[i]);
+        lv_anim_set_exec_cb(&a_opa_out, ray_anim_opa_cb);
+        lv_anim_set_values(&a_opa_out, rays[i].target_opa, LV_OPA_TRANSP);
+        lv_anim_set_duration(&a_opa_out, 400);
+        lv_anim_set_delay(&a_opa_out, rays[i].delay + 250 + 600); // بعد از fade-in و کمی مکث
+        lv_anim_set_path_cb(&a_opa_out, lv_anim_path_ease_in);
+        lv_anim_set_user_data(&a_opa_out, &rays[i]);
+        lv_anim_set_completed_cb(&a_opa_out, ray_delete_cb);
+        lv_anim_start(&a_opa_out);
     }
 }
-
 // ── انیمیشن چرخش/انقباض کمان‌ها ──────────────────────────────
 static void arc_spin_scale_timer_cb(lv_timer_t * timer)
 {
@@ -530,14 +577,12 @@ static void arc_spin_scale_timer_cb(lv_timer_t * timer)
         gold_color = lv_color_hex(0xFFD700);
     }
 
-    if (animation_finished) {
-        if (!rays_started) {
-            rays_started = true;
-            startRaysPhase(ui_Screen1, 0);
-        }
+    if(animation_finished && !rays_started) {
+        rays_started = true;
+        startRaysPhase(ui_Screen1, 0);
         return;
     }
-
+   
     spin_angle += 25.0f;
     if (spin_angle >= 360.0f) spin_angle -= 360.0f;
 
