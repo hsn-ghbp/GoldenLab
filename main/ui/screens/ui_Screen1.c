@@ -16,6 +16,8 @@ lv_obj_t * ui_ArcRed = NULL;
 lv_obj_t * ui_ArcYellow = NULL;
 lv_obj_t * ui_ArcBlue = NULL;
 lv_obj_t * ui_ArcGreen = NULL;
+lv_obj_t * ui_GoldenLabLabel;
+
 // event funtions
 void ui_event_Screen1(lv_event_t * e)
 {
@@ -31,7 +33,7 @@ void ui_event_Screen1(lv_event_t * e)
         extendBot_Animation(ui_BlueDot, 1500);
         extendLeft_Animation(ui_YellowDot, 1200);
         startArcAnimations(2500);
-         
+        startGoldenLabAnimation(4500);        
     }
 }
 
@@ -55,6 +57,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_outline_color(ui_RedDot, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_RedDot, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+////////////////////////////////Green Dot ////////////////////////////////////
+
     ui_GreenDot = lv_obj_create(ui_Screen1);
     lv_obj_set_width(ui_GreenDot, 1);
     lv_obj_set_height(ui_GreenDot, 0);
@@ -65,6 +69,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_GreenDot, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_GreenDot, lv_color_hex(0xE50C0C), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_GreenDot, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+////////////////////////////////Blue Dot ////////////////////////////////////
 
     ui_BlueDot = lv_obj_create(ui_Screen1);
     lv_obj_set_width(ui_BlueDot, 1);
@@ -77,6 +83,8 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_border_color(ui_BlueDot, lv_color_hex(0xE50C0C), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_BlueDot, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+////////////////////////////////Yellow Dot ////////////////////////////////////
+
     ui_YellowDot = lv_obj_create(ui_Screen1);
     lv_obj_set_width(ui_YellowDot, 1);
     lv_obj_set_height(ui_YellowDot, 0);
@@ -87,6 +95,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_YellowDot, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_YellowDot, lv_color_hex(0xE50C0C), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_YellowDot, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+////////////////////////////////Container ////////////////////////////////////
+
 
     ui_uiArcContainer = lv_obj_create(ui_Screen1);
     lv_obj_remove_style_all(ui_uiArcContainer);
@@ -101,6 +112,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_outline_color(ui_uiArcContainer, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_uiArcContainer, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+////////////////////////////////Red Arc ////////////////////////////////////
+
+
     ui_ArcRed = lv_arc_create(ui_uiArcContainer);
     lv_obj_set_width(ui_ArcRed, 110);
     lv_obj_set_height(ui_ArcRed, 110);
@@ -113,7 +127,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_ArcRed, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_color(ui_ArcRed, lv_color_hex(0x4040FF), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcRed, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcRed, lv_color_hex(0xFF0000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcRed, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcRed, lv_color_hex(0x000000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -123,13 +136,15 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_color(ui_ArcRed, lv_color_hex(0xFF0000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcRed, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_width(ui_ArcRed, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcRed, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcRed, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcRed, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_ArcRed, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_color(ui_ArcRed, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_ArcRed, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+
+////////////////////////////////Yellow Arc ////////////////////////////////////
+
 
     ui_ArcYellow = lv_arc_create(ui_uiArcContainer);
     lv_obj_set_width(ui_ArcYellow, 110);
@@ -143,7 +158,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_ArcYellow, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_color(ui_ArcYellow, lv_color_hex(0x4040FF), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcYellow, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcYellow, lv_color_hex(0xFF0000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcYellow, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcYellow, lv_color_hex(0x000000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -153,13 +167,14 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_color(ui_ArcYellow, lv_color_hex(0xFFFF00), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcYellow, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_width(ui_ArcYellow, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcYellow, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcYellow, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcYellow, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_ArcYellow, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_color(ui_ArcYellow, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_ArcYellow, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+
+////////////////////////////////Blue Arc ////////////////////////////////////
 
     ui_ArcBlue = lv_arc_create(ui_uiArcContainer);
     lv_obj_set_width(ui_ArcBlue, 110);
@@ -173,7 +188,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_ArcBlue, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_color(ui_ArcBlue, lv_color_hex(0x4040FF), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcBlue, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcBlue, lv_color_hex(0xFF0000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcBlue, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcBlue, lv_color_hex(0x000000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -183,13 +197,14 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_color(ui_ArcBlue, lv_color_hex(0x0000FF), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcBlue, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_width(ui_ArcBlue, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcBlue, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcBlue, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcBlue, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_ArcBlue, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_color(ui_ArcBlue, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_ArcBlue, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+
+    ////////////////////////////////Green Arc ////////////////////////////////////
 
     ui_ArcGreen = lv_arc_create(ui_uiArcContainer);
     lv_obj_set_width(ui_ArcGreen, 110);
@@ -203,7 +218,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_bg_opa(ui_ArcGreen, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_color(ui_ArcGreen, lv_color_hex(0x4040FF), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcGreen, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcGreen, lv_color_hex(0xFF0000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcGreen, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcGreen, lv_color_hex(0x000000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -213,16 +227,36 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_arc_color(ui_ArcGreen, lv_color_hex(0x00FF00), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_ArcGreen, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_width(ui_ArcGreen, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-
     lv_obj_set_style_bg_color(ui_ArcGreen, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ArcGreen, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_ArcGreen, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_ArcGreen, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_color(ui_ArcGreen, lv_color_hex(0x000000), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_outline_opa(ui_ArcGreen, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
-
     lv_obj_add_event_cb(ui_Screen1, ui_event_Screen1, LV_EVENT_ALL, NULL);
     uic_RedDot = ui_RedDot;
+////////////////////////////////make lable ////////////////////////////////////
+    ui_GoldenLabLabel = lv_label_create(ui_Screen1);
+
+    lv_label_set_text(ui_GoldenLabLabel, "Golden Lab");
+    lv_obj_set_style_text_font(ui_GoldenLabLabel, &lv_font_montserrat_30, 0);
+    lv_obj_set_style_text_color(ui_GoldenLabLabel, lv_color_hex(0xFFD700), 0);
+    lv_obj_set_width(ui_GoldenLabLabel, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_GoldenLabLabel, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_GoldenLabLabel, LV_ALIGN_CENTER);
+    lv_obj_set_style_text_opa(ui_GoldenLabLabel,0, 0);
+    lv_obj_update_layout(ui_GoldenLabLabel);
+    lv_obj_set_style_transform_pivot_x(
+        ui_GoldenLabLabel,
+        lv_obj_get_width(ui_GoldenLabLabel) / 2,
+        0);
+    lv_obj_set_style_transform_pivot_y(
+        ui_GoldenLabLabel,
+        lv_obj_get_height(ui_GoldenLabLabel) / 2,
+        0);
+    lv_obj_set_style_transform_scale_x(ui_GoldenLabLabel, 150, 0);
+    lv_obj_set_style_transform_scale_y(ui_GoldenLabLabel, 150, 0);
+
 
 }
 

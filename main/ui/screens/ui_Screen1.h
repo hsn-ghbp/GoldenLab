@@ -24,6 +24,8 @@ extern lv_obj_t * ui_ArcRed;
 extern lv_obj_t * ui_ArcYellow;
 extern lv_obj_t * ui_ArcBlue;
 extern lv_obj_t * ui_ArcGreen;
+extern lv_obj_t * ui_GoldenLabLabel;
+
 // CUSTOM VARIABLES
 extern lv_obj_t * uic_RedDot;
 

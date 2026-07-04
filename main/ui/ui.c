@@ -82,7 +82,9 @@ lv_obj_t * ui____initial_actions0;
 #endif
 
 
-///////////////////// ANIMATIONS ////////////////////
+///////////////////// ANIMATIONS ////////////////////////////
+
+////////////////////////////////Extend Right ////////////////////////////////////
 
 lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay)
 {
@@ -125,9 +127,11 @@ lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay)
     lv_anim_set_early_apply(&PropertyAnimation_1, false);
     lv_anim_set_get_value_cb(&PropertyAnimation_1, &_ui_anim_callback_get_x);
     out_anim = lv_anim_start(&PropertyAnimation_1);
-
     return out_anim;
 }
+
+////////////////////////////////Show Red ////////////////////////////////////
+
 lv_anim_t * ShowRed_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -172,6 +176,9 @@ lv_anim_t * ShowRed_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Show Green ////////////////////////////////////
+
 lv_anim_t * ShowGreen_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -216,6 +223,9 @@ lv_anim_t * ShowGreen_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Show Blue ////////////////////////////////////
+
 lv_anim_t * ShowBlue_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -260,6 +270,9 @@ lv_anim_t * ShowBlue_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Show yellow ////////////////////////////////////
+
 lv_anim_t * ShowYellow_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -304,6 +317,9 @@ lv_anim_t * ShowYellow_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Extend Left ////////////////////////////////////
+
 lv_anim_t * extendLeft_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -348,6 +364,9 @@ lv_anim_t * extendLeft_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Extend Up ////////////////////////////////////
+
 lv_anim_t * extendUP_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -392,6 +411,9 @@ lv_anim_t * extendUP_Animation(lv_obj_t * TargetObject, int delay)
 
     return out_anim;
 }
+
+////////////////////////////////Extend Bot ////////////////////////////////////
+
 lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay)
 {
     lv_anim_t * out_anim;
@@ -439,16 +461,51 @@ lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay)
 
 ///////////////////// FUNCTIONS ////////////////////
 
+//___________________ انیمیشن متن ______________________________
+static void label_scale_anim_cb(void * obj, int32_t v)      //scale callback
+{
+    lv_obj_set_style_transform_scale_x((lv_obj_t *)obj, v, 0);
+    lv_obj_set_style_transform_scale_y((lv_obj_t *)obj, v, 0);
+}
+
+static void label_opa_anim_cb(void * obj, int32_t v)        //opacity callback
+{
+    lv_obj_set_style_text_opa((lv_obj_t *)obj, (lv_opa_t)v, 0);
+}
+   
+void startGoldenLabAnimation(int delay)
+{
+    
+    if (ui_GoldenLabLabel == NULL) return;
+   lv_anim_t a_opa;                                     //opacity
+   lv_anim_init(&a_opa);
+   lv_anim_set_var(&a_opa, ui_GoldenLabLabel);
+   lv_anim_set_exec_cb(&a_opa, label_opa_anim_cb);
+   lv_anim_set_values(&a_opa, LV_OPA_TRANSP, LV_OPA_COVER);
+    lv_anim_set_time(&a_opa, 300);
+   lv_anim_set_delay(&a_opa, delay);
+   lv_anim_start(&a_opa);
+
+    lv_anim_t a_scale;                                      //scale
+    lv_anim_init(&a_scale);
+    lv_anim_set_var(&a_scale, ui_GoldenLabLabel);
+    lv_anim_set_exec_cb(&a_scale, label_scale_anim_cb);
+    lv_anim_set_values(&a_scale, 150, 256);
+    lv_anim_set_time(&a_scale, 600);
+    lv_anim_set_delay(&a_scale, delay);
+    lv_anim_set_path_cb(&a_scale, lv_anim_path_overshoot);  // یه کم بزرگ‌تر بشه بعد برگرده - جلوه بهتر
+    lv_anim_start(&a_scale);
+}
 
 
 
-// ── انیمیشن کمان‌ها ──────────────────────────────────────────
-static void arc_angle_cb(void * obj, int32_t v)
+// ──____________________ انیمیشن کمان‌ها ──────────────────────────────────
+static void arc_angle_cb(void * obj, int32_t v)     //angle callback
 {
     lv_arc_set_value((lv_obj_t *)obj, v);
 }
 
-// ── فاز پرتوها (rays) ────────────────────────────────────────
+// ─__________________─ فاز تنظیمات پرتوها (rays) ────────────────────────────────────────
 // نکته: lv_trigo_sin/cos زاویه را در واحد "دهم درجه" (0..3600) می‌گیرد
 // و مقدار خروجی در بازه‌ی -32767..32767 است.
 // انیمیشن طول: هر دو نقطه از مرکز به بیرون حرکت می‌کنند (افکت پرتاب)
@@ -491,7 +548,7 @@ static void ray_delete_cb(lv_anim_t * a)
     }
 }
 
-/*==================== فاز Rays ====================*/
+/*====================  اجرای فاز Rays ====================*/
 void startRaysPhase(lv_obj_t *parent, int base_delay)
 {
     for(int i = 0; i < RAY_COUNT; i++) {
@@ -561,7 +618,9 @@ void startRaysPhase(lv_obj_t *parent, int base_delay)
         lv_anim_start(&a_opa_out);
     }
 }
-// ── انیمیشن چرخش/انقباض کمان‌ها ──────────────────────────────
+
+// ___________── انیمیشن چرخش/انقباض کمان‌ها ──────────────────────────────
+
 static void arc_spin_scale_timer_cb(lv_timer_t * timer)
 {
     LV_UNUSED(timer);
@@ -576,18 +635,18 @@ static void arc_spin_scale_timer_cb(lv_timer_t * timer)
         dots_deleted = true;
         gold_color = lv_color_hex(0xFFD700);
     }
-
+///////////////////////بعد از تمام شدن انیمیشن آرک //////////////////////
     if(animation_finished && !rays_started) {
         rays_started = true;
         startRaysPhase(ui_Screen1, 0);
         return;
     }
    
-    spin_angle += 25.0f;
+    spin_angle += 25.0f;                     ////تنظیم سرعت چرخش
     if (spin_angle >= 360.0f) spin_angle -= 360.0f;
 
     if (shrinking) {
-        scale_factor -= 0.04f;
+        scale_factor -= 0.04f;                 ///////سایز نهایی
         if (scale_factor <= 0.03f) { scale_factor = 0.03f; animation_finished = true; }
     } else {
         scale_factor += 0.005f;
@@ -638,12 +697,18 @@ static void arc_spin_scale_timer_cb(lv_timer_t * timer)
     lv_obj_set_style_arc_color(ui_ArcGreen,  lv_color_mix(gold_color, lv_color_hex(0x00FF00), mix), LV_PART_INDICATOR);
 }
 
+
+//______________________تنظیم فلگ پایان انیمیشن آرک____________________
+
 static void arcs_draw_done_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
     arcs_ready = true;
     lv_timer_create(arc_spin_scale_timer_cb, 33, NULL);  // حالا شروع کن
 }
+
+//__________________________________آغاز انیمیشن آرک ها _______________________
+
 void startArcAnimations(int delay)
 {
     lv_anim_t a;
@@ -708,9 +773,6 @@ void ui_init(void)
     ui_Screen1_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
     lv_disp_load_scr(ui_Screen1);
-
-    // startArcAnimations(0);
-    // lv_timer_create(arc_spin_scale_timer_cb, 66, NULL);  // خودش با arcs_ready صبر می‌کند
 }
 
 
