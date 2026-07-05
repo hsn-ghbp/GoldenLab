@@ -13,6 +13,7 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "ui.h"
+#include "pcf8574.h"
 
 #define TAG "MAGI"
 
@@ -31,6 +32,56 @@
 #define LVGL_TASK_STACK_SIZE    (8 * 1024)
 #define LVGL_TASK_PRIORITY      2
 #define LVGL_BUF_HEIGHT         40
+
+
+static void key_task(void *arg)
+{
+    while (1)
+    {
+        key_scan();   // <-- اینجا یک مشکل نامگذاری داریم
+
+        key_evt_t evt = key_get();
+
+        switch(evt)
+        {
+            case KEY_UP:
+                ESP_LOGI("KEY", "UP");
+                break;
+
+            case KEY_DOWN:
+                ESP_LOGI("KEY", "DOWN");
+                break;
+
+            case KEY_OK:
+                ESP_LOGI("KEY", "OK");
+                break;
+
+            case KEY_OK_HOLD:
+                ESP_LOGI("KEY", "OK HOLD");
+                break;
+
+            case KEY_BACK:
+                ESP_LOGI("KEY", "BACK");
+                break;
+
+            case KEY_BACK_HOLD:
+                ESP_LOGI("KEY", "BACK HOLD");
+                break;
+
+            case KEY_TRIG:
+                ESP_LOGI("KEY", "TRIG");
+                break;
+
+            default:
+                break;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
+    }
+}
+
+
+
 
 static SemaphoreHandle_t lvgl_mux = NULL;
 static esp_lcd_panel_handle_t panel_handle = NULL;
@@ -159,6 +210,25 @@ void app_main(void)
     // ── LVGL init ─────────────────────────────────────────────
     lv_init();
 
+
+    /////////////////////////////////////8574 ///////////////////////////////////////////////////////
+   pcf8574_init();
+   key_init();
+
+    xTaskCreate(
+        key_task,
+        "keys",
+        2048,
+        NULL,
+        2,
+        NULL
+    );
+
+
+ 
+////////////////////////////////////////////////////////////////////////////
+
+
     // 2 bytes/pixel for RGB565 (NOT sizeof(lv_color_t), which is 3 in LVGL9)
     size_t buf_size = LCD_W * LVGL_BUF_HEIGHT * sizeof(uint16_t);
     void *buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_DMA);
@@ -195,14 +265,21 @@ void app_main(void)
     // LVGL task
     xTaskCreate(lvgl_task, "lvgl", LVGL_TASK_STACK_SIZE, NULL,
                 LVGL_TASK_PRIORITY, NULL);
+                
 
     // ── UI (Step 1: just a label to prove the pipeline works) ─
     if(lvgl_lock(1000)) {
         ui_init();
         lvgl_unlock();
         ESP_LOGI(TAG, "UI init OK");
+        
     };
 
-     
+    
+    uint8_t keys;
+    if (pcf8574_read(&keys) == ESP_OK)
+    {
+        printf("PCF = 0x%02X\n", keys);
+    } 
     
 };

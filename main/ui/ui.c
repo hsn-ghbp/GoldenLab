@@ -2,7 +2,7 @@
 // SquareLine Studio version: SquareLine Studio 1.6.0
 // LVGL version: 9.3
 // Project name: MAGI_ESP
-
+#include <stdio.h>
 #include "ui.h"
 #include "ui_helpers.h"
 #include <math.h>     // برای M_PI
@@ -29,6 +29,7 @@ static bool dots_deleted = false;
 static bool rays_started = false;   // جلوگیری از فراخوانی چندباره‌ی startRaysPhase
 static lv_color_t gold_color;
 static float color_progress = 0.0f;
+static lv_timer_t *arc_timer = NULL;
 
 typedef struct {
     float start;
@@ -45,7 +46,7 @@ static const arc_orig_t arc_original[] = {
 };
 
 
-#define RAY_COUNT 36
+#define RAY_COUNT 15
 
 typedef struct {
     lv_obj_t *line;
@@ -636,11 +637,54 @@ static void arc_spin_scale_timer_cb(lv_timer_t * timer)
         gold_color = lv_color_hex(0xFFD700);
     }
 ///////////////////////بعد از تمام شدن انیمیشن آرک //////////////////////
-    if(animation_finished && !rays_started) {
-        rays_started = true;
-        startRaysPhase(ui_Screen1, 0);
-        return;
+   if(animation_finished && !rays_started)
+{
+    rays_started = true;
+
+    if(arc_timer)
+    {
+        lv_timer_del(arc_timer);
+        arc_timer = NULL;
     }
+
+    // حذف کامل آرک‌ها
+    if(ui_ArcRed) {
+        lv_obj_del(ui_ArcRed);
+        ui_ArcRed = NULL;
+    }
+
+    if(ui_ArcGreen) {
+        lv_obj_del(ui_ArcGreen);
+        ui_ArcGreen = NULL;
+    }
+
+    if(ui_ArcBlue) {
+        lv_obj_del(ui_ArcBlue);
+        ui_ArcBlue = NULL;
+    }
+
+    if(ui_ArcYellow) {
+        lv_obj_del(ui_ArcYellow);
+        ui_ArcYellow = NULL;
+    }
+
+    startRaysPhase(ui_Screen1, 0);
+    return;
+}
+// if(animation_finished && !rays_started)
+// {
+//     rays_started = true;
+
+//     if(arc_timer)
+//     {
+//         lv_timer_del(arc_timer);
+//         arc_timer = NULL;
+//     }
+
+//     printf("ARC FINISHED\r\n");
+
+//     return;
+// }
    
     spin_angle += 25.0f;                     ////تنظیم سرعت چرخش
     if (spin_angle >= 360.0f) spin_angle -= 360.0f;
@@ -703,8 +747,14 @@ static void arc_spin_scale_timer_cb(lv_timer_t * timer)
 static void arcs_draw_done_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
+
     arcs_ready = true;
-    lv_timer_create(arc_spin_scale_timer_cb, 33, NULL);  // حالا شروع کن
+
+    arc_timer = lv_timer_create(
+        arc_spin_scale_timer_cb,
+        33,
+        NULL
+    );
 }
 
 //__________________________________آغاز انیمیشن آرک ها _______________________
