@@ -22,7 +22,7 @@
 #define LCD_MOSI        7
 #define LCD_CS          10
 #define LCD_DC          20
-#define LCD_RST         21
+#define LCD_RST         -1
 #define LCD_W           240
 #define LCD_H           240
 #define LCD_SPI_MHZ     27
