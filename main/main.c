@@ -34,6 +34,14 @@
 #define LVGL_BUF_HEIGHT         40
 
 
+static bool menu_loaded = false;
+bool lvgl_lock(uint32_t timeout_ms);
+void lvgl_unlock(void);
+
+
+
+
+
 static void key_task(void *arg)
 {
     while (1)
@@ -58,7 +66,20 @@ static void key_task(void *arg)
                 break;
 
             case KEY_OK:
-                ESP_LOGI("KEY", "OK");
+
+                if(splash_done && !menu_loaded)
+                {
+                    menu_loaded = true;
+
+                    if(lvgl_lock(100))
+                    {
+                        lv_screen_load(ui_MainMenu);
+                        lvgl_unlock();
+                    }
+
+                    ESP_LOGI("MENU", "Main menu loaded");
+                }
+
                 break;
 
             case KEY_OK_HOLD:

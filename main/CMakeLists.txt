@@ -5,10 +5,20 @@ idf_component_register(
         "ui/ui.c"
         "ui/ui_helpers.c"
         "ui/screens/ui_Screen1.c"
+        "ui/screens/ui_MainMenu.c"
         "ui/components/ui_comp_hook.c"
-    INCLUDE_DIRS 
+        "ui/images/ui_img_scan_png.c"
+        "ui/images/ui_img_send_png.c"
+        "ui/images/ui_img_memory_png.c"
+        "ui/images/ui_img_setting_png.c"
+        "ui/images/ui_img_about_png.c"
+        "ui/fonts/ui_font_Font1.c"
+        "ui/fonts/ui_font_vazir40.c"
+    INCLUDE_DIRS
         "."
         "ui"
         "ui/screens"
         "ui/components"
+        "ui/fonts"
+        "ui/images"
     REQUIRES lvgl)

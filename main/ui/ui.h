@@ -19,7 +19,7 @@ extern "C" {
 ///////////////////// SCREENS ////////////////////
 
 #include "screens/ui_Screen1.h"
-
+#include "screens/ui_MainMenu.h"
 ///////////////////// VARIABLES ////////////////////
 
 extern lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay);
@@ -37,6 +37,16 @@ extern volatile bool splash_done;
 
 extern lv_obj_t * ui____initial_actions0;
 
+// IMAGES AND IMAGE SETS
+LV_IMG_DECLARE(ui_img_scan_png);    // assets/scan.png
+LV_IMG_DECLARE(ui_img_send_png);    // assets/send.png
+LV_IMG_DECLARE(ui_img_memory_png);    // assets/memory.png
+LV_IMG_DECLARE(ui_img_setting_png);    // assets/setting.png
+LV_IMG_DECLARE(ui_img_about_png);    // assets/About.png
+
+// FONTS
+LV_FONT_DECLARE(ui_font_Font1);
+LV_FONT_DECLARE(ui_font_vazir40);
 // UI INIT
 
 void startArcAnimations(int delay);
