@@ -38,10 +38,15 @@ static void key_task(void *arg)
 {
     while (1)
     {
-        key_scan();   // <-- اینجا یک مشکل نامگذاری داریم
+        
+        key_scan();  
+        if(!splash_done)
+        {
+            vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
+            continue;
 
+        } 
         key_evt_t evt = key_get();
-
         switch(evt)
         {
             case KEY_UP:
@@ -75,8 +80,7 @@ static void key_task(void *arg)
             default:
                 break;
         }
-
-        vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
+        
     }
 }
 

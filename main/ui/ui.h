@@ -30,6 +30,8 @@ extern lv_anim_t * ShowYellow_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * extendLeft_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * extendUP_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay);
+extern volatile bool splash_done;
+
 
 // EVENTS
 
@@ -41,7 +43,7 @@ void startArcAnimations(int delay);
 void startGoldenLabAnimation(int delay);
 void ui_init(void);
 void ui_destroy(void);
-
+void splash_finished(void);
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif

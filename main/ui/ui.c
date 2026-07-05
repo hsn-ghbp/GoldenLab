@@ -22,6 +22,7 @@ const float   DOT_ANGLES[4]  = {-M_PI/2.0f, 0.0f, M_PI/2.0f, M_PI};
 
 static float spin_angle = 0.0f;    // in degrees
 static float scale_factor = 1.0f;
+volatile bool splash_done = false;
 static bool shrinking = true;
 static bool arcs_ready = false; // فقط بعد از اتمام رسم شروع کن
 static bool animation_finished = false;
@@ -463,6 +464,22 @@ lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay)
 ///////////////////// FUNCTIONS ////////////////////
 
 //___________________ انیمیشن متن ______________________________
+
+
+
+void splash_finished(void)
+{
+    splash_done = true;
+
+}
+
+static void goldenlab_done_cb(lv_anim_t *a)     // اعلام پایان
+{
+    LV_UNUSED(a);
+
+    splash_finished();
+}
+
 static void label_scale_anim_cb(void * obj, int32_t v)      //scale callback
 {
     lv_obj_set_style_transform_scale_x((lv_obj_t *)obj, v, 0);
@@ -495,7 +512,9 @@ void startGoldenLabAnimation(int delay)
     lv_anim_set_time(&a_scale, 600);
     lv_anim_set_delay(&a_scale, delay);
     lv_anim_set_path_cb(&a_scale, lv_anim_path_overshoot);  // یه کم بزرگ‌تر بشه بعد برگرده - جلوه بهتر
+    lv_anim_set_completed_cb(&a_scale, goldenlab_done_cb);
     lv_anim_start(&a_scale);
+    
 }
 
 
