@@ -54,8 +54,6 @@ void menu_prev(void);
 
 
 
-
-
 static void key_task(void *arg)
 {
     static TickType_t last_nav_tick = 0;
@@ -193,6 +191,7 @@ static void lvgl_process_ui_cmds(void)
                 if(splash_done && !menu_loaded)
                 {
                     menu_loaded = true;
+                    ui_MainMenu_screen_init();
                     lv_screen_load(ui_MainMenu);
 //////////////////////////////////////  پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)////////////////////
                     ui_Screen1_cleanup_and_destroy();

@@ -65,6 +65,10 @@ void ui_MainMenu_screen_init(void)
     menu_update_positions();
 }
 
+int get_menu_selected(void)
+{
+    return menu_selected;
+}
 
 
 static void menu_xy_anim_cb(void *var, int32_t val)

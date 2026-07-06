@@ -19,6 +19,9 @@ extern lv_obj_t * ui_SendDataIcon;
 extern lv_obj_t * ui_MemoryIcon;
 extern lv_obj_t * ui_SettingIcon;
 extern lv_obj_t * ui_InfoIcon;
+// CUSTOM FUNCTION
+int get_menu_selected(void);
+
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus
