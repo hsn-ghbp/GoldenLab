@@ -26,60 +26,78 @@
 #define LCD_RST         -1
 #define LCD_W           240
 #define LCD_H           240
-#define LCD_SPI_MHZ     27
+#define LCD_SPI_MHZ     40
 
-#define LVGL_TICK_PERIOD_MS     2
+#define LVGL_TICK_PERIOD_MS     1
 #define LVGL_TASK_STACK_SIZE    (8 * 1024)
-#define LVGL_TASK_PRIORITY      2
-#define LVGL_BUF_HEIGHT         40
+#define LVGL_TASK_PRIORITY      3
+#define LVGL_BUF_HEIGHT         60
+#define KEY_NAV_DEBOUNCE_MS     500
+
+typedef enum {
+    UI_CMD_NONE = 0,
+    UI_CMD_MENU_PREV,
+    UI_CMD_MENU_NEXT,
+    UI_CMD_LOAD_MENU,
+} ui_cmd_t;
+
+
+static QueueHandle_t ui_cmd_queue = NULL;
 
 
 static bool menu_loaded = false;
 bool lvgl_lock(uint32_t timeout_ms);
 void lvgl_unlock(void);
-
+void menu_next(void);
+void menu_prev(void);
 
 
 
 
 static void key_task(void *arg)
 {
+    TickType_t last_nav_tick = 0;
+    TickType_t last_ok_tick = 0;
+
     while (1)
     {
-        
-        key_scan();  
+        key_scan();
+
         if(!splash_done)
         {
+            key_get();
             vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
             continue;
+        }
 
-        } 
         key_evt_t evt = key_get();
+        TickType_t now = xTaskGetTickCount();
+        ui_cmd_t cmd = UI_CMD_NONE;
+
         switch(evt)
         {
             case KEY_UP:
-                ESP_LOGI("KEY", "UP");
+                if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
+                {
+                    cmd = UI_CMD_MENU_PREV;
+                    last_nav_tick = now;
+                }
                 break;
 
             case KEY_DOWN:
-                ESP_LOGI("KEY", "DOWN");
+                if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
+                {
+                    cmd = UI_CMD_MENU_NEXT;
+                    last_nav_tick = now;
+                }
                 break;
 
             case KEY_OK:
-
-                if(splash_done && !menu_loaded)
+                if((now - last_ok_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
                 {
-                    menu_loaded = true;
-
-                    if(lvgl_lock(100))
-                    {
-                        lv_screen_load(ui_MainMenu);
-                        lvgl_unlock();
-                    }
-
-                    ESP_LOGI("MENU", "Main menu loaded");
+                    cmd = UI_CMD_LOAD_MENU;
+                    last_ok_tick = now;
                 }
-
                 break;
 
             case KEY_OK_HOLD:
@@ -101,9 +119,17 @@ static void key_task(void *arg)
             default:
                 break;
         }
-        
+
+        if(cmd != UI_CMD_NONE && ui_cmd_queue)
+        {
+            xQueueSend(ui_cmd_queue, &cmd, 0);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
     }
 }
+
+
 
 
 
@@ -139,20 +165,65 @@ static void lvgl_tick_cb(void *arg)
 }
 
 // ── LVGL task ─────────────────────────────────────────────────
+static void lvgl_process_ui_cmds(void)
+{
+    ui_cmd_t cmd;
+
+    while(ui_cmd_queue && xQueueReceive(ui_cmd_queue, &cmd, 0) == pdTRUE)
+    {
+        switch(cmd)
+        {
+            case UI_CMD_MENU_PREV:
+                if(menu_loaded)
+                {
+                    menu_prev();
+                }
+                break;
+
+            case UI_CMD_MENU_NEXT:
+                if(menu_loaded)
+                {
+                    menu_next();
+                }
+                break;
+
+            case UI_CMD_LOAD_MENU:
+                if(splash_done && !menu_loaded)
+                {
+                    menu_loaded = true;
+                    lv_screen_load(ui_MainMenu);
+                    ESP_LOGI("MENU", "Main menu loaded");
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
 static void lvgl_task(void *arg)
 {
     vTaskDelay(pdMS_TO_TICKS(5));
-    uint32_t delay = LVGL_TICK_PERIOD_MS;
-    while (1) {
-        if (lvgl_mux && xSemaphoreTake(lvgl_mux, pdMS_TO_TICKS(10)) == pdTRUE) {
+
+    uint32_t delay = 5;
+
+    while (1)
+    {
+        if (lvgl_mux && xSemaphoreTake(lvgl_mux, pdMS_TO_TICKS(20)) == pdTRUE)
+        {
+            lvgl_process_ui_cmds();
             delay = lv_timer_handler();
             xSemaphoreGive(lvgl_mux);
         }
-        if (delay > 500) delay = 500;
-        if (delay < 5)   delay = 5;
+
+        if (delay > 30) delay = 30;
+        if (delay < 5)  delay = 5;
+
         vTaskDelay(pdMS_TO_TICKS(delay));
     }
 }
+
 
 // ── lock/unlock helpers (use these around any LVGL API call) ──
 bool lvgl_lock(uint32_t timeout_ms)
@@ -239,11 +310,14 @@ void app_main(void)
     /////////////////////////////////////8574 ///////////////////////////////////////////////////////
    pcf8574_init();
    key_init();
+   ui_cmd_queue = xQueueCreate(8, sizeof(ui_cmd_t));
+assert(ui_cmd_queue);
+
 
     xTaskCreate(
         key_task,
         "keys",
-        2048,
+        4096,
         NULL,
         2,
         NULL

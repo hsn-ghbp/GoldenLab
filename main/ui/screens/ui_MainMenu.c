@@ -1,13 +1,27 @@
 #include "../ui.h"
 #include <math.h>
-#include <stdio.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define MENU_ITEM_COUNT 5
+#define MENU_CENTER_X   120
+#define MENU_CENTER_Y   120
+#define MENU_RADIUS     75
+#define ICON_SIZE       48
+
+typedef struct {
+    lv_obj_t *obj;
+    int32_t start_x;
+    int32_t start_y;
+    int32_t end_x;
+    int32_t end_y;
+    int32_t start_scale;
+    int32_t end_scale;
+} menu_anim_data_t;
 
 static lv_obj_t *menu_icons[MENU_ITEM_COUNT];
 static int menu_selected = 0;
-
-static void menu_update_positions(void);
+static bool first_layout = true;
 
 lv_obj_t * ui_MainMenu = NULL;
 lv_obj_t * ui_ScanIcon = NULL;
@@ -15,6 +29,9 @@ lv_obj_t * ui_SendDataIcon = NULL;
 lv_obj_t * ui_MemoryIcon = NULL;
 lv_obj_t * ui_SettingIcon = NULL;
 lv_obj_t * ui_InfoIcon = NULL;
+
+static void menu_update_positions(void);
+static void menu_xy_anim_cb(void *var, int32_t v);
 
 void ui_MainMenu_screen_init(void)
 {
@@ -44,60 +61,105 @@ void ui_MainMenu_screen_init(void)
 
     lv_obj_update_layout(ui_MainMenu);
 
+    first_layout = true;
     menu_update_positions();
 }
 
+
+
+static void menu_xy_anim_cb(void *var, int32_t val)
+{
+    menu_anim_data_t *data = (menu_anim_data_t *)var;
+    
+    // val بین 0 تا 1000 تغییر می‌کند (مطابق تنظیم lv_anim_set_values)
+    int32_t cur_x = data->start_x + ((data->end_x - data->start_x) * val) / 1000;
+    int32_t cur_y = data->start_y + ((data->end_y - data->start_y) * val) / 1000;
+    int32_t cur_scale = data->start_scale + ((data->end_scale - data->start_scale) * val) / 1000;
+
+    lv_obj_set_pos(data->obj, cur_x, cur_y);
+    
+    // تنظیم مرکز تصویر به عنوان نقطه مبدا مقیاس‌دهی (Pivot)
+    lv_image_set_pivot(data->obj, lv_obj_get_width(data->obj) / 2, lv_obj_get_height(data->obj) / 2);
+    lv_image_set_scale(data->obj, cur_scale);
+}
+
+
 static void menu_update_positions(void)
 {
-    printf("Screen W=%d H=%d\n",
-           (int)lv_obj_get_width(ui_MainMenu),
-           (int)lv_obj_get_height(ui_MainMenu));
+    
+    // تعریف آرایه استاتیک برای ذخیره داده‌های انیمیشن تا پایان اجرای انیمیشن
+    #define MENU_ITEM_COUNT 5
 
-    const int cx = 120;
-    const int cy = 120;
-    const int radius = 75;
+// مختصات‌های X و Y پیش‌محاسبه شده برای ۵ موقعیت روی دایره
+static const int16_t target_positions_x[MENU_ITEM_COUNT] = {
+    120 - 24,         // زاویه 90- (بالا) -> 96
+    191 - 24,         // زاویه 18- (راست-بالا) -> 167
+    164 - 24,         // زاویه 54  (راست-پایین) -> 140
+    76 - 24,          // زاویه 126 (چپ-پایین) -> 52
+    49 - 24           // زاویه 198 (چپ-بالا) -> 25
+};
+
+static const int16_t target_positions_y[MENU_ITEM_COUNT] = {
+    45 - 24,          // زاویه 90- (بالا) -> 21
+    97 - 24,          // زاویه 18- (راست-بالا) -> 73
+    181 - 24,         // زاویه 54  (راست-پایین) -> 157
+    181 - 24,         // زاویه 126 (چپ-پایین) -> 157
+    97 - 24           // زاویه 198 (چپ-بالا) -> 73
+};
+
+    static menu_anim_data_t anim_data[MENU_ITEM_COUNT];
 
     for(int i = 0; i < MENU_ITEM_COUNT; i++)
     {
         int pos = (i - menu_selected + MENU_ITEM_COUNT) % MENU_ITEM_COUNT;
 
-        float angle_deg = -90.0f + pos * (360.0f / MENU_ITEM_COUNT);
-        float angle_rad = angle_deg * 3.1415926f / 180.0f;
+        int32_t target_x = target_positions_x[pos];
+        int32_t target_y = target_positions_y[pos];
+        
+        // اگر موقعیت 0 باشد (آیتم وسط/فعال)، مقیاس بزرگتر (320) و در غیر این صورت معمولی (220)
+        int32_t target_scale = (pos == 0) ? 320 : 220; 
 
-        int x = cx + (int)(radius * cosf(angle_rad));
-        int y = cy + (int)(radius * sinf(angle_rad));
-
-        int w = lv_obj_get_width(menu_icons[i]);
-        int h = lv_obj_get_height(menu_icons[i]);
-
-        printf("i=%d pos=%d calc=(%d,%d) size=(%d,%d)\n",
-               i, pos, x, y, w, h);
-
-        lv_obj_set_pos(menu_icons[i],
-                       x - (w / 2),
-                       y - (h / 2));
-
-        printf("real=(%d,%d)\n",
-               (int)lv_obj_get_x(menu_icons[i]),
-               (int)lv_obj_get_y(menu_icons[i]));
-
-        if(pos == 0)
-        {
-            lv_image_set_scale(menu_icons[i], 320);
-            lv_obj_set_style_opa(menu_icons[i], LV_OPA_COVER, 0);
+        if(pos == 0) {
+            target_y += 10; // افست برای آیتم فعال
         }
-        else
-        {
-            lv_image_set_scale(menu_icons[i], 256);
-            lv_obj_set_style_opa(menu_icons[i], LV_OPA_70, 0);
+
+        // حذف انیمیشن قبلی روی این شیء
+        lv_anim_delete(menu_icons[i], NULL);
+
+        if(first_layout) {
+            lv_obj_set_pos(menu_icons[i], target_x, target_y);
+            lv_image_set_pivot(menu_icons[i], lv_obj_get_width(menu_icons[i]) / 2, lv_obj_get_height(menu_icons[i]) / 2);
+            lv_image_set_scale(menu_icons[i], target_scale);
+            continue;
         }
+
+        // پر کردن اطلاعات انیمیشن
+        anim_data[i].obj = menu_icons[i];
+        anim_data[i].start_x = lv_obj_get_x(menu_icons[i]);
+        anim_data[i].start_y = lv_obj_get_y(menu_icons[i]);
+        anim_data[i].end_x = target_x;
+        anim_data[i].end_y = target_y;
+        
+        // دریافت مقیاس فعلی تصویر به عنوان مقیاس شروع
+        anim_data[i].start_scale = lv_image_get_scale(menu_icons[i]);
+        anim_data[i].end_scale = target_scale;
+
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, &anim_data[i]);
+        lv_anim_set_values(&a, 0, 1000);
+        lv_anim_set_duration(&a, 400); // 400 میلی‌ثانیه برای حرکت نرم
+        lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+        lv_anim_set_exec_cb(&a, menu_xy_anim_cb);
+        lv_anim_start(&a);
     }
+    first_layout = false;
 }
+
 
 void menu_next(void)
 {
     menu_selected++;
-
     if(menu_selected >= MENU_ITEM_COUNT)
         menu_selected = 0;
 
@@ -107,7 +169,6 @@ void menu_next(void)
 void menu_prev(void)
 {
     menu_selected--;
-
     if(menu_selected < 0)
         menu_selected = MENU_ITEM_COUNT - 1;
 
