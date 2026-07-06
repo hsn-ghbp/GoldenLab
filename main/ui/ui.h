@@ -54,6 +54,8 @@ void startGoldenLabAnimation(int delay);
 void ui_init(void);
 void ui_destroy(void);
 void splash_finished(void);
+void ui_Screen1_cleanup_and_destroy(void);
+
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif

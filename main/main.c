@@ -54,10 +54,12 @@ void menu_prev(void);
 
 
 
+
+
 static void key_task(void *arg)
 {
-    TickType_t last_nav_tick = 0;
-    TickType_t last_ok_tick = 0;
+    static TickType_t last_nav_tick = 0;
+    static TickType_t last_ok_tick = 0;
 
     while (1)
     {
@@ -192,6 +194,8 @@ static void lvgl_process_ui_cmds(void)
                 {
                     menu_loaded = true;
                     lv_screen_load(ui_MainMenu);
+//////////////////////////////////////  پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)////////////////////
+                    ui_Screen1_cleanup_and_destroy();
                     ESP_LOGI("MENU", "Main menu loaded");
                 }
                 break;

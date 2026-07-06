@@ -852,6 +852,47 @@ void ui_destroy(void)
     ui_MainMenu_screen_destroy();
 }
 
+/**
+ * @brief پاک‌سازی کامل و آزاد کردن رم مربوط به صفحه‌ی Splash (Screen1)
+ * این تابع را هنگام رفتن به صفحه‌ی منوی اصلی صدا بزنید.
+ */
+void ui_Screen1_cleanup_and_destroy(void)
+{
+    // ۱. حذف تایمر آرک‌ها در صورت فعال بودن (جلوگیری از کرش در پس‌زمینه)
+    extern lv_timer_t * arc_timer; // ارجاع به تایمر تعریف شده در ui.c
+    if(arc_timer != NULL) {
+        lv_timer_del(arc_timer);
+        arc_timer = NULL;
+    }
+
+    // ۲. متوقف کردن تمام انیمیشن‌های در حال اجرا روی این صفحه و فرزندانش
+    if(ui_Screen1 != NULL) {
+        lv_anim_delete(ui_Screen1, NULL);
+    }
+    if(ui_GoldenLabLabel != NULL) {
+        lv_anim_delete(ui_GoldenLabLabel, NULL);
+    }
+
+    // ۳. حذف فیزیکی خود صفحه از حافظه (این کار تمام آبجکت‌های زیرمجموعه مثل Label را هم حذف می‌کند)
+    if(ui_Screen1 != NULL) {
+        lv_obj_del(ui_Screen1);
+        ui_Screen1 = NULL;
+        
+        // قرار دادن پوینتر سایر آبجکت‌های حذف شده روی NULL جهت ایمنی
+        ui_RedDot = NULL;
+        ui_GreenDot = NULL;
+        ui_BlueDot = NULL;
+        ui_YellowDot = NULL;
+        ui_uiArcContainer = NULL;
+        ui_ArcRed = NULL;
+        ui_ArcYellow = NULL;
+        ui_ArcBlue = NULL;
+        ui_ArcGreen = NULL;
+        ui_GoldenLabLabel = NULL;
+    }
+}
+
+
 
 
 
