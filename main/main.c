@@ -14,6 +14,7 @@
 #include "lvgl.h"
 #include "ui.h"
 #include "pcf8574.h"
+#include "brain.h"
 
 #define TAG "MAGI"
 
@@ -54,81 +55,99 @@ void menu_prev(void);
 
 
 
+// static void key_task(void *arg)
+// {
+//     static TickType_t last_nav_tick = 0;
+//     static TickType_t last_ok_tick = 0;
+
+//     while (1)
+//     {
+//         key_scan();
+
+//         if(!splash_done)
+//         {
+//             key_get();
+//             vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
+//             continue;
+//         }
+
+//         key_evt_t evt = key_get();
+//         TickType_t now = xTaskGetTickCount();
+//         ui_cmd_t cmd = UI_CMD_NONE;
+
+//         switch(evt)
+//         {
+//             case KEY_UP:
+//                 if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
+//                 {
+//                     cmd = UI_CMD_MENU_PREV;
+//                     last_nav_tick = now;
+//                 }
+//                 break;
+
+//             case KEY_DOWN:
+//                 if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
+//                 {
+//                     cmd = UI_CMD_MENU_NEXT;
+//                     last_nav_tick = now;
+//                 }
+//                 break;
+
+//             case KEY_OK:
+//                 if((now - last_ok_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
+//                 {
+//                     cmd = UI_CMD_LOAD_MENU;
+//                     last_ok_tick = now;
+//                 }
+//                 break;
+
+//             case KEY_OK_HOLD:
+//                 ESP_LOGI("KEY", "OK HOLD");
+//                 break;
+
+//             case KEY_BACK:
+//                 ESP_LOGI("KEY", "BACK");
+//                 break;
+
+//             case KEY_BACK_HOLD:
+//                 ESP_LOGI("KEY", "BACK HOLD");
+//                 break;
+
+//             case KEY_TRIG:
+//                 ESP_LOGI("KEY", "TRIG");
+//                 break;
+
+//             default:
+//                 break;
+//         }
+
+//         if(cmd != UI_CMD_NONE && ui_cmd_queue)
+//         {
+//             xQueueSend(ui_cmd_queue, &cmd, 0);
+//         }
+
+//         vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
+//     }
+// }
+
 static void key_task(void *arg)
 {
-    static TickType_t last_nav_tick = 0;
-    static TickType_t last_ok_tick = 0;
+    brain_init(); // راه‌اندازی اولیه وضعیت مغز برنامه
 
     while (1)
     {
         key_scan();
-
-        if(!splash_done)
-        {
-            key_get();
-            vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
-            continue;
-        }
-
         key_evt_t evt = key_get();
-        TickType_t now = xTaskGetTickCount();
-        ui_cmd_t cmd = UI_CMD_NONE;
 
-        switch(evt)
+        if (evt != KEY_NONE)
         {
-            case KEY_UP:
-                if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-                {
-                    cmd = UI_CMD_MENU_PREV;
-                    last_nav_tick = now;
-                }
-                break;
-
-            case KEY_DOWN:
-                if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-                {
-                    cmd = UI_CMD_MENU_NEXT;
-                    last_nav_tick = now;
-                }
-                break;
-
-            case KEY_OK:
-                if((now - last_ok_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-                {
-                    cmd = UI_CMD_LOAD_MENU;
-                    last_ok_tick = now;
-                }
-                break;
-
-            case KEY_OK_HOLD:
-                ESP_LOGI("KEY", "OK HOLD");
-                break;
-
-            case KEY_BACK:
-                ESP_LOGI("KEY", "BACK");
-                break;
-
-            case KEY_BACK_HOLD:
-                ESP_LOGI("KEY", "BACK HOLD");
-                break;
-
-            case KEY_TRIG:
-                ESP_LOGI("KEY", "TRIG");
-                break;
-
-            default:
-                break;
-        }
-
-        if(cmd != UI_CMD_NONE && ui_cmd_queue)
-        {
-            xQueueSend(ui_cmd_queue, &cmd, 0);
+            // ارسال رویداد کلید به مغز برنامه جهت تصمیم‌گیری و چاپ پیام دیباگ
+            brain_handle_key(evt);
         }
 
         vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
     }
 }
-
 
 
 
@@ -312,7 +331,7 @@ void app_main(void)
 
     /////////////////////////////////////8574 ///////////////////////////////////////////////////////
    pcf8574_init();
-   key_init();
+   brain_init();
    ui_cmd_queue = xQueueCreate(8, sizeof(ui_cmd_t));
 assert(ui_cmd_queue);
 
