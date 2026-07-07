@@ -11,6 +11,8 @@ static app_page_t current_page = PAGE_SPLASH;
 static int selected_menu = 0;
 static bool menu_loaded = false;
 static bool scan_loaded = false;
+static int scan_selected = 0;
+
 
 
 // توابع خارجی تعریف شده در main.c یا بخش‌های دیگر برای مدیریت قفل LVGL
@@ -210,25 +212,39 @@ void brain_handle_key(key_evt_t evt)
             break;
 
         case PAGE_SCAN:
-            if (evt == KEY_BACK)
-            {
-                ESP_LOGI(TAG, "BACK in PAGE_SCAN -> PAGE_MAIN_MENU");
-                current_page = PAGE_MAIN_MENU;
-                scan_loaded = false;
-            }
-            else if (evt == KEY_OK)
-            {
-                ESP_LOGI(TAG, "OK pressed in PAGE_SCAN");
-            }
-            else if (evt == KEY_UP)
-            {
-                ESP_LOGI(TAG, "UP pressed in PAGE_SCAN");
-            }
-            else if (evt == KEY_DOWN)
-            {
-                ESP_LOGI(TAG, "DOWN pressed in PAGE_SCAN");
-            }
-            break;
+            switch (evt) {
+                case KEY_UP:
+                    scan_selected = (scan_selected - 1 + 4) % 4;
+                    if (lvgl_lock(1000)) {
+                        scan_set_focused_index(scan_selected);
+                        lvgl_unlock();
+                    }
+                    ESP_LOGI(TAG, "SCAN selected = %d", scan_selected);
+                    break;
+
+                case KEY_DOWN:
+                    scan_selected = (scan_selected + 1) % 4;
+                    if (lvgl_lock(1000)) {
+                        scan_set_focused_index(scan_selected);
+                        lvgl_unlock();
+                    }
+                    ESP_LOGI(TAG, "SCAN selected = %d", scan_selected);
+                    break;
+
+                case KEY_OK:
+                    ESP_LOGI(TAG, "SCAN OK on item = %d", scan_selected);
+                    break;
+
+                case KEY_BACK:
+                    current_page = PAGE_MAIN_MENU;
+                    ESP_LOGI(TAG, "Back to Main Menu");
+                    break;
+
+                default:
+                    break;
+    }
+    break;
+
 
     }
 }
