@@ -15,9 +15,8 @@ static bool menu_loaded = false;
 extern bool lvgl_lock(uint32_t timeout_ms);
 extern void lvgl_unlock(void);
 
-// توابع ناوبری منو که در ui_MainMenu.c یا ui_events.c هستند
-extern void menu_next(void);
-extern void menu_prev(void);
+// تابع جدید مدیریت فوکوس منوی اصلی که در ui_MainMenu.c تعریف شده است
+extern void menu_set_focused_index(int index);
 
 // متغیر وضعیت اسپلش که در جای دیگر تعریف شده است
 extern volatile bool splash_done;
@@ -96,15 +95,19 @@ void brain_handle_key(key_evt_t evt)
                     case KEY_UP:
                         selected_menu--;
                         if (selected_menu < 0) selected_menu = 4;
-                        menu_prev();
-                        ESP_LOGI(TAG, "Menu Prev. Focus: %d", selected_menu);
+                        
+                        // هدایت مستقیم فوکوس جدید به لایوت منو
+                        menu_set_focused_index(selected_menu);
+                        ESP_LOGI(TAG, "Menu Focus updated to: %d", selected_menu);
                         break;
 
                     case KEY_DOWN:
                         selected_menu++;
                         if (selected_menu > 4) selected_menu = 0;
-                        menu_next();
-                        ESP_LOGI(TAG, "Menu Next. Focus: %d", selected_menu);
+                        
+                        // هدایت مستقیم فوکوس جدید به لایوت منو
+                        menu_set_focused_index(selected_menu);
+                        ESP_LOGI(TAG, "Menu Focus updated to: %d", selected_menu);
                         break;
 
                     case KEY_OK:
