@@ -35,97 +35,11 @@
 #define LVGL_BUF_HEIGHT         60
 #define KEY_NAV_DEBOUNCE_MS     500
 
-typedef enum {
-    UI_CMD_NONE = 0,
-    UI_CMD_MENU_PREV,
-    UI_CMD_MENU_NEXT,
-    UI_CMD_LOAD_MENU,
-} ui_cmd_t;
-
-
 
 
 bool lvgl_lock(uint32_t timeout_ms);
 void lvgl_unlock(void);
 
-
-
-
-
-// static void key_task(void *arg)
-// {
-//     static TickType_t last_nav_tick = 0;
-//     static TickType_t last_ok_tick = 0;
-
-//     while (1)
-//     {
-//         key_scan();
-
-//         if(!splash_done)
-//         {
-//             key_get();
-//             vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
-//             continue;
-//         }
-
-//         key_evt_t evt = key_get();
-//         TickType_t now = xTaskGetTickCount();
-//         ui_cmd_t cmd = UI_CMD_NONE;
-
-//         switch(evt)
-//         {
-//             case KEY_UP:
-//                 if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-//                 {
-//                     cmd = UI_CMD_MENU_PREV;
-//                     last_nav_tick = now;
-//                 }
-//                 break;
-
-//             case KEY_DOWN:
-//                 if((now - last_nav_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-//                 {
-//                     cmd = UI_CMD_MENU_NEXT;
-//                     last_nav_tick = now;
-//                 }
-//                 break;
-
-//             case KEY_OK:
-//                 if((now - last_ok_tick) >= pdMS_TO_TICKS(KEY_NAV_DEBOUNCE_MS))
-//                 {
-//                     cmd = UI_CMD_LOAD_MENU;
-//                     last_ok_tick = now;
-//                 }
-//                 break;
-
-//             case KEY_OK_HOLD:
-//                 ESP_LOGI("KEY", "OK HOLD");
-//                 break;
-
-//             case KEY_BACK:
-//                 ESP_LOGI("KEY", "BACK");
-//                 break;
-
-//             case KEY_BACK_HOLD:
-//                 ESP_LOGI("KEY", "BACK HOLD");
-//                 break;
-
-//             case KEY_TRIG:
-//                 ESP_LOGI("KEY", "TRIG");
-//                 break;
-
-//             default:
-//                 break;
-//         }
-
-//         if(cmd != UI_CMD_NONE && ui_cmd_queue)
-//         {
-//             xQueueSend(ui_cmd_queue, &cmd, 0);
-//         }
-
-//         vTaskDelay(pdMS_TO_TICKS(KEY_SCAN_MS));
-//     }
-// }
 
 static void key_task(void *arg)
 {
@@ -259,20 +173,6 @@ void app_main(void)
         .bits_per_pixel = 16,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_gc9a01(io_handle, &panel_cfg, &panel_handle));
-    // ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
-    // ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
-    // ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
-
-    // // Rotation via esp_lcd (it transforms draw coordinates so PARTIAL updates
-    // // land correctly -- doing this through a raw MADCTL write does NOT, which is
-    // // why the earlier attempts looked wrong).
-    // //   0deg   : swap_xy(false), mirror(false, false)
-    // //   90deg  : swap_xy(true),  mirror(true,  false)
-    // //   180deg : swap_xy(false), mirror(true,  true)
-    // //   270deg : swap_xy(true),  mirror(false, true)
-    // // If the image is mirrored, flip the two mirror() booleans.
-    // ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, false));
-    // ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false));
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
@@ -285,9 +185,6 @@ void app_main(void)
    
     // ── LVGL init ─────────────────────────────────────────────
     lv_init();
-
-
-    /////////////////////////////////////8574 ///////////////////////////////////////////////////////
    pcf8574_init();
    brain_init();
     xTaskCreate(
@@ -298,11 +195,6 @@ void app_main(void)
         2,
         NULL
     );
-
-
- 
-////////////////////////////////////////////////////////////////////////////
-
 
     // 2 bytes/pixel for RGB565 (NOT sizeof(lv_color_t), which is 3 in LVGL9)
     size_t buf_size = LCD_W * LVGL_BUF_HEIGHT * sizeof(uint16_t);
