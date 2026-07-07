@@ -43,14 +43,11 @@ typedef enum {
 } ui_cmd_t;
 
 
-static QueueHandle_t ui_cmd_queue = NULL;
 
 
-static bool menu_loaded = false;
 bool lvgl_lock(uint32_t timeout_ms);
 void lvgl_unlock(void);
-void menu_next(void);
-void menu_prev(void);
+
 
 
 
@@ -132,8 +129,6 @@ void menu_prev(void);
 
 static void key_task(void *arg)
 {
-    brain_init(); // راه‌اندازی اولیه وضعیت مغز برنامه
-
     while (1)
     {
         key_scan();
@@ -184,57 +179,20 @@ static void lvgl_tick_cb(void *arg)
 }
 
 // ── LVGL task ─────────────────────────────────────────────────
-static void lvgl_process_ui_cmds(void)
-{
-    ui_cmd_t cmd;
 
-    while(ui_cmd_queue && xQueueReceive(ui_cmd_queue, &cmd, 0) == pdTRUE)
-    {
-        switch(cmd)
-        {
-            case UI_CMD_MENU_PREV:
-                if(menu_loaded)
-                {
-                    menu_prev();
-                }
-                break;
-
-            case UI_CMD_MENU_NEXT:
-                if(menu_loaded)
-                {
-                    menu_next();
-                }
-                break;
-
-            case UI_CMD_LOAD_MENU:
-                if(splash_done && !menu_loaded)
-                {
-                    menu_loaded = true;
-                    ui_MainMenu_screen_init();
-                    lv_screen_load(ui_MainMenu);
-//////////////////////////////////////  پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)////////////////////
-                    ui_Screen1_cleanup_and_destroy();
-                    ESP_LOGI("MENU", "Main menu loaded");
-                }
-                break;
-
-            default:
-                break;
-        }
-    }
-}
 
 static void lvgl_task(void *arg)
 {
     vTaskDelay(pdMS_TO_TICKS(5));
-
     uint32_t delay = 5;
 
     while (1)
     {
         if (lvgl_mux && xSemaphoreTake(lvgl_mux, pdMS_TO_TICKS(20)) == pdTRUE)
         {
-            lvgl_process_ui_cmds();
+            // فراخوانی تابع جدید در brain.c برای مدیریت وضعیت نمایش صفحات
+            brain_process_ui_cmds();
+            
             delay = lv_timer_handler();
             xSemaphoreGive(lvgl_mux);
         }
@@ -332,10 +290,6 @@ void app_main(void)
     /////////////////////////////////////8574 ///////////////////////////////////////////////////////
    pcf8574_init();
    brain_init();
-   ui_cmd_queue = xQueueCreate(8, sizeof(ui_cmd_t));
-assert(ui_cmd_queue);
-
-
     xTaskCreate(
         key_task,
         "keys",
