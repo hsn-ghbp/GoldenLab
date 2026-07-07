@@ -20,6 +20,7 @@ extern "C" {
 
 #include "screens/ui_Screen1.h"
 #include "screens/ui_MainMenu.h"
+#include "screens/ui_ScanMenu.h"
 ///////////////////// VARIABLES ////////////////////
 
 extern lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay);
@@ -31,6 +32,11 @@ extern lv_anim_t * extendLeft_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * extendUP_Animation(lv_obj_t * TargetObject, int delay);
 extern lv_anim_t * extendBot_Animation(lv_obj_t * TargetObject, int delay);
 extern volatile bool splash_done;
+extern lv_obj_t * ui_ScanMenu;
+extern lv_obj_t * ui_manpc;
+extern lv_obj_t * ui_autopc;
+extern lv_obj_t * ui_automem;
+extern lv_obj_t * ui_manmem;
 
 
 // EVENTS
@@ -43,6 +49,10 @@ LV_IMG_DECLARE(ui_img_send_png);    // assets/send.png
 LV_IMG_DECLARE(ui_img_memory_png);    // assets/memory.png
 LV_IMG_DECLARE(ui_img_setting_png);    // assets/setting.png
 LV_IMG_DECLARE(ui_img_about_png);    // assets/About.png
+LV_IMG_DECLARE(ui_img_manpc_png);
+LV_IMG_DECLARE(ui_img_autopc_png);
+LV_IMG_DECLARE(ui_img_automem_png);
+LV_IMG_DECLARE(ui_img_manmem_png);
 
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);
@@ -55,9 +65,18 @@ void ui_init(void);
 void ui_destroy(void);
 void splash_finished(void);
 void ui_Screen1_cleanup_and_destroy(void);
+void ui_ScanMenu_screen_init(void);
+void ui_ScanMenu_screen_destroy(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif
 
 #endif
+
+
+
+
+
+
+

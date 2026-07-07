@@ -18,6 +18,9 @@ extern lv_obj_t * ui_manpc;
 extern lv_obj_t * ui_autopc;
 extern lv_obj_t * ui_automem;
 extern lv_obj_t * ui_Image1;
+
+// CUSTOM FUNCTION
+int get_menu_selected(void);
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

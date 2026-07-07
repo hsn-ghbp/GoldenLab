@@ -10,6 +10,8 @@ static const char *TAG = "BRAIN";
 static app_page_t current_page = PAGE_SPLASH;
 static int selected_menu = 0;
 static bool menu_loaded = false;
+static bool scan_loaded = false;
+
 
 // توابع خارجی تعریف شده در main.c یا بخش‌های دیگر برای مدیریت قفل LVGL
 extern bool lvgl_lock(uint32_t timeout_ms);
@@ -26,6 +28,7 @@ void brain_init(void)
     current_page = PAGE_SPLASH;
     selected_menu = 0;
     menu_loaded = false;
+    scan_loaded = false;
     ESP_LOGI(TAG, "Brain initialized.");
 }
 
@@ -45,26 +48,70 @@ bool brain_is_menu_loaded(void)
 }
 
 // تابع پردازش دستورات گرافیکی منتقل شده به brain.c
+// void brain_process_ui_cmds(void)
+// {
+//     // این تابع اکنون مستقیماً توسط تسک LVGL در main.c و درون حلقه قفل شده خوانده می‌شود.
+//     // بر اساس وضعیت صفحه جاری (current_page) اقدامات لازم صورت می‌گیرد.
+    
+//     // نکته: ما منطق را بر اساس وضعیت‌های current_page هماهنگ می‌کنیم
+//     if (current_page == PAGE_MAIN_MENU && !menu_loaded)
+//     {
+//         if (splash_done)
+//         {
+//             menu_loaded = true;
+//             ui_MainMenu_screen_init();
+//             lv_screen_load(ui_MainMenu);
+            
+//             // پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)
+//             ui_Screen1_cleanup_and_destroy();
+//             ESP_LOGI(TAG, "Main menu screen loaded & Splash destroyed");
+//         }
+//     }
+// }
+
+
 void brain_process_ui_cmds(void)
 {
-    // این تابع اکنون مستقیماً توسط تسک LVGL در main.c و درون حلقه قفل شده خوانده می‌شود.
-    // بر اساس وضعیت صفحه جاری (current_page) اقدامات لازم صورت می‌گیرد.
-    
-    // نکته: ما منطق را بر اساس وضعیت‌های current_page هماهنگ می‌کنیم
     if (current_page == PAGE_MAIN_MENU && !menu_loaded)
     {
-        if (splash_done)
+        menu_loaded = true;
+
+        ui_MainMenu_screen_init();
+        lv_screen_load(ui_MainMenu);
+
+        // اگر از Splash آمده‌ایم و destroy لازم است
+        if (ui_Screen1)
         {
-            menu_loaded = true;
-            ui_MainMenu_screen_init();
-            lv_screen_load(ui_MainMenu);
-            
-            // پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)
             ui_Screen1_cleanup_and_destroy();
-            ESP_LOGI(TAG, "Main menu screen loaded & Splash destroyed");
         }
+
+        // اگر از Scan برگشته‌ایم، صفحه Scan را destroy کن
+        if (ui_ScanMenu)
+        {
+            ui_ScanMenu_screen_destroy();
+            scan_loaded = false;
+        }
+
+        ESP_LOGI(TAG, "Main menu screen loaded");
+    }
+    else if (current_page == PAGE_SCAN && !scan_loaded)
+    {
+        scan_loaded = true;
+
+        ui_ScanMenu_screen_init();
+        lv_screen_load(ui_ScanMenu);
+
+        // صفحه Main Menu را destroy کن تا RAM آزاد شود
+        if (ui_MainMenu)
+        {
+            ui_MainMenu_screen_destroy();
+            menu_loaded = false;
+        }
+
+        ESP_LOGI(TAG, "Scan menu screen loaded");
     }
 }
+
 
 // هاب اصلی تصمیم‌گیری بر اساس کلید
 void brain_handle_key(key_evt_t evt)
@@ -111,9 +158,42 @@ void brain_handle_key(key_evt_t evt)
                         break;
 
                     case KEY_OK:
-                        ESP_LOGI(TAG, "Selected Menu Item %d Executed", selected_menu);
-                        // در گام بعدی صفحات دیگر را لود خواهیم کرد
+                        ESP_LOGI(TAG, "Main menu OK on item: %d", selected_menu);
+
+                        switch (selected_menu)
+                        {
+                            case 4:
+                                current_page = PAGE_ABOUT;
+                                ESP_LOGI(TAG, "Go to PAGE_ABOUT");
+                                break;
+
+                            case 3:
+                                current_page = PAGE_SETTING;
+                                ESP_LOGI(TAG, "Go to PAGE_SETTING");
+                                break;
+
+                            case 2:
+                                current_page = PAGE_MEMORY;
+                                ESP_LOGI(TAG, "Go to PAGE_MEMORY");
+                                break;
+
+                            case 1:
+                                current_page = PAGE_SEND;
+                                ESP_LOGI(TAG, "Go to PAGE_SEND");
+                                break;
+
+                            case 0:
+                                current_page = PAGE_SCAN;
+                                menu_loaded = false;   // چون از منو خارج می‌شویم
+                                ESP_LOGI(TAG, "Go to PAGE_SCAN");
+                                break;
+
+                            default:
+                                ESP_LOGW(TAG, "Unknown menu index: %d", selected_menu);
+                                break;
+                        }
                         break;
+
 
                     case KEY_BACK:
                         ESP_LOGI(TAG, "Back pressed in Main Menu");
@@ -128,5 +208,27 @@ void brain_handle_key(key_evt_t evt)
 
         default:
             break;
+
+        case PAGE_SCAN:
+            if (evt == KEY_BACK)
+            {
+                ESP_LOGI(TAG, "BACK in PAGE_SCAN -> PAGE_MAIN_MENU");
+                current_page = PAGE_MAIN_MENU;
+                scan_loaded = false;
+            }
+            else if (evt == KEY_OK)
+            {
+                ESP_LOGI(TAG, "OK pressed in PAGE_SCAN");
+            }
+            else if (evt == KEY_UP)
+            {
+                ESP_LOGI(TAG, "UP pressed in PAGE_SCAN");
+            }
+            else if (evt == KEY_DOWN)
+            {
+                ESP_LOGI(TAG, "DOWN pressed in PAGE_SCAN");
+            }
+            break;
+
     }
 }
