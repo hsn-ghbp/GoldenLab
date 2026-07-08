@@ -3,16 +3,16 @@
 // LVGL version: 9.3
 // Project name: MAGI_ESP
 
-#ifndef UI_SCREEN3_H
-#define UI_SCREEN3_H
+#ifndef UI_MEMORY_H
+#define UI_MEMORY_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// SCREEN: ui_Screen3
-extern void ui_Screen3_screen_init(void);
-extern void ui_Screen3_screen_destroy(void);
+// SCREEN: ui_Memory
+extern void ui_Memory_screen_init(void);
+extern void ui_Memory_screen_destroy(void);
 extern lv_obj_t * ui_Memory;
 // CUSTOM VARIABLES
 

@@ -3,16 +3,16 @@
 // LVGL version: 9.3
 // Project name: MAGI_ESP
 
-#ifndef UI_SCREEN4_H
-#define UI_SCREEN4_H
+#ifndef UI_SENDDATA_H
+#define UI_SENDDATA_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// SCREEN: ui_Screen4
-extern void ui_Screen4_screen_init(void);
-extern void ui_Screen4_screen_destroy(void);
+// SCREEN: ui_SendData
+extern void ui_SendData_screen_init(void);
+extern void ui_SendData_screen_destroy(void);
 extern lv_obj_t * ui_SendData;
 // CUSTOM VARIABLES
 

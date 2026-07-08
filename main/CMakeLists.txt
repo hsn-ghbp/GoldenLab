@@ -11,4 +11,6 @@ idf_component_register(
         "ui/components"
         "ui/fonts"
         "ui/images"
+    REQUIRES
+        lvgl
 )

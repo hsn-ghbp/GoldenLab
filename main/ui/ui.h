@@ -18,6 +18,11 @@ extern "C" {
 
 ///////////////////// SCREENS ////////////////////
 
+#include "screens/ui_SendData.h"
+#include "screens/ui_Setting.h"
+#include "screens/ui_ScanPage.h"
+#include "screens/ui_Memory.h"
+#include "screens/ui_About.h"
 #include "screens/ui_Screen1.h"
 #include "screens/ui_MainMenu.h"
 #include "screens/ui_ScanMenu.h"
@@ -49,10 +54,16 @@ LV_IMG_DECLARE(ui_img_send_png);    // assets/send.png
 LV_IMG_DECLARE(ui_img_memory_png);    // assets/memory.png
 LV_IMG_DECLARE(ui_img_setting_png);    // assets/setting.png
 LV_IMG_DECLARE(ui_img_about_png);    // assets/About.png
-LV_IMG_DECLARE(ui_img_manpc_png);
-LV_IMG_DECLARE(ui_img_autopc_png);
-LV_IMG_DECLARE(ui_img_automem_png);
-LV_IMG_DECLARE(ui_img_manmem_png);
+LV_IMG_DECLARE(ui_img_manpc_png);    // assets/manpc.png
+LV_IMG_DECLARE(ui_img_autopc_png);    // assets/autopc.png
+LV_IMG_DECLARE(ui_img_automem_png);    // assets/automem.png
+LV_IMG_DECLARE(ui_img_manmem_png);    // assets/manmem.png
+LV_IMG_DECLARE(ui_img_ring_png);    // assets/ring.png
+LV_IMG_DECLARE(ui_img_back_png);    // assets/back.png
+LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
+LV_IMG_DECLARE(ui_img_bluetooth_png);    // assets/Bluetooth.png
+LV_IMG_DECLARE(ui_img_save_png);    // assets/Save.png
+LV_IMG_DECLARE(ui_img_battery_png);    // assets/Battery.png
 
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);
