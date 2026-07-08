@@ -13,6 +13,19 @@
 #define CR      8
 #define REACH   90
 #define TRIGO_MAX 32767
+#define RAY_COUNT 20
+
+typedef struct {
+    lv_obj_t *line;
+    lv_point_precise_t pts[2];
+    float angle;      // رادیان
+    int   max_len;
+    int   delay;       // ms - نسبت به شروع فاز rays
+    int   width;
+    lv_opa_t target_opa;
+} ray_t;
+
+static ray_t rays[RAY_COUNT];
 
 const uint32_t DOT_COLORS[4] = {0xFF2020, 0x20FF50, 0x2090FF, 0xFFE020};
 const float   DOT_ANGLES[4]  = {-M_PI/2.0f, 0.0f, M_PI/2.0f, M_PI};
@@ -47,19 +60,7 @@ static const arc_orig_t arc_original[] = {
 };
 
 
-#define RAY_COUNT 15
 
-typedef struct {
-    lv_obj_t *line;
-    lv_point_precise_t pts[2];
-    float angle;      // رادیان
-    int   max_len;
-    int   delay;       // ms - نسبت به شروع فاز rays
-    int   width;
-    lv_opa_t target_opa;
-} ray_t;
-
-static ray_t rays[RAY_COUNT];
 
 ///////////////////// VARIABLES ////////////////////
 lv_anim_t * extendRight_Animation(lv_obj_t * TargetObject, int delay);
