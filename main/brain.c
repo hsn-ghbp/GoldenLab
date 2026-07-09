@@ -3,7 +3,10 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "ui.h"
+
 #include "ui_MainMenu.h"
+#include "ui_ScanMenu.h"
+#include "ui_Screen1.h"
 
 static const char *TAG = "BRAIN";
 
@@ -24,49 +27,75 @@ static int last_applied_scan_focus = -1;
 // -------------------------
 extern volatile bool splash_done;
 
-extern lv_obj_t *ui_Screen1;
-extern lv_obj_t *ui_MainMenu;
-extern lv_obj_t *ui_ScanMenu;
-
 extern void menu_set_focused_index(int index);
 extern void scan_set_focused_index(int index);
-
-extern void ui_Screen1_cleanup_and_destroy(void);
-extern void ui_MainMenu_screen_init(void);
-extern void ui_MainMenu_screen_destroy(void);
-extern void ui_ScanMenu_screen_init(void);
-extern void ui_ScanMenu_screen_destroy(void);
 
 // -------------------------
 // Internal helpers
 // -------------------------
+static lv_obj_t *brain_get_page_root(app_page_t page)
+{
+    switch (page)
+    {
+        case PAGE_SPLASH:
+            return ui_Screen1;
+
+        case PAGE_MAIN_MENU:
+            return ui_MainMenu;
+
+        case PAGE_SCAN:
+            return ui_ScanMenu;
+
+        default:
+            return NULL;
+    }
+}
+
+static bool brain_is_page_ready(app_page_t page)
+{
+    switch (page)
+    {
+        case PAGE_SPLASH:
+            return ui_Screen1_is_ready();
+
+        case PAGE_MAIN_MENU:
+            return ui_MainMenu_is_ready();
+
+        case PAGE_SCAN:
+            return ui_ScanMenu_is_ready();
+
+        default:
+            return false;
+    }
+}
+
 static void brain_destroy_page(app_page_t page)
 {
     switch (page)
     {
         case PAGE_SPLASH:
-            if (ui_Screen1) {
+            if (ui_Screen1_is_ready()) {
                 ui_Screen1_cleanup_and_destroy();
                 ESP_LOGI(TAG, "Destroyed PAGE_SPLASH");
             }
             break;
 
         case PAGE_MAIN_MENU:
-            if (ui_MainMenu) {
+            if (ui_MainMenu_is_ready()) {
                 ui_MainMenu_screen_destroy();
                 ESP_LOGI(TAG, "Destroyed PAGE_MAIN_MENU");
             }
             break;
 
         case PAGE_SCAN:
-            if (ui_ScanMenu) {
+            if (ui_ScanMenu_is_ready()) {
                 ui_ScanMenu_screen_destroy();
                 ESP_LOGI(TAG, "Destroyed PAGE_SCAN");
             }
             break;
 
         default:
-            // برای صفحه‌هایی که هنوز destroy ندارند فعلاً کاری نکن
+            ESP_LOGW(TAG, "Destroy not implemented for page %d", page);
             break;
     }
 }
@@ -82,30 +111,42 @@ static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
 
     switch (page)
     {
-        case PAGE_MAIN_MENU:
-            ui_MainMenu_screen_init();
-            if (ui_MainMenu == NULL) {
-                ESP_LOGE(TAG, "Failed to prepare PAGE_MAIN_MENU");
-                return false;
+        case PAGE_SPLASH:
+            if (!ui_Screen1_is_ready()) {
+                ui_Screen1_screen_init();
             }
-            *out_screen = ui_MainMenu;
-            ESP_LOGI(TAG, "Prepared PAGE_MAIN_MENU");
-            return true;
+            break;
+
+        case PAGE_MAIN_MENU:
+            if (!ui_MainMenu_is_ready()) {
+                ui_MainMenu_screen_init();
+            }
+            break;
 
         case PAGE_SCAN:
-            ui_ScanMenu_screen_init();
-            if (ui_ScanMenu == NULL) {
-                ESP_LOGE(TAG, "Failed to prepare PAGE_SCAN");
-                return false;
+            if (!ui_ScanMenu_is_ready()) {
+                ui_ScanMenu_screen_init();
             }
-            *out_screen = ui_ScanMenu;
-            ESP_LOGI(TAG, "Prepared PAGE_SCAN");
-            return true;
+            break;
 
         default:
             ESP_LOGW(TAG, "Page %d is not implemented or not supported yet", page);
             return false;
     }
+
+    if (!brain_is_page_ready(page)) {
+        ESP_LOGE(TAG, "Failed to prepare page %d: page is not ready", page);
+        return false;
+    }
+
+    *out_screen = brain_get_page_root(page);
+    if (*out_screen == NULL) {
+        ESP_LOGE(TAG, "Failed to prepare page %d: root screen is NULL", page);
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Prepared page %d", page);
+    return true;
 }
 
 static bool brain_transition_to_page(app_page_t target_page)
@@ -127,16 +168,15 @@ static bool brain_transition_to_page(app_page_t target_page)
         return false;
     }
 
-    // اول صفحه جدید را لود می‌کنیم
     lv_screen_load(new_screen);
     ESP_LOGI(TAG, "Loaded page %d", target_page);
 
-    // بعد صفحه قبلی را destroy می‌کنیم تا صفحه خالی نشود
-    brain_destroy_page(previous_page);
+    if (previous_page != target_page) {
+        brain_destroy_page(previous_page);
+    }
 
     loaded_page = target_page;
 
-    // ریست فوکوس cache برای اعمال مجدد روی صفحه جدید
     if (target_page == PAGE_MAIN_MENU) {
         last_applied_menu_focus = -1;
     } else if (target_page == PAGE_SCAN) {
@@ -286,18 +326,6 @@ void brain_handle_key(key_evt_t evt)
     }
 }
 
-// void brain_process_ui_cmds(void)
-// {
-//     if (current_page != loaded_page) {
-//         if (!brain_transition_to_page(current_page)) {
-//             ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d", current_page, loaded_page);
-//             current_page = loaded_page;
-//         }
-//     }
-
-//     brain_apply_focus_if_needed();
-// }
-
 void brain_process_ui_cmds(void)
 {
     static app_page_t last_logged_current = -1;
@@ -322,4 +350,3 @@ void brain_process_ui_cmds(void)
 
     brain_apply_focus_if_needed();
 }
-
