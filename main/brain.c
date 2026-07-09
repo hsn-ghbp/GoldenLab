@@ -1,37 +1,191 @@
 #include "brain.h"
-#include <stdio.h>
+#include <stdbool.h>
 #include "esp_log.h"
 #include "lvgl.h"
 #include "ui.h"
+#include "ui_MainMenu.h"
 
 static const char *TAG = "BRAIN";
 
-// متغیرهای وضعیت
+// -------------------------
+// App state
+// -------------------------
 static app_page_t current_page = PAGE_SPLASH;
+static app_page_t loaded_page  = PAGE_SPLASH;
+
 static int selected_menu = 0;
-static bool menu_loaded = false;
-static bool scan_loaded = false;
 static int scan_selected = 0;
 
+static int last_applied_menu_focus = -1;
+static int last_applied_scan_focus = -1;
 
-
-// توابع خارجی تعریف شده در main.c یا بخش‌های دیگر برای مدیریت قفل LVGL
-extern bool lvgl_lock(uint32_t timeout_ms);
-extern void lvgl_unlock(void);
-
-// تابع جدید مدیریت فوکوس منوی اصلی که در ui_MainMenu.c تعریف شده است
-extern void menu_set_focused_index(int index);
-
-// متغیر وضعیت اسپلش که در جای دیگر تعریف شده است
+// -------------------------
+// External symbols
+// -------------------------
 extern volatile bool splash_done;
 
+extern lv_obj_t *ui_Screen1;
+extern lv_obj_t *ui_MainMenu;
+extern lv_obj_t *ui_ScanMenu;
+
+extern void menu_set_focused_index(int index);
+extern void scan_set_focused_index(int index);
+
+extern void ui_Screen1_cleanup_and_destroy(void);
+extern void ui_MainMenu_screen_init(void);
+extern void ui_MainMenu_screen_destroy(void);
+extern void ui_ScanMenu_screen_init(void);
+extern void ui_ScanMenu_screen_destroy(void);
+
+// -------------------------
+// Internal helpers
+// -------------------------
+static void brain_destroy_page(app_page_t page)
+{
+    switch (page)
+    {
+        case PAGE_SPLASH:
+            if (ui_Screen1) {
+                ui_Screen1_cleanup_and_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_SPLASH");
+            }
+            break;
+
+        case PAGE_MAIN_MENU:
+            if (ui_MainMenu) {
+                ui_MainMenu_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_MAIN_MENU");
+            }
+            break;
+
+        case PAGE_SCAN:
+            if (ui_ScanMenu) {
+                ui_ScanMenu_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_SCAN");
+            }
+            break;
+
+        default:
+            // برای صفحه‌هایی که هنوز destroy ندارند فعلاً کاری نکن
+            break;
+    }
+}
+
+static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
+{
+    if (out_screen == NULL) {
+        ESP_LOGE(TAG, "brain_prepare_page: out_screen is NULL");
+        return false;
+    }
+
+    *out_screen = NULL;
+
+    switch (page)
+    {
+        case PAGE_MAIN_MENU:
+            ui_MainMenu_screen_init();
+            if (ui_MainMenu == NULL) {
+                ESP_LOGE(TAG, "Failed to prepare PAGE_MAIN_MENU");
+                return false;
+            }
+            *out_screen = ui_MainMenu;
+            ESP_LOGI(TAG, "Prepared PAGE_MAIN_MENU");
+            return true;
+
+        case PAGE_SCAN:
+            ui_ScanMenu_screen_init();
+            if (ui_ScanMenu == NULL) {
+                ESP_LOGE(TAG, "Failed to prepare PAGE_SCAN");
+                return false;
+            }
+            *out_screen = ui_ScanMenu;
+            ESP_LOGI(TAG, "Prepared PAGE_SCAN");
+            return true;
+
+        default:
+            ESP_LOGW(TAG, "Page %d is not implemented or not supported yet", page);
+            return false;
+    }
+}
+
+static bool brain_transition_to_page(app_page_t target_page)
+{
+    lv_obj_t *new_screen = NULL;
+    app_page_t previous_page = loaded_page;
+
+    if (target_page == loaded_page) {
+        return true;
+    }
+
+    if (!brain_prepare_page(target_page, &new_screen)) {
+        ESP_LOGW(TAG, "Transition rejected: prepare failed for page %d", target_page);
+        return false;
+    }
+
+    if (new_screen == NULL) {
+        ESP_LOGE(TAG, "Transition rejected: new_screen is NULL for page %d", target_page);
+        return false;
+    }
+
+    // اول صفحه جدید را لود می‌کنیم
+    lv_screen_load(new_screen);
+    ESP_LOGI(TAG, "Loaded page %d", target_page);
+
+    // بعد صفحه قبلی را destroy می‌کنیم تا صفحه خالی نشود
+    brain_destroy_page(previous_page);
+
+    loaded_page = target_page;
+
+    // ریست فوکوس cache برای اعمال مجدد روی صفحه جدید
+    if (target_page == PAGE_MAIN_MENU) {
+        last_applied_menu_focus = -1;
+    } else if (target_page == PAGE_SCAN) {
+        last_applied_scan_focus = -1;
+    }
+
+    return true;
+}
+
+static void brain_apply_focus_if_needed(void)
+{
+    switch (loaded_page)
+    {
+        case PAGE_MAIN_MENU:
+            if (selected_menu != last_applied_menu_focus) {
+                menu_set_focused_index(selected_menu);
+                last_applied_menu_focus = selected_menu;
+                ESP_LOGD(TAG, "Applied main menu focus: %d", selected_menu);
+            }
+            break;
+
+        case PAGE_SCAN:
+            if (scan_selected != last_applied_scan_focus) {
+                scan_set_focused_index(scan_selected);
+                last_applied_scan_focus = scan_selected;
+                ESP_LOGD(TAG, "Applied scan focus: %d", scan_selected);
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+// -------------------------
+// Public API
+// -------------------------
 void brain_init(void)
 {
     current_page = PAGE_SPLASH;
+    loaded_page  = PAGE_SPLASH;
+
     selected_menu = 0;
-    menu_loaded = false;
-    scan_loaded = false;
-    ESP_LOGI(TAG, "Brain initialized.");
+    scan_selected = 0;
+
+    last_applied_menu_focus = -1;
+    last_applied_scan_focus = -1;
+
+    ESP_LOGI(TAG, "Brain initialized");
 }
 
 app_page_t brain_get_current_page(void)
@@ -46,213 +200,126 @@ int brain_get_selected_menu(void)
 
 bool brain_is_menu_loaded(void)
 {
-    return menu_loaded;
+    return (loaded_page == PAGE_MAIN_MENU);
 }
 
-// تابع پردازش دستورات گرافیکی منتقل شده به brain.c
-// void brain_process_ui_cmds(void)
-// {
-//     // این تابع اکنون مستقیماً توسط تسک LVGL در main.c و درون حلقه قفل شده خوانده می‌شود.
-//     // بر اساس وضعیت صفحه جاری (current_page) اقدامات لازم صورت می‌گیرد.
-    
-//     // نکته: ما منطق را بر اساس وضعیت‌های current_page هماهنگ می‌کنیم
-//     if (current_page == PAGE_MAIN_MENU && !menu_loaded)
-//     {
-//         if (splash_done)
-//         {
-//             menu_loaded = true;
-//             ui_MainMenu_screen_init();
-//             lv_screen_load(ui_MainMenu);
-            
-//             // پاک‌سازی کامل صفحه اسپلش و آزاد کردن رم (بسیار مهم)
-//             ui_Screen1_cleanup_and_destroy();
-//             ESP_LOGI(TAG, "Main menu screen loaded & Splash destroyed");
-//         }
-//     }
-// }
-static void brain_cleanup_for_target_page(app_page_t target_page)
-{
-    switch (target_page)
-    {
-        case PAGE_MAIN_MENU:
-            if (ui_Screen1)
-            {
-                ui_Screen1_cleanup_and_destroy();
-            }
-
-            if (ui_ScanMenu)
-            {
-                ui_ScanMenu_screen_destroy();
-                scan_loaded = false;
-            }
-            break;
-
-        case PAGE_SCAN:
-            if (ui_MainMenu)
-            {
-                ui_MainMenu_screen_destroy();
-                menu_loaded = false;
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
-
-void brain_process_ui_cmds(void)
-{
-    if (current_page == PAGE_MAIN_MENU && !menu_loaded)
-    {
-        menu_loaded = true;
-        ui_MainMenu_screen_init();
-        lv_screen_load(ui_MainMenu);
-        brain_cleanup_for_target_page(PAGE_MAIN_MENU);
-        ESP_LOGI(TAG, "Main menu screen loaded");
-    }
-    else if (current_page == PAGE_SCAN && !scan_loaded)
-    {
-        scan_loaded = true;
-
-        ui_ScanMenu_screen_init();
-        lv_screen_load(ui_ScanMenu);
-        brain_cleanup_for_target_page(PAGE_SCAN);
-        ESP_LOGI(TAG, "Scan menu screen loaded");
-    }
-}
-
-
-// هاب اصلی تصمیم‌گیری بر اساس کلید
 void brain_handle_key(key_evt_t evt)
 {
-    if (evt == KEY_NONE) return;
+    if (evt == KEY_NONE) {
+        return;
+    }
 
-    ESP_LOGI(TAG, "Key: %d | Page: %d | Menu: %d", evt, current_page, selected_menu);
+    ESP_LOGI(TAG, "Key event: %d, current_page: %d", evt, current_page);
 
     switch (current_page)
     {
         case PAGE_SPLASH:
-            if (evt == KEY_OK)
-            {
-                ESP_LOGI(TAG, "Splash OK -> Transitioning to Main Menu");
+            if ((evt == KEY_OK) && splash_done) {
                 current_page = PAGE_MAIN_MENU;
                 selected_menu = 0;
             }
             break;
 
         case PAGE_MAIN_MENU:
-            if (!menu_loaded) return; // اگر هنوز صفحه لود نشده کلیدها اثر نکنند
-
-            // برای تغییرات گرافیکی LVGL از قفل استفاده می‌کنیم
-            if (lvgl_lock(1000))
-            {
-                switch (evt)
+            if (evt == KEY_UP) {
+                selected_menu = (selected_menu - 1 + 5) % 5;
+            }
+            else if (evt == KEY_DOWN) {
+                selected_menu = (selected_menu + 1) % 5;
+            }
+            else if (evt == KEY_OK) {
+                switch (selected_menu)
                 {
-                    case KEY_UP:
-                        selected_menu--;
-                        if (selected_menu < 0) selected_menu = 4;
-                        
-                        // هدایت مستقیم فوکوس جدید به لایوت منو
-                        menu_set_focused_index(selected_menu);
-                        ESP_LOGI(TAG, "Menu Focus updated to: %d", selected_menu);
+                    case 0:
+                        current_page = PAGE_SCAN;
+                        scan_selected = 0;
                         break;
 
-                    case KEY_DOWN:
-                        selected_menu++;
-                        if (selected_menu > 4) selected_menu = 0;
-                        
-                        // هدایت مستقیم فوکوس جدید به لایوت منو
-                        menu_set_focused_index(selected_menu);
-                        ESP_LOGI(TAG, "Menu Focus updated to: %d", selected_menu);
+                    case 1:
+                        current_page = PAGE_SEND;
                         break;
 
-                    case KEY_OK:
-                        ESP_LOGI(TAG, "Main menu OK on item: %d", selected_menu);
-
-                        switch (selected_menu)
-                        {
-                            case 4:
-                                current_page = PAGE_ABOUT;
-                                ESP_LOGI(TAG, "Go to PAGE_ABOUT");
-                                break;
-
-                            case 3:
-                                current_page = PAGE_SETTING;
-                                ESP_LOGI(TAG, "Go to PAGE_SETTING");
-                                break;
-
-                            case 2:
-                                current_page = PAGE_MEMORY;
-                                ESP_LOGI(TAG, "Go to PAGE_MEMORY");
-                                break;
-
-                            case 1:
-                                current_page = PAGE_SEND;
-                                ESP_LOGI(TAG, "Go to PAGE_SEND");
-                                break;
-
-                            case 0:
-                                current_page = PAGE_SCAN;
-                                menu_loaded = false;   // چون از منو خارج می‌شویم
-                                ESP_LOGI(TAG, "Go to PAGE_SCAN");
-                                break;
-
-                            default:
-                                ESP_LOGW(TAG, "Unknown menu index: %d", selected_menu);
-                                break;
-                        }
+                    case 2:
+                        current_page = PAGE_MEMORY;
                         break;
 
+                    case 3:
+                        current_page = PAGE_SETTING;
+                        break;
 
-                    case KEY_BACK:
-                        ESP_LOGI(TAG, "Back pressed in Main Menu");
+                    case 4:
+                        current_page = PAGE_ABOUT;
                         break;
 
                     default:
                         break;
                 }
-                lvgl_unlock();
+            }
+            break;
+
+        case PAGE_SCAN:
+            if (evt == KEY_BACK) {
+                current_page = PAGE_MAIN_MENU;
+            }
+            else if (evt == KEY_UP) {
+                scan_selected = (scan_selected - 1 + 4) % 4;
+            }
+            else if (evt == KEY_DOWN) {
+                scan_selected = (scan_selected + 1) % 4;
+            }
+            else if (evt == KEY_OK) {
+                ESP_LOGI(TAG, "Scan item selected: %d", scan_selected);
+            }
+            break;
+
+        case PAGE_SEND:
+        case PAGE_MEMORY:
+        case PAGE_SETTING:
+        case PAGE_ABOUT:
+            if (evt == KEY_BACK) {
+                current_page = PAGE_MAIN_MENU;
             }
             break;
 
         default:
             break;
-
-        case PAGE_SCAN:
-            switch (evt) {
-                case KEY_UP:
-                    scan_selected = (scan_selected - 1 + 4) % 4;
-                    if (lvgl_lock(1000)) {
-                        scan_set_focused_index(scan_selected);
-                        lvgl_unlock();
-                    }
-                    ESP_LOGI(TAG, "SCAN selected = %d", scan_selected);
-                    break;
-
-                case KEY_DOWN:
-                    scan_selected = (scan_selected + 1) % 4;
-                    if (lvgl_lock(1000)) {
-                        scan_set_focused_index(scan_selected);
-                        lvgl_unlock();
-                    }
-                    ESP_LOGI(TAG, "SCAN selected = %d", scan_selected);
-                    break;
-
-                case KEY_OK:
-                    ESP_LOGI(TAG, "SCAN OK on item = %d", scan_selected);
-                    break;
-
-                case KEY_BACK:
-                    current_page = PAGE_MAIN_MENU;
-                    ESP_LOGI(TAG, "Back to Main Menu");
-                    break;
-
-                default:
-                    break;
-    }
-    break;
-
-
     }
 }
+
+// void brain_process_ui_cmds(void)
+// {
+//     if (current_page != loaded_page) {
+//         if (!brain_transition_to_page(current_page)) {
+//             ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d", current_page, loaded_page);
+//             current_page = loaded_page;
+//         }
+//     }
+
+//     brain_apply_focus_if_needed();
+// }
+
+void brain_process_ui_cmds(void)
+{
+    static app_page_t last_logged_current = -1;
+    static app_page_t last_logged_loaded = -1;
+
+    if (current_page != last_logged_current || loaded_page != last_logged_loaded) {
+        ESP_LOGW(TAG, "STATE current=%d loaded=%d splash_done=%d",
+                 current_page, loaded_page, splash_done);
+        last_logged_current = current_page;
+        last_logged_loaded = loaded_page;
+    }
+
+    if (current_page != loaded_page) {
+        ESP_LOGW(TAG, "TRANSITION requested: %d -> %d", loaded_page, current_page);
+
+        if (!brain_transition_to_page(current_page)) {
+            ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d",
+                     current_page, loaded_page);
+            current_page = loaded_page;
+        }
+    }
+
+    brain_apply_focus_if_needed();
+}
+
