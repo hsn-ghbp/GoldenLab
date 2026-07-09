@@ -7,6 +7,10 @@
 #include "ui_MainMenu.h"
 #include "ui_ScanMenu.h"
 #include "ui_Screen1.h"
+#include "ui_About.h"
+#include "ui_Memory.h"
+#include "ui_SendData.h"
+#include "ui_Setting.h"
 
 static const char *TAG = "BRAIN";
 
@@ -46,6 +50,18 @@ static lv_obj_t *brain_get_page_root(app_page_t page)
         case PAGE_SCAN:
             return ui_ScanMenu;
 
+        case PAGE_SEND:
+            return ui_SendData;
+
+        case PAGE_MEMORY:
+            return ui_Memory;
+
+        case PAGE_SETTING:
+            return ui_Setting;
+
+        case PAGE_ABOUT:
+            return ui_About;
+
         default:
             return NULL;
     }
@@ -63,6 +79,18 @@ static bool brain_is_page_ready(app_page_t page)
 
         case PAGE_SCAN:
             return ui_ScanMenu_is_ready();
+
+        case PAGE_SEND:
+            return ui_SendData_is_ready();
+
+        case PAGE_MEMORY:
+            return ui_Memory_is_ready();
+
+        case PAGE_SETTING:
+            return ui_Setting_is_ready();
+
+        case PAGE_ABOUT:
+            return ui_About_is_ready();
 
         default:
             return false;
@@ -91,6 +119,34 @@ static void brain_destroy_page(app_page_t page)
             if (ui_ScanMenu_is_ready()) {
                 ui_ScanMenu_screen_destroy();
                 ESP_LOGI(TAG, "Destroyed PAGE_SCAN");
+            }
+            break;
+
+        case PAGE_SEND:
+            if (ui_SendData_is_ready()) {
+                ui_SendData_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_SEND");
+            }
+            break;
+
+        case PAGE_MEMORY:
+            if (ui_Memory_is_ready()) {
+                ui_Memory_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_MEMORY");
+            }
+            break;
+
+        case PAGE_SETTING:
+            if (ui_Setting_is_ready()) {
+                ui_Setting_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_SETTING");
+            }
+            break;
+
+        case PAGE_ABOUT:
+            if (ui_About_is_ready()) {
+                ui_About_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_ABOUT");
             }
             break;
 
@@ -126,6 +182,30 @@ static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
         case PAGE_SCAN:
             if (!ui_ScanMenu_is_ready()) {
                 ui_ScanMenu_screen_init();
+            }
+            break;
+
+        case PAGE_SEND:
+            if (!ui_SendData_is_ready()) {
+                ui_SendData_screen_init();
+            }
+            break;
+
+        case PAGE_MEMORY:
+            if (!ui_Memory_is_ready()) {
+                ui_Memory_screen_init();
+            }
+            break;
+
+        case PAGE_SETTING:
+            if (!ui_Setting_is_ready()) {
+                ui_Setting_screen_init();
+            }
+            break;
+
+        case PAGE_ABOUT:
+            if (!ui_About_is_ready()) {
+                ui_About_screen_init();
             }
             break;
 
