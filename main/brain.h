@@ -19,6 +19,9 @@ typedef enum {
 void brain_init(void);
 void brain_handle_key(key_evt_t evt);
 void brain_process_ui_cmds(void);
+int brain_get_scan_selected(void);
+int brain_get_scan_mode(void);
+
 
 // Getter ها
 app_page_t brain_get_current_page(void);
