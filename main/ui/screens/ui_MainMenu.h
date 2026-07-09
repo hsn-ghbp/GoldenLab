@@ -13,6 +13,7 @@ extern "C" {
 // SCREEN: ui_MainMenu
 extern void ui_MainMenu_screen_init(void);
 extern void ui_MainMenu_screen_destroy(void);
+bool ui_MainMenu_is_ready(void);
 extern lv_obj_t * ui_MainMenu;
 extern lv_obj_t * ui_ScanIcon;
 extern lv_obj_t * ui_SendDataIcon;

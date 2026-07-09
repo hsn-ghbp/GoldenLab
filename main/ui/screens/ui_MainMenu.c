@@ -165,6 +165,17 @@ void menu_set_focused_index(int index)
     menu_update_positions();
 }
 
+bool ui_MainMenu_is_ready(void)
+{
+    return (ui_MainMenu != NULL) &&
+           (ui_ScanIcon != NULL) &&
+           (ui_SendDataIcon != NULL) &&
+           (ui_MemoryIcon != NULL) &&
+           (ui_SettingIcon != NULL) &&
+           (ui_InfoIcon != NULL);
+}
+
+
 void ui_MainMenu_screen_destroy(void)
 {
     // حذف تمام انیمیشن‌های معلق در صورت نابودی صفحه برای جلوگیری از نشت حافظه

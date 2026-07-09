@@ -17,6 +17,12 @@ void ui_About_screen_init(void)
 
 }
 
+bool ui_About_is_ready(void)
+{
+    return (ui_About != NULL);
+}
+
+
 void ui_About_screen_destroy(void)
 {
     if(ui_About) lv_obj_del(ui_About);

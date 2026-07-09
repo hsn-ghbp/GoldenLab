@@ -26,9 +26,11 @@ lv_obj_t *ui_manmem = NULL;
 
 static void scan_update_positions(void);
 static void scan_xy_anim_cb(void *var, int32_t val);
+bool ui_ScanMenu_is_ready(void);
 
 void ui_ScanMenu_screen_init(void)
 {
+     
     ui_ScanMenu = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_ScanMenu, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -54,6 +56,7 @@ void ui_ScanMenu_screen_init(void)
     first_layout = true;
     scan_selected = 0;
     scan_update_positions();
+    
 }
 
 static void scan_xy_anim_cb(void *var, int32_t val)
@@ -165,6 +168,19 @@ void scan_set_focused_index(int index)
     scan_selected = index;
     scan_update_positions();
 }
+
+
+#include <stdbool.h>
+
+bool ui_ScanMenu_is_ready(void)
+{
+    return (ui_ScanMenu != NULL) &&
+           (ui_manpc != NULL) &&
+           (ui_autopc != NULL) &&
+           (ui_automem != NULL) &&
+           (ui_manmem != NULL);
+}
+
 
 void ui_ScanMenu_screen_destroy(void)
 {

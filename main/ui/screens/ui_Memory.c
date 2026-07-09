@@ -17,6 +17,13 @@ void ui_Memory_screen_init(void)
 
 }
 
+
+bool ui_Memory_is_ready(void)
+{
+    return (ui_Memory != NULL);
+}
+
+
 void ui_Memory_screen_destroy(void)
 {
     if(ui_Memory) lv_obj_del(ui_Memory);

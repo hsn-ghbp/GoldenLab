@@ -13,7 +13,8 @@ extern "C" {
 // SCREEN: ui_ScanMenu
 extern void ui_ScanMenu_screen_init(void);
 extern void ui_ScanMenu_screen_destroy(void); 
-void scan_set_focused_index(int index);      
+void scan_set_focused_index(int index);  
+bool ui_ScanMenu_is_ready(void);    
 extern lv_obj_t * ui_ScanMenu;
 extern lv_obj_t * ui_manpc;
 extern lv_obj_t * ui_autopc;

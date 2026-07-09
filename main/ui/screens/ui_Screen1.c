@@ -260,6 +260,17 @@ void ui_Screen1_screen_init(void)
 
 }
 
+bool ui_Screen1_is_ready(void)
+{
+    return (ui_Screen1 != NULL) &&
+           (ui_uiArcContainer != NULL) &&
+           (ui_ArcRed != NULL) &&
+           (ui_ArcYellow != NULL) &&
+           (ui_ArcBlue != NULL) &&
+           (ui_ArcGreen != NULL);
+}
+
+
 void ui_Screen1_screen_destroy(void)
 {
     if(ui_Screen1) lv_obj_del(ui_Screen1);

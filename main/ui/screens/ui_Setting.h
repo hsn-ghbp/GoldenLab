@@ -13,6 +13,7 @@ extern "C" {
 // SCREEN: ui_Setting
 extern void ui_Setting_screen_init(void);
 extern void ui_Setting_screen_destroy(void);
+bool ui_Setting_is_ready(void);
 extern lv_obj_t * ui_Setting;
 // CUSTOM VARIABLES
 

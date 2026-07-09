@@ -13,6 +13,7 @@ extern "C" {
 // SCREEN: ui_SendData
 extern void ui_SendData_screen_init(void);
 extern void ui_SendData_screen_destroy(void);
+bool ui_SendData_is_ready(void);
 extern lv_obj_t * ui_SendData;
 // CUSTOM VARIABLES
 

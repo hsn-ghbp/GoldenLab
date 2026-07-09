@@ -13,6 +13,7 @@ extern "C" {
 // SCREEN: ui_ScanPage
 extern void ui_ScanPage_screen_init(void);
 extern void ui_ScanPage_screen_destroy(void);
+bool ui_ScanPage_is_ready(void);
 extern lv_obj_t * ui_ScanPage;
 extern lv_obj_t * ui_ArcN;
 extern lv_obj_t * ui_ArcP;

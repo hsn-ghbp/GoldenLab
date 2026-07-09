@@ -177,6 +177,23 @@ void ui_ScanPage_screen_init(void)
 
 }
 
+bool ui_ScanPage_is_ready(void)
+{
+    return (ui_ScanPage != NULL) &&
+           (ui_ArcN != NULL) &&
+           (ui_ArcP != NULL) &&
+           (ui_MeterBack != NULL) &&
+           (ui_MeterNeedle != NULL) &&
+           (ui_CurentValue != NULL) &&
+           (ui_PulseCount != NULL) &&
+           (ui_Blutooth != NULL) &&
+           (ui_SendDataa != NULL) &&
+           (ui_Save != NULL) &&
+           (ui_Battery != NULL) &&
+           (ui_Slider1 != NULL);
+}
+
+
 void ui_ScanPage_screen_destroy(void)
 {
     if(ui_ScanPage) lv_obj_del(ui_ScanPage);

@@ -17,6 +17,12 @@ void ui_Setting_screen_init(void)
 
 }
 
+bool ui_Setting_is_ready(void)
+{
+    return (ui_Setting != NULL);
+}
+
+
 void ui_Setting_screen_destroy(void)
 {
     if(ui_Setting) lv_obj_del(ui_Setting);

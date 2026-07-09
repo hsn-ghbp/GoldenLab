@@ -17,6 +17,12 @@ void ui_SendData_screen_init(void)
 
 }
 
+bool ui_SendData_is_ready(void)
+{
+    return (ui_SendData != NULL);
+}
+
+
 void ui_SendData_screen_destroy(void)
 {
     if(ui_SendData) lv_obj_del(ui_SendData);
