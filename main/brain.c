@@ -70,6 +70,35 @@ bool brain_is_menu_loaded(void)
 //         }
 //     }
 // }
+static void brain_cleanup_for_target_page(app_page_t target_page)
+{
+    switch (target_page)
+    {
+        case PAGE_MAIN_MENU:
+            if (ui_Screen1)
+            {
+                ui_Screen1_cleanup_and_destroy();
+            }
+
+            if (ui_ScanMenu)
+            {
+                ui_ScanMenu_screen_destroy();
+                scan_loaded = false;
+            }
+            break;
+
+        case PAGE_SCAN:
+            if (ui_MainMenu)
+            {
+                ui_MainMenu_screen_destroy();
+                menu_loaded = false;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
 
 
 void brain_process_ui_cmds(void)
@@ -77,23 +106,9 @@ void brain_process_ui_cmds(void)
     if (current_page == PAGE_MAIN_MENU && !menu_loaded)
     {
         menu_loaded = true;
-
         ui_MainMenu_screen_init();
         lv_screen_load(ui_MainMenu);
-
-        // اگر از Splash آمده‌ایم و destroy لازم است
-        if (ui_Screen1)
-        {
-            ui_Screen1_cleanup_and_destroy();
-        }
-
-        // اگر از Scan برگشته‌ایم، صفحه Scan را destroy کن
-        if (ui_ScanMenu)
-        {
-            ui_ScanMenu_screen_destroy();
-            scan_loaded = false;
-        }
-
+        brain_cleanup_for_target_page(PAGE_MAIN_MENU);
         ESP_LOGI(TAG, "Main menu screen loaded");
     }
     else if (current_page == PAGE_SCAN && !scan_loaded)
@@ -102,14 +117,7 @@ void brain_process_ui_cmds(void)
 
         ui_ScanMenu_screen_init();
         lv_screen_load(ui_ScanMenu);
-
-        // صفحه Main Menu را destroy کن تا RAM آزاد شود
-        if (ui_MainMenu)
-        {
-            ui_MainMenu_screen_destroy();
-            menu_loaded = false;
-        }
-
+        brain_cleanup_for_target_page(PAGE_SCAN);
         ESP_LOGI(TAG, "Scan menu screen loaded");
     }
 }
