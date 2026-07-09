@@ -11,6 +11,7 @@
 #include "ui_Memory.h"
 #include "ui_SendData.h"
 #include "ui_Setting.h"
+#include "ui_ScanPage.h"
 
 static const char *TAG = "BRAIN";
 
@@ -22,6 +23,7 @@ static app_page_t loaded_page  = PAGE_SPLASH;
 
 static int selected_menu = 0;
 static int scan_selected = 0;
+static int scan_mode = 0;
 
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
@@ -33,6 +35,19 @@ extern volatile bool splash_done;
 
 extern void menu_set_focused_index(int index);
 extern void scan_set_focused_index(int index);
+
+// -------------------------
+// Public getters for state
+// -------------------------
+int brain_get_scan_selected(void)
+{
+    return scan_selected;
+}
+
+int brain_get_scan_mode(void)
+{
+    return scan_mode;
+}
 
 // -------------------------
 // Internal helpers
@@ -49,6 +64,9 @@ static lv_obj_t *brain_get_page_root(app_page_t page)
 
         case PAGE_SCAN:
             return ui_ScanMenu;
+
+        case PAGE_SCAN_PAGE:
+            return ui_ScanPage;
 
         case PAGE_SEND:
             return ui_SendData;
@@ -79,6 +97,9 @@ static bool brain_is_page_ready(app_page_t page)
 
         case PAGE_SCAN:
             return ui_ScanMenu_is_ready();
+
+        case PAGE_SCAN_PAGE:
+            return ui_ScanPage_is_ready();
 
         case PAGE_SEND:
             return ui_SendData_is_ready();
@@ -119,6 +140,13 @@ static void brain_destroy_page(app_page_t page)
             if (ui_ScanMenu_is_ready()) {
                 ui_ScanMenu_screen_destroy();
                 ESP_LOGI(TAG, "Destroyed PAGE_SCAN");
+            }
+            break;
+
+        case PAGE_SCAN_PAGE:
+            if (ui_ScanPage_is_ready()) {
+                ui_ScanPage_screen_destroy();
+                ESP_LOGI(TAG, "Destroyed PAGE_SCAN_PAGE");
             }
             break;
 
@@ -182,6 +210,12 @@ static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
         case PAGE_SCAN:
             if (!ui_ScanMenu_is_ready()) {
                 ui_ScanMenu_screen_init();
+            }
+            break;
+
+        case PAGE_SCAN_PAGE:
+            if (!ui_ScanPage_is_ready()) {
+                ui_ScanPage_screen_init();
             }
             break;
 
@@ -259,7 +293,8 @@ static bool brain_transition_to_page(app_page_t target_page)
 
     if (target_page == PAGE_MAIN_MENU) {
         last_applied_menu_focus = -1;
-    } else if (target_page == PAGE_SCAN) {
+    }
+    else if (target_page == PAGE_SCAN) {
         last_applied_scan_focus = -1;
     }
 
@@ -301,6 +336,7 @@ void brain_init(void)
 
     selected_menu = 0;
     scan_selected = 0;
+    scan_mode = 0;
 
     last_applied_menu_focus = -1;
     last_applied_scan_focus = -1;
@@ -388,7 +424,15 @@ void brain_handle_key(key_evt_t evt)
                 scan_selected = (scan_selected + 1) % 4;
             }
             else if (evt == KEY_OK) {
-                ESP_LOGI(TAG, "Scan item selected: %d", scan_selected);
+                scan_mode = scan_selected;
+                current_page = PAGE_SCAN_PAGE;
+                ESP_LOGI(TAG, "Scan item selected: %d", scan_mode);
+            }
+            break;
+
+        case PAGE_SCAN_PAGE:
+            if (evt == KEY_BACK) {
+                current_page = PAGE_SCAN;
             }
             break;
 

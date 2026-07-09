@@ -8,6 +8,7 @@ typedef enum {
     PAGE_SPLASH,
     PAGE_MAIN_MENU,
     PAGE_SCAN,
+    PAGE_SCAN_PAGE,
     PAGE_SEND,
     PAGE_MEMORY,
     PAGE_SETTING,
