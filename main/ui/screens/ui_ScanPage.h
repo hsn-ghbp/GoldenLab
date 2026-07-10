@@ -18,14 +18,20 @@ extern lv_obj_t * ui_ScanPage;
 extern lv_obj_t * ui_ArcN;
 extern lv_obj_t * ui_ArcP;
 extern lv_obj_t * ui_MeterBack;
-extern lv_obj_t * ui_MeterNeedle;
-extern lv_obj_t * ui_CurentValue;
 extern lv_obj_t * ui_PulseCount;
 extern lv_obj_t * ui_Blutooth;
 extern lv_obj_t * ui_SendDataa;
 extern lv_obj_t * ui_Save;
-extern lv_obj_t * ui_Battery;
-extern lv_obj_t * ui_Slider1;
+extern lv_obj_t * ui_Tap;
+extern lv_obj_t * ui_Auto;
+extern lv_obj_t * ui_BatL1;
+extern lv_obj_t * ui_BatL2;
+extern lv_obj_t * ui_BatL3;
+extern lv_obj_t * ui_BatL4;
+extern lv_obj_t * ui_BatL5;
+extern lv_obj_t * ui_needle;
+extern lv_obj_t * ui_CurentValue;
+extern lv_obj_t * ui_LblPulse;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

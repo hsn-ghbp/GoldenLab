@@ -37,6 +37,7 @@ void ui_MainMenu_screen_init(void)
 {
     ui_MainMenu = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_MainMenu, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(ui_MainMenu, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_ScanIcon = lv_image_create(ui_MainMenu);
     lv_image_set_src(ui_ScanIcon, &ui_img_scan_png);

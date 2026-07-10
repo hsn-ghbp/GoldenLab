@@ -60,10 +60,16 @@ LV_IMG_DECLARE(ui_img_automem_png);    // assets/automem.png
 LV_IMG_DECLARE(ui_img_manmem_png);    // assets/manmem.png
 LV_IMG_DECLARE(ui_img_ring_png);    // assets/ring.png
 LV_IMG_DECLARE(ui_img_back_png);    // assets/back.png
-LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
 LV_IMG_DECLARE(ui_img_bluetooth_png);    // assets/Bluetooth.png
 LV_IMG_DECLARE(ui_img_save_png);    // assets/Save.png
-LV_IMG_DECLARE(ui_img_battery_png);    // assets/Battery.png
+LV_IMG_DECLARE(ui_img_tap_48_png);    // assets/tap_48.png
+LV_IMG_DECLARE(ui_img_auto_png);    // assets/auto.png
+LV_IMG_DECLARE(ui_img_level1_png);    // assets/level1.png
+LV_IMG_DECLARE(ui_img_level2_png);    // assets/level2.png
+LV_IMG_DECLARE(ui_img_level3_png);    // assets/level3.png
+LV_IMG_DECLARE(ui_img_level4_png);    // assets/level4.png
+LV_IMG_DECLARE(ui_img_full_png);    // assets/full.png
+LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
 
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);

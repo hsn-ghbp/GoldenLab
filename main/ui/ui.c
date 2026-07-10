@@ -13,7 +13,7 @@
 #define CR      8
 #define REACH   90
 #define TRIGO_MAX 32767
-#define RAY_COUNT 20
+#define RAY_COUNT 18
 
 typedef struct {
     lv_obj_t *line;
