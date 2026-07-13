@@ -25,7 +25,48 @@ lv_obj_t * ui_CurentValue = NULL;
 lv_obj_t * ui_LblPulse = NULL;
 // event funtions
 
+
+#include "brain.h" // حتما انکلود شود
+
+static void scanpage_apply_logic_mode(void)
+{
+    // دریافت حالت انتخاب شده از مغز
+    int mode = brain_get_scan_mode();
+
+
+    // ۲. بر اساس ایندکس منوی اسکن، المان‌های مربوطه را فعال می‌کنیم
+    switch(mode)
+    {
+        case 0: // ui_manpc (Manual + PC)
+            lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+            break;
+
+        case 1: // ui_autopc (Auto + PC)
+            lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+            break;
+
+        case 2: // ui_automem (Auto + Memory)
+            lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+            break;
+
+        case 3: // ui_manmem (Manual + Memory)
+            lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+            break;
+
+        default:
+            // حالت پیش‌فرض یا خطا (اختیاری)
+            break;
+    }
+}
+
+
 // build funtions
+
+
 
 void ui_ScanPage_screen_init(void)
 {
@@ -113,6 +154,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_SendDataa, 86);
     lv_obj_set_y(ui_SendDataa, 25);
     lv_obj_set_align(ui_SendDataa, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_SendDataa, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -123,6 +165,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_Save, 86);
     lv_obj_set_y(ui_Save, 28);
     lv_obj_set_align(ui_Save, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_Save, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_Save, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -133,7 +176,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_Tap, 29);
     lv_obj_set_y(ui_Tap, 29);
     lv_obj_set_align(ui_Tap, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);     /// Flags
     lv_obj_remove_flag(ui_Tap, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_Auto = lv_image_create(ui_ScanPage);
@@ -143,7 +186,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_Auto, 29);
     lv_obj_set_y(ui_Auto, 28);
     lv_obj_set_align(ui_Auto, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);     /// Flags
     lv_obj_remove_flag(ui_Auto, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_BatL1 = lv_image_create(ui_ScanPage);
@@ -228,8 +271,10 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_y(ui_LblPulse, 72);
     lv_obj_set_align(ui_LblPulse, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblPulse, "پالس");
-    lv_obj_set_style_text_font(ui_LblPulse, &lv_font_montserrat_20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_base_dir(ui_LblPulse, LV_BASE_DIR_RTL, 0);
+    lv_obj_set_style_text_font(ui_LblPulse, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+     scanpage_apply_logic_mode();
 }
 
 bool ui_ScanPage_is_ready(void)
@@ -251,7 +296,7 @@ bool ui_ScanPage_is_ready(void)
 
 void ui_ScanPage_screen_destroy(void)
 {
-    if(ui_ScanPage) lv_obj_del(ui_ScanPage);
+    if(ui_ScanPage) lv_obj_delete(ui_ScanPage);
 
     // NULL screen variables
     ui_ScanPage = NULL;

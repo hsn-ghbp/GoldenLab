@@ -74,6 +74,8 @@ LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);
 LV_FONT_DECLARE(ui_font_vazir40);
+LV_FONT_DECLARE(vazir12);
+LV_FONT_DECLARE(ui_font_vazir20);
 // UI INIT
 
 void startArcAnimations(int delay);
