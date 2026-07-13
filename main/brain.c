@@ -1,3 +1,4 @@
+//brain.c
 #include "brain.h"
 #include <stdbool.h>
 #include "esp_log.h"
@@ -20,6 +21,9 @@ static const char *TAG = "BRAIN";
 // -------------------------
 static app_page_t current_page = PAGE_SPLASH;
 static app_page_t loaded_page  = PAGE_SPLASH;
+static scan_sub_state_t current_scan_sub_state = SCAN_STATE_IDLE;
+static app_event_t pending_events = APP_EVENT_NONE;
+
 
 static int selected_menu = 0;
 static int scan_selected = 0;
@@ -48,6 +52,32 @@ int brain_get_scan_mode(void)
 {
     return scan_mode;
 }
+
+
+
+
+
+
+scan_sub_state_t brain_get_scan_sub_state(void)
+{
+    return current_scan_sub_state;
+}
+//-------------------------
+//event Function
+//-------------------------
+void brain_emit_event(app_event_t event)
+{
+    pending_events |= event;
+}
+
+app_event_t brain_consume_events(void)
+{
+    app_event_t events = pending_events;
+    pending_events = APP_EVENT_NONE;
+    return events;
+}
+
+
 
 // -------------------------
 // Internal helpers
@@ -333,6 +363,9 @@ void brain_init(void)
 {
     current_page = PAGE_SPLASH;
     loaded_page  = PAGE_SPLASH;
+    current_scan_sub_state = SCAN_STATE_IDLE;
+    pending_events = APP_EVENT_NONE;
+
 
     selected_menu = 0;
     scan_selected = 0;
@@ -423,27 +456,74 @@ void brain_handle_key(key_evt_t evt)
             else if (evt == KEY_DOWN) {
                 scan_selected = (scan_selected + 1) % 4;
             }
+            // else if (evt == KEY_OK) {
+            //     scan_mode = scan_selected;
+            //     current_page = PAGE_SCAN_PAGE;
+            //     ESP_LOGI(TAG, "Scan item selected: %d", scan_mode);
+            // }
             else if (evt == KEY_OK) {
                 scan_mode = scan_selected;
+                current_scan_sub_state = SCAN_STATE_RUNNING;
+                brain_emit_event(APP_EVENT_SCAN_CHANGED);
+
                 current_page = PAGE_SCAN_PAGE;
-                ESP_LOGI(TAG, "Scan item selected: %d", scan_mode);
+                ESP_LOGI(TAG, "Scan item selected: %d, started running", scan_mode);
             }
-            break;
 
-        case PAGE_SCAN_PAGE:
-            if (evt == KEY_BACK) {
-                current_page = PAGE_SCAN;
-            }
             break;
+        // case PAGE_SCAN_PAGE:
+        //     if (current_scan_sub_state == SCAN_STATE_IDLE) {
+        //         // --- در حالت توقف (IDLE) ---
+        //         if (evt == KEY_BACK) {
+        //             // بازگشت به منوی قبل (بک دوم یا بک در حالت عادی)
+        //             current_page = PAGE_SCAN; 
+        //         }
+        //         else if (evt == KEY_TRIG) {
+        //             // شروع عملیات در هر مدلی (چه دستی چه اتوماتیک)
+        //             current_scan_sub_state = SCAN_STATE_RUNNING;
+        //             ESP_LOGI(TAG, "Process Started...");
+        //             // TODO: فراخوانی تابع شروع نمونه‌برداری
+        //         }
+        //     } 
+        //     else if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+        //         // --- در حال اجرا (RUNNING) ---
+        //         if (evt == KEY_BACK || evt == KEY_TRIG) {
+        //             // توقف عملیات با هر کدام از این دو کلید (بک اول)
+        //             current_scan_sub_state = SCAN_STATE_IDLE;
+        //             ESP_LOGI(TAG, "Process Stopped.");
+        //             // TODO: فراخوانی تابع توقف نمونه‌برداری
+        //         }
+        //     }
+            case PAGE_SCAN_PAGE:
+                if (evt == KEY_BACK) {
+                    if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                        current_scan_sub_state = SCAN_STATE_IDLE;
+                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
 
-        case PAGE_SEND:
-        case PAGE_MEMORY:
-        case PAGE_SETTING:
-        case PAGE_ABOUT:
-            if (evt == KEY_BACK) {
-                current_page = PAGE_MAIN_MENU;
-            }
-            break;
+                        ESP_LOGI(TAG, "Process Stopped.");
+                    }
+                    else {
+                        current_page = PAGE_SCAN;
+                    }
+                }
+                break;
+
+            
+
+        // case PAGE_SCAN_PAGE:
+        //     if (evt == KEY_BACK) {
+        //         current_page = PAGE_SCAN;
+        //     }
+        //     break;
+
+        // case PAGE_SEND:
+        // case PAGE_MEMORY:
+        // case PAGE_SETTING:
+        // case PAGE_ABOUT:
+        //     if (evt == KEY_BACK) {
+        //         current_page = PAGE_MAIN_MENU;
+        //     }
+        //     break;
 
         default:
             break;
@@ -473,4 +553,12 @@ void brain_process_ui_cmds(void)
     }
 
     brain_apply_focus_if_needed();
+    app_event_t events = brain_consume_events();
+
+    if ((events & APP_EVENT_SCAN_CHANGED) &&
+        current_page == PAGE_SCAN_PAGE &&
+        ui_ScanPage_is_ready()) {
+        ui_scanpage_render();
+    }
+
 }

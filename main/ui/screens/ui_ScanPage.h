@@ -2,18 +2,32 @@
 // SquareLine Studio version: SquareLine Studio 1.6.0
 // LVGL version: 9.3
 // Project name: MAGI_ESP
+//UI_SCANPAGE
 
 #ifndef UI_SCANPAGE_H
 #define UI_SCANPAGE_H
-
+#include <stdbool.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
+void ui_ScanPage_screen_init(void);
+void ui_ScanPage_screen_destroy(void);
+bool ui_ScanPage_is_ready(void);
+void ui_scanpage_render(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+
+
 
 // SCREEN: ui_ScanPage
-extern void ui_ScanPage_screen_init(void);
-extern void ui_ScanPage_screen_destroy(void);
-bool ui_ScanPage_is_ready(void);
+//extern void ui_ScanPage_screen_init(void);
+//extern void ui_ScanPage_screen_destroy(void);
+//bool ui_ScanPage_is_ready(void);
 extern lv_obj_t * ui_ScanPage;
 extern lv_obj_t * ui_ArcN;
 extern lv_obj_t * ui_ArcP;
@@ -38,5 +52,5 @@ extern lv_obj_t * ui_LblPulse;
 } /*extern "C"*/
 #endif
 
-#endif
+
 

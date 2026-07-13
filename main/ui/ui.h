@@ -70,6 +70,8 @@ LV_IMG_DECLARE(ui_img_level3_png);    // assets/level3.png
 LV_IMG_DECLARE(ui_img_level4_png);    // assets/level4.png
 LV_IMG_DECLARE(ui_img_full_png);    // assets/full.png
 LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
+LV_IMG_DECLARE(ui_img_stop_png);    // assets/stop.png
+LV_IMG_DECLARE(ui_img_play_png);    // assets/play.png
 
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);

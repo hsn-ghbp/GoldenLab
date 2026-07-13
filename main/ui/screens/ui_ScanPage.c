@@ -2,8 +2,11 @@
 // SquareLine Studio version: SquareLine Studio 1.6.0
 // LVGL version: 9.3
 // Project name: MAGI_ESP
+//ui_ScanPage.c
 
 #include "../ui.h"
+#include "brain.h" // حتما انکلود شود
+#include "ui_ScanPage.h"
 
 lv_obj_t * ui_ScanPage = NULL;
 lv_obj_t * ui_ArcN = NULL;
@@ -23,53 +26,151 @@ lv_obj_t * ui_BatL5 = NULL;
 lv_obj_t * ui_needle = NULL;
 lv_obj_t * ui_CurentValue = NULL;
 lv_obj_t * ui_LblPulse = NULL;
-// event funtions
+lv_obj_t * ui_stop = NULL;
+lv_obj_t * ui_play = NULL;
 
 
-#include "brain.h" // حتما انکلود شود
+// Prearear function
+
+static void scanpage_hide_mode_icons(void)
+{
+    if (ui_Auto)      lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
+    if (ui_Save)      lv_obj_add_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);
+    if (ui_Tap)       lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);
+    if (ui_SendDataa) lv_obj_add_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+}
 
 static void scanpage_apply_logic_mode(void)
 {
-    // دریافت حالت انتخاب شده از مغز
     int mode = brain_get_scan_mode();
 
+    scanpage_hide_mode_icons();
 
-    // ۲. بر اساس ایندکس منوی اسکن، المان‌های مربوطه را فعال می‌کنیم
-    switch(mode)
+    switch (mode)
     {
-        case 0: // ui_manpc (Manual + PC)
-            lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+        case 0: // manpc
+            if (ui_Tap)       lv_obj_clear_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);
+            if (ui_SendDataa) lv_obj_clear_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case 1: // ui_autopc (Auto + PC)
-            lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+        case 1: // autopc
+            if (ui_Auto)      lv_obj_clear_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
+            if (ui_SendDataa) lv_obj_clear_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case 2: // ui_automem (Auto + Memory)
-            lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+        case 2: // automem
+            if (ui_Auto)      lv_obj_clear_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
+            if (ui_Save)      lv_obj_clear_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case 3: // ui_manmem (Manual + Memory)
-            lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
-            lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+        case 3: // manmem
+            if (ui_Tap)       lv_obj_clear_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);
+            if (ui_Save)      lv_obj_clear_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);
             break;
 
         default:
-            // حالت پیش‌فرض یا خطا (اختیاری)
             break;
     }
 }
 
+static void scanpage_apply_run_state(void)
+{
+    scan_sub_state_t sub_state = brain_get_scan_sub_state();
+
+    if (ui_play) lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
+    if (ui_stop) lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
+
+    if (sub_state == SCAN_STATE_RUNNING) {
+        if (ui_play) lv_obj_clear_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        if (ui_stop) lv_obj_clear_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+
+
+
+// event funtions
+
+//
+
+// static void scanpage_apply_run_state(void)
+// {
+//     // برای اطمینان: هر بار اول هر دو را مخفی کن
+//    // lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
+//    // lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
+
+//     // سپس بر اساس state فقط یکی را نشان بده
+//     scan_sub_state_t st = brain_get_scan_sub_state();
+//     if(st == SCAN_STATE_RUNNING) {
+//         lv_obj_remove_flag(ui_play, LV_OBJ_FLAG_HIDDEN);   // پلی
+//     } else {
+//         lv_obj_remove_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);   // استاپ
+//     }
+// }
+
+// static void scanpage_apply_logic_mode(void)
+// {
+//     // دریافت حالت انتخاب شده از مغز
+//     int mode = brain_get_scan_mode();
+
+
+//     // ۲. بر اساس ایندکس منوی اسکن، المان‌های مربوطه را فعال می‌کنیم
+//     switch(mode)
+//     {
+//         case 0: // ui_manpc (Manual + PC)
+//             lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
+//             lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+//             break;
+
+//         case 1: // ui_autopc (Auto + PC)
+//             lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
+//             lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+//             break;
+
+//         case 2: // ui_automem (Auto + Memory)
+//             lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
+//             lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+//             break;
+
+//         case 3: // ui_manmem (Manual + Memory)
+//             lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
+//             lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
+//             break;
+
+//         default:
+//             // حالت پیش‌فرض یا خطا (اختیاری)
+//             break;
+//     }
+// }
+
+//--------------------------------------
+// Refresh page
+//--------------------------------------
+void ui_scanpage_render(void)
+{
+    if (!ui_ScanPage_is_ready()) {
+        return;
+    }
+
+    scanpage_apply_logic_mode();
+    scanpage_apply_run_state();
+
+    // اگر بعداً label / arc / needle / adc text هم داشتی،
+    // همین‌جا فقط از getterها بخوان و update کن.
+}
+
+
+
+
 
 // build funtions
 
-
-
 void ui_ScanPage_screen_init(void)
 {
+    if (ui_ScanPage != NULL) {
+        return;
+    }
     ui_ScanPage = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_ScanPage, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     lv_obj_set_style_bg_color(ui_ScanPage, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -139,8 +240,8 @@ void ui_ScanPage_screen_init(void)
     lv_image_set_src(ui_Blutooth, &ui_img_bluetooth_png);
     lv_obj_set_width(ui_Blutooth, LV_SIZE_CONTENT);   /// 35
     lv_obj_set_height(ui_Blutooth, LV_SIZE_CONTENT);    /// 48
-    lv_obj_set_x(ui_Blutooth, -81);
-    lv_obj_set_y(ui_Blutooth, 33);
+    lv_obj_set_x(ui_Blutooth, -89);
+    lv_obj_set_y(ui_Blutooth, 31);
     lv_obj_set_align(ui_Blutooth, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_Blutooth, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -176,7 +277,8 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_Tap, 29);
     lv_obj_set_y(ui_Tap, 29);
     lv_obj_set_align(ui_Tap, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);     /// Flags
+    lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN); 
+    lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_Tap, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_Auto = lv_image_create(ui_ScanPage);
@@ -186,57 +288,63 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_Auto, 29);
     lv_obj_set_y(ui_Auto, 28);
     lv_obj_set_align(ui_Auto, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);     /// Flags
+    lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_Auto, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
+     
     ui_BatL1 = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_BatL1, &ui_img_level1_png);
     lv_obj_set_width(ui_BatL1, LV_SIZE_CONTENT);   /// 24
     lv_obj_set_height(ui_BatL1, LV_SIZE_CONTENT);    /// 50
-    lv_obj_set_x(ui_BatL1, -40);
-    lv_obj_set_y(ui_BatL1, 36);
+    lv_obj_set_x(ui_BatL1, -34);
+    lv_obj_set_y(ui_BatL1, 19);
     lv_obj_set_align(ui_BatL1, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL1, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_BatL1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_BatL2 = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_BatL2, &ui_img_level2_png);
     lv_obj_set_width(ui_BatL2, LV_SIZE_CONTENT);   /// 24
     lv_obj_set_height(ui_BatL2, LV_SIZE_CONTENT);    /// 50
-    lv_obj_set_x(ui_BatL2, -40);
-    lv_obj_set_y(ui_BatL2, 36);
+    lv_obj_set_x(ui_BatL2, -34);
+    lv_obj_set_y(ui_BatL2, 19);
     lv_obj_set_align(ui_BatL2, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL2, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_BatL2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_BatL3 = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_BatL3, &ui_img_level3_png);
     lv_obj_set_width(ui_BatL3, LV_SIZE_CONTENT);   /// 24
     lv_obj_set_height(ui_BatL3, LV_SIZE_CONTENT);    /// 50
-    lv_obj_set_x(ui_BatL3, -40);
-    lv_obj_set_y(ui_BatL3, 36);
+    lv_obj_set_x(ui_BatL3, -34);
+    lv_obj_set_y(ui_BatL3, 19);
     lv_obj_set_align(ui_BatL3, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL3, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_BatL3, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_BatL4 = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_BatL4, &ui_img_level4_png);
     lv_obj_set_width(ui_BatL4, LV_SIZE_CONTENT);   /// 24
     lv_obj_set_height(ui_BatL4, LV_SIZE_CONTENT);    /// 50
-    lv_obj_set_x(ui_BatL4, -40);
-    lv_obj_set_y(ui_BatL4, 36);
+    lv_obj_set_x(ui_BatL4, -34);
+    lv_obj_set_y(ui_BatL4, 19);
     lv_obj_set_align(ui_BatL4, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL4, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_BatL4, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_BatL5 = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_BatL5, &ui_img_full_png);
     lv_obj_set_width(ui_BatL5, LV_SIZE_CONTENT);   /// 24
     lv_obj_set_height(ui_BatL5, LV_SIZE_CONTENT);    /// 50
-    lv_obj_set_x(ui_BatL5, -40);
-    lv_obj_set_y(ui_BatL5, 36);
+    lv_obj_set_x(ui_BatL5, -34);
+    lv_obj_set_y(ui_BatL5, 19);
     lv_obj_set_align(ui_BatL5, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+   // lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_BatL5, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_needle = lv_image_create(ui_ScanPage);
@@ -274,7 +382,38 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_style_base_dir(ui_LblPulse, LV_BASE_DIR_RTL, 0);
     lv_obj_set_style_text_font(ui_LblPulse, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-     scanpage_apply_logic_mode();
+    ui_stop = lv_image_create(ui_ScanPage);
+    lv_image_set_src(ui_stop, &ui_img_stop_png);
+    lv_obj_set_width(ui_stop, LV_SIZE_CONTENT);   /// 20
+    lv_obj_set_height(ui_stop, LV_SIZE_CONTENT);    /// 20
+    lv_obj_set_x(ui_stop, -53);
+    lv_obj_set_y(ui_stop, 44);
+    lv_obj_set_align(ui_stop, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_stop, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_play = lv_image_create(ui_ScanPage);
+    lv_image_set_src(ui_play, &ui_img_play_png);
+    lv_obj_set_width(ui_play, LV_SIZE_CONTENT);   /// 20
+    lv_obj_set_height(ui_play, LV_SIZE_CONTENT);    /// 23
+    lv_obj_set_x(ui_play, -28);
+    lv_obj_set_y(ui_play, 44);
+    lv_obj_set_align(ui_play, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
+    //lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_play, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    
+    if (ui_Auto)      lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
+    if (ui_Save)      lv_obj_add_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);
+    if (ui_Tap)       lv_obj_add_flag(ui_Tap, LV_OBJ_FLAG_HIDDEN);
+    if (ui_SendDataa) lv_obj_add_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
+    if (ui_play)      lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
+    if (ui_stop)      lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
+
+    ui_scanpage_render();
+    // scanpage_apply_logic_mode();
+    // scanpage_apply_run_state();
 }
 
 bool ui_ScanPage_is_ready(void)
@@ -317,5 +456,10 @@ void ui_ScanPage_screen_destroy(void)
     ui_needle = NULL;
     ui_CurentValue = NULL;
     ui_LblPulse = NULL;
-
+    ui_Auto = NULL;
+    ui_Save = NULL;
+    ui_Tap = NULL;
+    ui_SendDataa = NULL;
+    ui_play = NULL;
+    ui_stop = NULL;
 }
