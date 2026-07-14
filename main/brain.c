@@ -452,6 +452,7 @@ void brain_handle_key(key_evt_t evt)
         case PAGE_SCAN:         //------------ Scan Menu-------------//
             if (evt == KEY_BACK) {
                 current_page = PAGE_MAIN_MENU;
+                
             }
             else if (evt == KEY_UP) {
                 scan_selected = (scan_selected - 1 + 4) % 4;
@@ -464,7 +465,7 @@ void brain_handle_key(key_evt_t evt)
                 current_scan_mode = scan_selected;
                 current_scan_sub_state = SCAN_STATE_RUNNING;
                 brain_emit_event(APP_EVENT_SCAN_CHANGED);
-
+                scan_process_init();
                 current_page = PAGE_SCAN_PAGE;
                 ESP_LOGI(TAG, "Scan item selected: %d, started running", current_scan_mode);
             }
@@ -476,6 +477,7 @@ void brain_handle_key(key_evt_t evt)
                 if (evt == KEY_BACK) {
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
                         current_scan_sub_state = SCAN_STATE_IDLE;
+                        scan_process_stop();
                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
 
                         scan_process_stop();
@@ -488,6 +490,7 @@ void brain_handle_key(key_evt_t evt)
                 }
                 else if (evt == KEY_TRIG) {
                     scan_process_handle_trigger();
+                    brain_emit_event(APP_EVENT_SCAN_CHANGED);
                 }
                 break;
 

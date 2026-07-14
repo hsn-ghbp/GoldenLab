@@ -7,6 +7,7 @@
 #include "../ui.h"
 #include "brain.h" // حتما انکلود شود
 #include "ui_ScanPage.h"
+#include"scan_process.h"
 
 lv_obj_t * ui_ScanPage = NULL;
 lv_obj_t * ui_ArcN = NULL;
@@ -72,6 +73,25 @@ static void scanpage_apply_logic_mode(void)
             break;
     }
 }
+
+void scanpage_apply_value(void)
+{
+    int current_value = scan_process_get_signed_value();
+    int pulse_count = scan_process_get_pulse_count();
+    int positive_arc = scan_process_get_positive_arc_value();
+    int negative_arc = scan_process_get_negative_arc_value();
+    int needle_angle = scan_process_get_needle_angle();
+
+    lv_label_set_text_fmt(ui_CurentValue, "%d", current_value);
+    lv_label_set_text_fmt(ui_PulseCount, "%d", pulse_count);
+
+    lv_arc_set_value(ui_ArcP, positive_arc);
+    lv_arc_set_value(ui_ArcN, negative_arc);
+
+    lv_img_set_angle(ui_needle, needle_angle);
+}
+
+
 
 static void scanpage_apply_run_state(void)
 {
@@ -155,6 +175,7 @@ void ui_scanpage_render(void)
 
     scanpage_apply_logic_mode();
     scanpage_apply_run_state();
+    scanpage_apply_value();
 
     // اگر بعداً label / arc / needle / adc text هم داشتی،
     // همین‌جا فقط از getterها بخوان و update کن.
