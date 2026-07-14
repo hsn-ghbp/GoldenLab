@@ -446,3 +446,20 @@ screen_destroy():
 بسیار مهم: اشاره‌گرهای اصلی را بلافاصله NULL می‌کند.
 مثال: ui_Screen1 = NULL;
 قانون: اگر صفحه destroy شده باشد، is_ready() باید به‌صورت خودکار و بدون نیاز به فلگِ جانبی، false برگرداند.
+در brain قرار شد مدل اصلی state نگه داشته شود؛ UI فقط از getterها بخواند و خودش render کند.
+برای اسکن، دو state تعریف شد: SCAN_STATE_IDLE و SCAN_STATE_RUNNING.
+تصمیم گرفتیم brain یک event bitmask داشته باشد و هر تغییر مرتبط با اسکن، APP_EVENT_SCAN_CHANGED تولید کند.
+قرار شد بعد از پردازش هر کلید، eventها consume شوند و اگر صفحه فعلی PAGE_SCAN_PAGE بود، فقط ui_scanpage_render() صدا زده شود.
+منطق ScanPage این شد که چیزی را از خودش حدس نزند؛ فقط با brain_get_scan_mode() و brain_get_scan_sub_state() نمایش را sync کند.
+نگاشت modeها را تثبیت کردیم:
+0 = manpc
+1 = autopc
+2 = automem
+3 = manmem
+برای نمایش mode iconها در ui_ScanPage.c قرار شد ابتدا همه آیکون‌های mode مخفی شوند، بعد فقط آیکون‌های مربوط به mode فعلی نمایش داده شوند.
+برای نمایش run state هم قرار شد ابتدا هر دو آیکون ui_play و ui_stop مخفی شوند و بعد فقط یکی بر اساس sub-state نمایش داده شود.
+مشخص شد در پروژه شما نام/کارکرد آیکون‌های play و stop برعکس برداشت اولیه ما بوده؛ با تست دیدیم هنگام ورود به صفحه اسکن ui_stop نمایش داده می‌شود و این فعلاً مطابق منطق کد فعلی است.
+در منطق ناوبری PAGE_SCAN_PAGE هم به این نتیجه رسیدیم:
+ورود به صفحه اسکن با state اولیه RUNNING
+بک اول: رفتن به IDLE
+بک دوم: بازگشت به منوی اسکن‌ها

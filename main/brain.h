@@ -29,6 +29,14 @@ typedef enum {
     APP_EVENT_SCAN_CHANGED = (1 << 0)
 } app_event_t;
 
+typedef enum {
+    SCAN_MODE_MANPC = 0,
+    SCAN_MODE_AUTOPC = 1,
+    SCAN_MODE_AUTOMEM = 2,
+    SCAN_MODE_MANMEM = 3
+} scan_mode_t;
+
+
 scan_sub_state_t brain_get_scan_sub_state(void);
 
 void brain_emit_event(app_event_t event);
@@ -40,7 +48,7 @@ void brain_init(void);
 void brain_handle_key(key_evt_t evt);
 void brain_process_ui_cmds(void);
 int brain_get_scan_selected(void);
-int brain_get_scan_mode(void);
+//int brain_get_scan_mode(void);
 
 
 
@@ -48,4 +56,5 @@ int brain_get_scan_mode(void);
 app_page_t brain_get_current_page(void);
 int brain_get_selected_menu(void);
 bool brain_is_menu_loaded(void);
+scan_mode_t brain_get_scan_mode(void);
 
