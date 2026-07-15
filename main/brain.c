@@ -14,6 +14,7 @@
 #include "ui_Setting.h"
 #include "ui_ScanPage.h"
 #include "scan_process.h"
+#include "battery_process.h"
 
 static const char *TAG = "BRAIN";
 
@@ -33,6 +34,9 @@ scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
 
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
+
+static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
+
 
 // -------------------------
 // External symbols
@@ -55,16 +59,34 @@ scan_mode_t brain_get_scan_mode(void)
     return current_scan_mode;
 }
 
+battery_level_t brain_get_battery_level(void)
+{
+    return current_battery_level;
+}
 
-
-
-
+uint8_t brain_get_battery_percent(void)
+{
+    return battery_process_get_percent();
+}
 
 
 scan_sub_state_t brain_get_scan_sub_state(void)
 {
     return current_scan_sub_state;
 }
+
+void brain_update_battery(void)
+{
+    battery_level_t old_level = current_battery_level;
+
+    battery_process_update();
+    current_battery_level = battery_process_get_level();
+
+    if (current_battery_level != old_level) {
+        brain_emit_event(APP_EVENT_BATTERY_CHANGED);
+    }
+}
+
 //-------------------------
 //event Function
 //-------------------------
@@ -377,6 +399,11 @@ void brain_init(void)
     last_applied_menu_focus = -1;
     last_applied_scan_focus = -1;
 
+    battery_process_init();
+    battery_process_update();
+    current_battery_level = battery_process_get_level();
+
+
     ESP_LOGI(TAG, "Brain initialized");
 }
 
@@ -528,6 +555,9 @@ void brain_process_ui_cmds(void)
         current_page == PAGE_SCAN_PAGE &&
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
+    }
+    if (events == APP_EVENT_BATTERY_CHANGED) {
+    ui_scanpage_render();
     }
 
 }

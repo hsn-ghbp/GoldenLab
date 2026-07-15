@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "pcf8574.h"
+#include "battery_process.h"
 
 typedef enum {
     PAGE_NONE = 0,
@@ -26,7 +27,8 @@ typedef enum {
 
 typedef enum {
     APP_EVENT_NONE         = 0,
-    APP_EVENT_SCAN_CHANGED = (1 << 0)
+    APP_EVENT_SCAN_CHANGED = (1 << 0),
+    APP_EVENT_BATTERY_CHANGED
 } app_event_t;
 
 typedef enum {
@@ -48,6 +50,9 @@ void brain_init(void);
 void brain_handle_key(key_evt_t evt);
 void brain_process_ui_cmds(void);
 int brain_get_scan_selected(void);
+battery_level_t brain_get_battery_level(void);
+uint8_t brain_get_battery_percent(void);
+
 //int brain_get_scan_mode(void);
 
 
@@ -57,4 +62,7 @@ app_page_t brain_get_current_page(void);
 int brain_get_selected_menu(void);
 bool brain_is_menu_loaded(void);
 scan_mode_t brain_get_scan_mode(void);
+battery_level_t brain_get_battery_level(void);
+uint8_t brain_get_battery_percent(void);
+
 

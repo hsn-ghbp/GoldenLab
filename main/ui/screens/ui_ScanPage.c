@@ -41,6 +41,39 @@ static void scanpage_hide_mode_icons(void)
     if (ui_SendDataa) lv_obj_add_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
 }
 
+static void ui_scanpage_set_battery_level(battery_level_t level)
+{
+    lv_obj_add_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
+
+    switch (level) {
+    case BATTERY_LEVEL_EMPTY:
+        lv_obj_clear_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
+        break;
+
+    case BATTERY_LEVEL_25:
+        lv_obj_clear_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
+        break;
+
+    case BATTERY_LEVEL_50:
+        lv_obj_clear_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
+        break;
+
+    case BATTERY_LEVEL_75:
+        lv_obj_clear_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
+        break;
+
+    case BATTERY_LEVEL_FULL:
+    default:
+        lv_obj_clear_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
+        break;
+    }
+}
+
+
 static void scanpage_apply_logic_mode(void)
 {
     int mode = brain_get_scan_mode();
@@ -176,6 +209,7 @@ void ui_scanpage_render(void)
     scanpage_apply_logic_mode();
     scanpage_apply_run_state();
     scanpage_apply_value();
+    ui_scanpage_set_battery_level(brain_get_battery_level());
 
     // اگر بعداً label / arc / needle / adc text هم داشتی،
     // همین‌جا فقط از getterها بخوان و update کن.
