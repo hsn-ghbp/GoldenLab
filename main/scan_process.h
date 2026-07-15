@@ -1,7 +1,7 @@
 #ifndef SCAN_PROCESS_H
 #define SCAN_PROCESS_H
 
-#include <stdbool.h>
+
 #include "brain.h"
 
 #define ADC_MAX_RESOLUTION 4095
@@ -10,10 +10,10 @@
 
 void scan_process_init(void);
 void scan_process_stop(void);
-void scan_process_handle_trigger(void);
+void scan_process_handle_trigger(scan_mode_t mode);
 
-scan_sub_state_t scan_process_get_state(void);
-bool scan_process_is_running(void);
+
+
 
 int scan_process_get_current_adc_value(void);
 int scan_process_get_signed_value(void);

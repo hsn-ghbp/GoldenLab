@@ -13,7 +13,7 @@ static int s_negative_arc_value = 0;
 static int s_needle_angle = 0;
 static int s_pulse_count = 0;
 static bool s_rand_seeded = false;
-static scan_sub_state_t s_scan_state = SCAN_STATE_IDLE;
+
 
 
 static int clamp_int(int value, int min_value, int max_value)
@@ -69,7 +69,7 @@ void scan_process_init(void)
 
     s_current_adc_value = ADC_MID_RESOLUTION;
     s_pulse_count = 0;
-    s_scan_state = SCAN_STATE_RUNNING;
+    
 
     scan_process_calculate_display_values();
 
@@ -78,21 +78,16 @@ void scan_process_init(void)
 
 void scan_process_stop(void)
 {
-    if (s_scan_state == SCAN_STATE_IDLE) {
-        return;
-    }
-    s_scan_state = SCAN_STATE_IDLE;
+    //s_pulse_count = 0;
+    
     ESP_LOGI(TAG, "Scan process stopped");
 }
 
-void scan_process_handle_trigger(void)
+void scan_process_handle_trigger(scan_mode_t mode)
 {
-    if (s_scan_state != SCAN_STATE_RUNNING) {
-        ESP_LOGW(TAG, "Trigger ignored: scan process is not running");
-        return;
-    }
+  
 
-    scan_mode_t mode = (scan_mode_t)brain_get_scan_mode();
+    //scan_mode_t mode = (scan_mode_t)brain_get_scan_mode();
 
     switch (mode) {
         case SCAN_MODE_MANPC:
@@ -114,16 +109,10 @@ void scan_process_handle_trigger(void)
     }
 }
 
-scan_sub_state_t scan_process_get_state(void)
-{
-    return s_scan_state;
-}
 
 
-bool scan_process_is_running(void)
-{
-    return s_scan_state == SCAN_STATE_RUNNING;
-}
+
+
 
 int scan_process_get_current_adc_value(void)
 {

@@ -28,7 +28,7 @@ static app_event_t pending_events = APP_EVENT_NONE;
 
 static int selected_menu = 0;
 static int scan_selected = 0;
-static scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
+scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
 
 
 static int last_applied_menu_focus = -1;
@@ -479,9 +479,6 @@ void brain_handle_key(key_evt_t evt)
                         current_scan_sub_state = SCAN_STATE_IDLE;
                         scan_process_stop();
                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
-
-                        scan_process_stop();
-
                         ESP_LOGI(TAG, "Process Stopped.");
                     }
                     else {
@@ -489,8 +486,10 @@ void brain_handle_key(key_evt_t evt)
                     }
                 }
                 else if (evt == KEY_TRIG) {
-                    scan_process_handle_trigger();
-                    brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                    if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                        scan_process_handle_trigger(current_scan_mode);
+                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                    }
                 }
                 break;
 
