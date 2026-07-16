@@ -28,7 +28,7 @@ typedef enum {
 typedef enum {
     APP_EVENT_NONE         = 0,
     APP_EVENT_SCAN_CHANGED = (1 << 0),
-    APP_EVENT_BATTERY_CHANGED
+    APP_EVENT_BATTERY_CHANGED = (1 << 1)
 } app_event_t;
 
 typedef enum {

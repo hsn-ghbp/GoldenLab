@@ -516,7 +516,9 @@ void brain_handle_key(key_evt_t evt)
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
                         scan_process_handle_trigger(current_scan_mode);
                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                        
                     }
+                    brain_update_battery();
                 }
                 break;
 
@@ -556,8 +558,11 @@ void brain_process_ui_cmds(void)
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
     }
-    if (events == APP_EVENT_BATTERY_CHANGED) {
+    if ((events & APP_EVENT_BATTERY_CHANGED) &&
+    current_page == PAGE_SCAN_PAGE &&
+    ui_ScanPage_is_ready()) {
     ui_scanpage_render();
     }
+
 
 }
