@@ -13,4 +13,6 @@ idf_component_register(
         "ui/images"
     REQUIRES
         lvgl
+        bt
+        nvs_flash
 )

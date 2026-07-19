@@ -8,6 +8,7 @@
 #include "brain.h" // حتما انکلود شود
 #include "ui_ScanPage.h"
 #include"scan_process.h"
+//#include "bluetooth_mgr.h"
 
 lv_obj_t * ui_ScanPage = NULL;
 lv_obj_t * ui_ArcN = NULL;
@@ -226,6 +227,12 @@ void ui_ScanPage_screen_init(void)
     if (ui_ScanPage != NULL) {
         return;
     }
+    int mode = brain_get_scan_mode();
+
+    if (mode == SCAN_MODE_MANPC) {
+        //bt_mgr_enable();
+    }
+
     ui_ScanPage = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_ScanPage, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     lv_obj_set_style_bg_color(ui_ScanPage, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);

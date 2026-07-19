@@ -463,3 +463,17 @@ screen_destroy():
 ورود به صفحه اسکن با state اولیه RUNNING
 بک اول: رفتن به IDLE
 بک دوم: بازگشت به منوی اسکن‌ها
+در مورد باتری 
+روند خیلی خلاصه اینطوری است:
+
+- در ماژول `brain` با رخداد `KEY_TRIG` تابع `brain_update_battery()` صدا زده می‌شود.
+- داخل `brain_update_battery()`، ماژول `battery_process` با تابع `battery_process_update()` مقدار باتری را از سخت‌افزار/منطق باتری می‌گیرد.
+- بعد `brain` مقدار جدید را در state خودش نگه می‌دارد، معمولا در متغیری مثل `current_battery_level`.
+- اگر مقدار باتری نسبت به قبل عوض شده باشد، `brain` با `brain_emit_event(APP_EVENT_BATTERY_CHANGED)` به UI خبر می‌دهد.
+- سپس در `brain_process_ui_cmds()` این event بررسی می‌شود.
+- اگر صفحه فعلی اسکن باشد، `ui_scanpage_render()` از ماژول UI صدا زده می‌شود.
+- داخل `ui_scanpage_render()`، مقدار باتری با `brain_get_battery_level()` از `brain` خوانده می‌شود.
+- در نهایت در ماژول `ui_ScanPage` آیکون یا لِول باتری روی صفحه نمایش آپدیت می‌شود.
+
+اگر بخواهی، می‌توانم همین روند را به شکل یک فلش‌فلو خیلی کوتاه هم بنویسم:
+`KEY_TRIG -> brain_update_battery() -> battery_process_update() -> brain_emit_event() -> brain_process_ui_cmds() -> ui_scanpage_render()`

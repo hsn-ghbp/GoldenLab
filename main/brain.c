@@ -15,6 +15,9 @@
 #include "ui_ScanPage.h"
 #include "scan_process.h"
 #include "battery_process.h"
+#include "app_settings.h"
+//#include "bluetooth_mgr.h"
+
 
 static const char *TAG = "BRAIN";
 
@@ -34,6 +37,11 @@ scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
 
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
+static int last_applied_setting_focus = -1;
+
+#define BRAIN_SETTING_ITEM_COUNT   10
+static int g_setting_index = 0;
+
 
 static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
 
@@ -86,6 +94,39 @@ void brain_update_battery(void)
         brain_emit_event(APP_EVENT_BATTERY_CHANGED);
     }
 }
+
+
+static int brain_wrap_setting_index(int index)
+{
+    while(index < 0) {
+        index += BRAIN_SETTING_ITEM_COUNT;
+    }
+    while(index >= BRAIN_SETTING_ITEM_COUNT) {
+        index -= BRAIN_SETTING_ITEM_COUNT;
+    }
+    return index;
+}
+int brain_get_setting_index(void)
+{
+    return g_setting_index;
+}
+
+void brain_set_setting_index(int index)
+{
+    g_setting_index = brain_wrap_setting_index(index);
+}
+
+
+void brain_setting_next(void)
+{
+    brain_set_setting_index(g_setting_index + 1);
+}
+
+void brain_setting_prev(void)
+{
+    brain_set_setting_index(g_setting_index - 1);
+}
+
 
 //-------------------------
 //event Function
@@ -271,6 +312,7 @@ static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
         case PAGE_SCAN_PAGE:
             if (!ui_ScanPage_is_ready()) {
                 ui_ScanPage_screen_init();
+                
             }
             break;
 
@@ -289,6 +331,7 @@ static bool brain_prepare_page(app_page_t page, lv_obj_t **out_screen)
         case PAGE_SETTING:
             if (!ui_Setting_is_ready()) {
                 ui_Setting_screen_init();
+                
             }
             break;
 
@@ -352,6 +395,9 @@ static bool brain_transition_to_page(app_page_t target_page)
     else if (target_page == PAGE_SCAN) {
         last_applied_scan_focus = -1;
     }
+    else if (target_page == PAGE_SETTING) {
+    last_applied_setting_focus = -1;
+    }
 
     return true;
 }
@@ -375,6 +421,12 @@ static void brain_apply_focus_if_needed(void)
                 ESP_LOGD(TAG, "Applied scan focus: %d", scan_selected);
             }
             break;
+        case PAGE_SETTING:
+            if (g_setting_index != last_applied_setting_focus) {
+                ui_Setting_update_view(g_setting_index);
+                last_applied_setting_focus = g_setting_index;
+                ESP_LOGD(TAG, "Applied setting focus: %d", g_setting_index);
+            }
 
         default:
             break;
@@ -398,10 +450,25 @@ void brain_init(void)
 
     last_applied_menu_focus = -1;
     last_applied_scan_focus = -1;
+    last_applied_setting_focus = -1;
+
+    g_setting_index = 0;
+
 
     battery_process_init();
     battery_process_update();
     current_battery_level = battery_process_get_level();
+    esp_err_t err = app_settings_load();
+    // brain_init()
+    // bt_mgr_init(&(bt_mgr_config_t){
+    //         .device_name = "ESP32_Scanner",
+    //         .state_cb = NULL,
+    //     });
+
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "app_settings_load failed, defaults will be used");
+    }
+
 
 
     ESP_LOGI(TAG, "Brain initialized");
@@ -518,10 +585,26 @@ void brain_handle_key(key_evt_t evt)
                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
                         
                     }
+                    //TO DO move to another part here jusst for test
                     brain_update_battery();
                 }
                 break;
-
+        case PAGE_SETTING :     //-----------------setting page---------------//
+            if (evt == KEY_BACK) {
+                current_page = PAGE_MAIN_MENU;
+            }
+            else if (evt == KEY_UP) {
+                brain_setting_prev();
+            }
+            else if (evt == KEY_DOWN) {
+                brain_setting_next();
+            }
+            else if (evt == KEY_OK) {
+                /* فعلاً رزرو برای ورود به تنظیم انتخاب‌شده */
+            }
+            break;
+        
+                   
 
         default:
             break;
