@@ -13,11 +13,15 @@
 #define SETTING_ITEM_WIDTH          191
 #define SETTING_ITEM_HEIGHT         30
 #define SETTING_ITEM_STEP_Y         40
-#define SETTING_ITEM_GAP        10
+#define SETTING_ITEM_GAP        5
 #define SETTING_ITEM_STEP_Y     (SETTING_ITEM_HEIGHT + SETTING_ITEM_GAP)
 #define SETTING_ANIM_TIME_MS    100
 #define SETTING_ITEM_COLOR_NORMAL    lv_color_hex(0x3B82F6)
 #define SETTING_ITEM_COLOR_SELECTED  lv_color_hex(0x2563EB)
+#define SETTING_SELECTED_W   191
+#define SETTING_SELECTED_H   30
+#define SETTING_SIDE_W       165
+#define SETTING_SIDE_H       24
 
 
 /* ========================= UI Objects ========================= */
@@ -161,7 +165,7 @@ lv_anim_t * fadein_Animation(lv_obj_t * TargetObject, int delay)
     lv_anim_set_duration(&PropertyAnimation_0, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&PropertyAnimation_0, PropertyAnimation_0_user_data);
     lv_anim_set_custom_exec_cb(&PropertyAnimation_0, _ui_anim_callback_set_height);
-    lv_anim_set_values(&PropertyAnimation_0, 0, SETTING_ITEM_HEIGHT);
+    lv_anim_set_values(&PropertyAnimation_0, 0, SETTING_SIDE_H);
     lv_anim_set_path_cb(&PropertyAnimation_0, lv_anim_path_linear);
     lv_anim_set_delay(&PropertyAnimation_0, delay);
     lv_anim_set_deleted_cb(&PropertyAnimation_0, _ui_anim_callback_free_user_data);
@@ -177,7 +181,7 @@ lv_anim_t * fadein_Animation(lv_obj_t * TargetObject, int delay)
     lv_anim_set_duration(&PropertyAnimation_1, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&PropertyAnimation_1, PropertyAnimation_1_user_data);
     lv_anim_set_custom_exec_cb(&PropertyAnimation_1, _ui_anim_callback_set_width);
-    lv_anim_set_values(&PropertyAnimation_1, 0, SETTING_ITEM_WIDTH);
+    lv_anim_set_values(&PropertyAnimation_1, 0, SETTING_SIDE_W);
     lv_anim_set_path_cb(&PropertyAnimation_1, lv_anim_path_linear);
     lv_anim_set_delay(&PropertyAnimation_1, delay);
     lv_anim_set_deleted_cb(&PropertyAnimation_1, _ui_anim_callback_free_user_data);
@@ -368,32 +372,34 @@ static void setting_update_visual_state(void)
         if(item == NULL) continue;
 
         if(i == setting_selected_index) {
-            /* آیتم وسط: آبی پررنگ */
             lv_obj_set_style_bg_color(
                 item,
                 SETTING_ITEM_COLOR_SELECTED,
                 LV_PART_MAIN | LV_STATE_DEFAULT
             );
-
             lv_obj_set_style_bg_opa(
                 item,
                 LV_OPA_COVER,
                 LV_PART_MAIN | LV_STATE_DEFAULT
             );
+
+            lv_obj_set_width(item, SETTING_SELECTED_W);
+            lv_obj_set_height(item, SETTING_SELECTED_H);
         }
         else if(setting_is_visible_index(i)) {
-            /* آیتم‌های بالا و پایین: آبی معمولی */
             lv_obj_set_style_bg_color(
                 item,
                 SETTING_ITEM_COLOR_NORMAL,
                 LV_PART_MAIN | LV_STATE_DEFAULT
             );
-
             lv_obj_set_style_bg_opa(
                 item,
                 LV_OPA_COVER,
                 LV_PART_MAIN | LV_STATE_DEFAULT
             );
+
+            lv_obj_set_width(item, SETTING_SIDE_W);
+            lv_obj_set_height(item, SETTING_SIDE_H);
         }
     }
 }
