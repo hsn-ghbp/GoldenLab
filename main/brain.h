@@ -38,6 +38,14 @@ typedef enum {
     SCAN_MODE_MANMEM = 3
 } scan_mode_t;
 
+typedef enum {
+    SETTING_STATE_LIST = 0,
+    SETTING_STATE_DETAIL,
+} setting_state_t;
+
+static setting_state_t current_setting_state = SETTING_STATE_LIST;
+
+
 
 scan_sub_state_t brain_get_scan_sub_state(void);
 

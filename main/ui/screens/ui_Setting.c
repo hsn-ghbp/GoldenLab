@@ -6,6 +6,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+//--------------------------TO DO ------------------------//
+/*تغییر bg_opa فقط پس‌زمینه دکمه را کم‌رنگ می‌کند و متن همچنان با opacity 
+کامل نمایش داده می‌شود.
+ اگر می‌خواهی خود متن آیتم‌های کناری هم کم‌رنگ شود،
+ */
+
 /* ========================= Config ========================= */
 
 #define SETTING_ITEM_COUNT          10
@@ -21,12 +27,21 @@
 #define SETTING_SIDE_W              165
 #define SETTING_SIDE_H              24
 
-//#define SETTING_ITEM_COLOR_NORMAL   lv_color_hex(0x3B82F6)
 #define SETTING_ITEM_COLOR_SELECTED lv_color_hex(0x2563EB)
 #define SETTING_ITEM_COLOR_NORMAL   lv_color_hex(0x34C5FF)
 
-#define SETTING_SELECTED_OPA   LV_OPA_COVER
-#define SETTING_SIDE_OPA       LV_OPA_30
+#define SETTING_OK_MOVE_UP_Y        50
+#define SETTING_OK_ANIM_TIME_MS     220
+static int32_t setting_selected_rest_y = 0;
+static int setting_restore_focus_idx = 0;
+static void setting_anim_set_y_cb(void * var, int32_t v);
+static void setting_restore_view_cb(lv_timer_t * timer);
+static void setting_hide_all_except(int focus_idx);
+
+
+
+// #define SETTING_SELECTED_OPA   LV_OPA_COVER
+// #define SETTING_SIDE_OPA       LV_OPA_30
 
 /*
  * فاصله مرکز تا مرکز برای رسیدن به gap واقعی:
@@ -63,6 +78,10 @@ typedef struct {
     lv_obj_t * leaving_item;
 } setting_anim_done_data_t;
 
+typedef struct {
+    int focus_idx;
+} setting_restore_ctx_t;
+
 /* ========================= Internal State ========================= */
 
 static lv_obj_t *setting_items[SETTING_ITEM_COUNT];
@@ -72,6 +91,97 @@ static bool setting_animating = false;
 static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
 
 /* ========================= Helpers ========================= */
+
+static void setting_anim_set_y_cb(void * var, int32_t v)
+{
+    lv_obj_t * obj = (lv_obj_t *)var;
+    if(obj == NULL) return;
+    lv_obj_set_y(obj, v);
+}
+
+static void setting_hide_all_except(int focus_idx)
+{
+    for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
+        lv_obj_t * item = setting_items[i];
+        if(item == NULL) continue;
+
+        if(i == focus_idx) {
+            lv_obj_clear_flag(item, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(item, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+static void setting_restore_view_cb(lv_timer_t * timer)
+{
+    LV_UNUSED(timer);
+    ui_Setting_update_view(setting_restore_focus_idx);
+    lv_timer_delete(timer);
+}
+
+
+void ui_Setting_focus_open(int focus_idx)
+{
+    if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
+
+    lv_obj_t * selected = setting_items[focus_idx];
+    if(selected == NULL) return;
+
+    setting_selected_rest_y = lv_obj_get_y(selected);
+
+    setting_hide_all_except(focus_idx);
+    lv_obj_move_foreground(selected);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, selected);
+    lv_anim_set_exec_cb(&a, setting_anim_set_y_cb);
+    lv_anim_set_values(&a, setting_selected_rest_y,
+                          setting_selected_rest_y - SETTING_OK_MOVE_UP_Y);
+    lv_anim_set_time(&a, SETTING_OK_ANIM_TIME_MS);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+}
+
+
+
+// static void setting_restore_triplet_timer_cb(lv_timer_t * t)
+// {
+//     LV_UNUSED(t);
+//     setting_restore_visible_triplet();
+//     lv_timer_delete(t);
+// }
+
+void ui_Setting_focus_close(int focus_idx)
+{
+    if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
+
+    lv_obj_t * selected = setting_items[focus_idx];
+    if(selected == NULL) return;
+
+    setting_restore_focus_idx = focus_idx;
+
+    int32_t current_y = lv_obj_get_y(selected);
+
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, selected);
+    lv_anim_set_exec_cb(&a, setting_anim_set_y_cb);
+    lv_anim_set_values(&a, current_y, setting_selected_rest_y);
+    lv_anim_set_time(&a, SETTING_OK_ANIM_TIME_MS);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+
+    lv_timer_t * t = lv_timer_create(setting_restore_view_cb,
+                                     SETTING_OK_ANIM_TIME_MS + 20,
+                                     NULL);
+    lv_timer_set_repeat_count(t, 1);
+}
+
+
+
+
 
 static int setting_wrap_index(int index)
 {
@@ -127,6 +237,7 @@ static void setting_store_current_triplet(int top, int center, int bottom)
 }
 
 /* ========================= Animations ========================= */
+
 
 lv_anim_t * moveUp_Animation(lv_obj_t * TargetObject, int delay)
 {
@@ -459,6 +570,10 @@ static void setting_update_visual_state(void)
             /*
              * آیتم‌های کناری:
              * رنگ معمولی + شفافیت کمتر + اندازه کوچک
+             * 
+             * تغییر bg_opa فقط پس‌زمینه دکمه را کم‌رنگ می‌کند و متن همچنان با opacity
+             *  کامل نمایش داده می‌شود. 
+             * اگر می‌خواهی خود متن آیتم‌های کناری هم کم‌رنگ شود،
              */
             lv_obj_set_style_bg_color(
                 item,

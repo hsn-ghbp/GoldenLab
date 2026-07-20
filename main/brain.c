@@ -397,6 +397,7 @@ static bool brain_transition_to_page(app_page_t target_page)
     }
     else if (target_page == PAGE_SETTING) {
     last_applied_setting_focus = -1;
+    current_setting_state = SETTING_STATE_LIST;
     }
 
     return true;
@@ -422,11 +423,14 @@ static void brain_apply_focus_if_needed(void)
             }
             break;
         case PAGE_SETTING:
-            if (g_setting_index != last_applied_setting_focus) {
-                ui_Setting_update_view(g_setting_index);
-                last_applied_setting_focus = g_setting_index;
-                ESP_LOGD(TAG, "Applied setting focus: %d", g_setting_index);
+            if (current_setting_state == SETTING_STATE_LIST) {
+                if (g_setting_index != last_applied_setting_focus) {
+                    ui_Setting_update_view(g_setting_index);
+                    last_applied_setting_focus = g_setting_index;
+                    ESP_LOGD(TAG, "Applied setting focus: %d", g_setting_index);
+                }
             }
+            break;
 
         default:
             break;
@@ -451,6 +455,8 @@ void brain_init(void)
     last_applied_menu_focus = -1;
     last_applied_scan_focus = -1;
     last_applied_setting_focus = -1;
+    current_setting_state = SETTING_STATE_LIST;
+
 
     g_setting_index = 0;
 
@@ -590,19 +596,29 @@ void brain_handle_key(key_evt_t evt)
                 }
                 break;
         case PAGE_SETTING :     //-----------------setting page---------------//
-            if (evt == KEY_BACK) {
-                current_page = PAGE_MAIN_MENU;
+            if (current_setting_state == SETTING_STATE_LIST) {
+                if (evt == KEY_BACK) {
+                    current_page = PAGE_MAIN_MENU;
+                }
+                else if (evt == KEY_UP) {
+                    brain_setting_prev();
+                }
+                else if (evt == KEY_DOWN) {
+                    brain_setting_next();
+                }
+                else if (evt == KEY_OK) {
+                    ui_Setting_focus_open(g_setting_index);
+                    current_setting_state = SETTING_STATE_DETAIL;
+                }
             }
-            else if (evt == KEY_UP) {
-                brain_setting_prev();
-            }
-            else if (evt == KEY_DOWN) {
-                brain_setting_next();
-            }
-            else if (evt == KEY_OK) {
-                /* فعلاً رزرو برای ورود به تنظیم انتخاب‌شده */
+            else if (current_setting_state == SETTING_STATE_DETAIL) {
+                if (evt == KEY_BACK) {
+                    ui_Setting_focus_close(g_setting_index);
+                    current_setting_state = SETTING_STATE_LIST;
+                }
             }
             break;
+
         
                    
 

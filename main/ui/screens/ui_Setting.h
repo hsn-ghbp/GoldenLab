@@ -47,6 +47,15 @@ void ui_Setting_screen_init(void);
 bool ui_Setting_is_ready(void);
 void ui_Setting_update_view(int focus_idx);
 void ui_Setting_screen_destroy(void);
+void ui_Setting_focus_open(int focus_idx);
+void ui_Setting_focus_close(int focus_idx);
+
+
+
+
+
+
+
 
 #ifdef __cplusplus
 } /*extern "C"*/
