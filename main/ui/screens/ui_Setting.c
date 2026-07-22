@@ -32,11 +32,15 @@
 
 #define SETTING_OK_MOVE_UP_Y        50
 #define SETTING_OK_ANIM_TIME_MS     220
-static int32_t setting_selected_rest_y = 0;
+static int32_t setting_selected_closed_y = 0;
+static int32_t setting_selected_open_y   = -60;
 static int setting_restore_focus_idx = 0;
 static void setting_anim_set_y_cb(void * var, int32_t v);
-static void setting_restore_view_cb(lv_timer_t * timer);
+
 static void setting_hide_all_except(int focus_idx);
+bool ui_Setting_focus_close_done(void);
+static volatile bool setting_close_anim_running = false;
+
 
 
 
@@ -113,12 +117,6 @@ static void setting_hide_all_except(int focus_idx)
     }
 }
 
-static void setting_restore_view_cb(lv_timer_t * timer)
-{
-    LV_UNUSED(timer);
-    ui_Setting_update_view(setting_restore_focus_idx);
-    lv_timer_delete(timer);
-}
 
 
 void ui_Setting_focus_open(int focus_idx)
@@ -128,21 +126,25 @@ void ui_Setting_focus_open(int focus_idx)
     lv_obj_t * selected = setting_items[focus_idx];
     if(selected == NULL) return;
 
-    setting_selected_rest_y = lv_obj_get_y(selected);
+    setting_restore_focus_idx = focus_idx;
+    setting_close_anim_running = false; // ریست فلگ
 
     setting_hide_all_except(focus_idx);
     lv_obj_move_foreground(selected);
+
+    lv_obj_set_y(selected, setting_selected_closed_y);
+    lv_anim_del(selected, setting_anim_set_y_cb);
 
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, selected);
     lv_anim_set_exec_cb(&a, setting_anim_set_y_cb);
-    lv_anim_set_values(&a, setting_selected_rest_y,
-                          setting_selected_rest_y - SETTING_OK_MOVE_UP_Y);
+    lv_anim_set_values(&a, setting_selected_closed_y, setting_selected_open_y);
     lv_anim_set_time(&a, SETTING_OK_ANIM_TIME_MS);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
     lv_anim_start(&a);
 }
+
 
 
 
@@ -153,6 +155,14 @@ void ui_Setting_focus_open(int focus_idx)
 //     lv_timer_delete(t);
 // }
 
+static void setting_close_anim_ready_cb(lv_anim_t * a)
+{
+    LV_UNUSED(a);
+    setting_close_anim_running = false;
+   // brain_request_setting_view_refresh();
+}
+
+
 void ui_Setting_focus_close(int focus_idx)
 {
     if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
@@ -161,23 +171,30 @@ void ui_Setting_focus_close(int focus_idx)
     if(selected == NULL) return;
 
     setting_restore_focus_idx = focus_idx;
+    setting_close_anim_running = true;
 
-    int32_t current_y = lv_obj_get_y(selected);
+    lv_anim_del(selected, setting_anim_set_y_cb);
+    lv_obj_set_y(selected, setting_selected_open_y);
 
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, selected);
     lv_anim_set_exec_cb(&a, setting_anim_set_y_cb);
-    lv_anim_set_values(&a, current_y, setting_selected_rest_y);
+    lv_anim_set_values(&a, setting_selected_open_y, setting_selected_closed_y);
     lv_anim_set_time(&a, SETTING_OK_ANIM_TIME_MS);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_ready_cb(&a, setting_close_anim_ready_cb);
     lv_anim_start(&a);
 
-    lv_timer_t * t = lv_timer_create(setting_restore_view_cb,
-                                     SETTING_OK_ANIM_TIME_MS + 20,
-                                     NULL);
-    lv_timer_set_repeat_count(t, 1);
+    
 }
+
+
+bool ui_Setting_focus_close_done(void)
+{
+    return !setting_close_anim_running;
+}
+
 
 
 
@@ -626,6 +643,8 @@ bool ui_Setting_is_ready(void)
 {
     return (ui_Setting != NULL) && (ui_AutoCal != NULL);
 }
+
+
 
 void ui_Setting_screen_init(void)
 {

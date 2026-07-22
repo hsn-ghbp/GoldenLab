@@ -38,6 +38,7 @@ scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
 static int last_applied_setting_focus = -1;
+static volatile bool setting_view_refresh_pending = false;
 
 #define BRAIN_SETTING_ITEM_COUNT   10
 static int g_setting_index = 0;
@@ -127,6 +128,10 @@ void brain_setting_prev(void)
     brain_set_setting_index(g_setting_index - 1);
 }
 
+void brain_request_setting_view_refresh(void)
+{
+    setting_view_refresh_pending = true;
+}
 
 //-------------------------
 //event Function
@@ -423,7 +428,19 @@ static void brain_apply_focus_if_needed(void)
             }
             break;
         case PAGE_SETTING:
-            if (current_setting_state == SETTING_STATE_LIST) {
+            {
+                if (current_page == PAGE_SETTING &&
+                    current_setting_state == SETTING_STATE_CLOSING) {
+
+                    if (ui_Setting_focus_close_done()) {
+                        current_setting_state = SETTING_STATE_LIST;
+                        ui_Setting_update_view(g_setting_index);
+                        last_applied_setting_focus = g_setting_index;
+                    }
+                    return;
+                }
+
+                if (current_setting_state == SETTING_STATE_LIST) {
                 if (g_setting_index != last_applied_setting_focus) {
                     ui_Setting_update_view(g_setting_index);
                     last_applied_setting_focus = g_setting_index;
@@ -431,6 +448,8 @@ static void brain_apply_focus_if_needed(void)
                 }
             }
             break;
+
+            }
 
         default:
             break;
@@ -614,7 +633,7 @@ void brain_handle_key(key_evt_t evt)
             else if (current_setting_state == SETTING_STATE_DETAIL) {
                 if (evt == KEY_BACK) {
                     ui_Setting_focus_close(g_setting_index);
-                    current_setting_state = SETTING_STATE_LIST;
+                    current_setting_state = SETTING_STATE_CLOSING;
                 }
             }
             break;

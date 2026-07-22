@@ -41,6 +41,7 @@ typedef enum {
 typedef enum {
     SETTING_STATE_LIST = 0,
     SETTING_STATE_DETAIL,
+    SETTING_STATE_CLOSING,
 } setting_state_t;
 
 static setting_state_t current_setting_state = SETTING_STATE_LIST;
