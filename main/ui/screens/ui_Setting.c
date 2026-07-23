@@ -97,13 +97,30 @@ typedef struct {
 
 static lv_obj_t *setting_items[SETTING_ITEM_COUNT];
 //static int setting_index = 0;
-static int setting_open_target_index = 0;
+static int setting_open_target_index = -1; // تغییر کرد: -1 یعنی هیچ هدفی برای باز شدن نیست
+//static int setting_open_target_index = 0;
 static bool setting_first_layout = true;
 static bool setting_animating = false;
 static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
 static bool setting_force_update = false;
+static lv_timer_t * g_transition_timer = NULL;
 
 /* ========================= Helpers ========================= */
+
+static void ui_Setting_cancel_all_anims(void)
+{
+    for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
+        if(setting_items[i]) {
+            lv_anim_delete(setting_items[i], NULL);
+            lv_anim_delete(setting_items[i], setting_anim_set_y_cb);
+        }
+    }
+
+    if (ui_SwAutoCal)     lv_anim_delete(ui_SwAutoCal, NULL);
+    if (ui_LblAutoCalOn)  lv_anim_delete(ui_LblAutoCalOn, NULL);
+    if (ui_LblAutoCalOff) lv_anim_delete(ui_LblAutoCalOff, NULL);
+}
+
 
 void ui_update_autocal_view(void)
 {
@@ -180,26 +197,27 @@ void ui_Setting_hide_all_details(void)
 static void setting_open_anim_ready_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
-
     setting_open_anim_running = false;
     
-   // brain_request_setting_view_refresh();
-   ui_Setting_render_detail(setting_open_target_index);
-   //ui_Setting_render_detail();
+    // پچ Race Condition: 
+    // اگر هدف باز شدن ریست شده باشد (مثلا توسط تابع Close)، رندر را انجام نده.
+    if (setting_open_target_index != -1) {
+        ui_Setting_render_detail(setting_open_target_index);
+    }
 }
+
 
 
 void ui_Setting_focus_open(int focus_idx)
 {
     if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
-
+    if(setting_open_anim_running || setting_close_anim_running) return; // Guard
     lv_obj_t * selected = setting_items[focus_idx];
     if(selected == NULL) return;
-
-    setting_restore_focus_idx = focus_idx;
+    setting_open_anim_running = true;
     setting_close_anim_running = false; // ریست فلگ
     setting_open_target_index = focus_idx;
-    setting_open_anim_running = true;
+    
     setting_hide_all_except(focus_idx);
     lv_obj_move_foreground(selected);
 
@@ -242,12 +260,13 @@ static void setting_close_anim_ready_cb(lv_anim_t * a)
 void ui_Setting_focus_close(int focus_idx)
 {
     if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
-
+    setting_open_target_index = -1;
     lv_obj_t * selected = setting_items[focus_idx];
     if(selected == NULL) return;
 
     setting_restore_focus_idx = focus_idx;
     setting_close_anim_running = true;
+    setting_open_anim_running = false;
 
     lv_anim_del(selected, setting_anim_set_y_cb);
     lv_obj_set_y(selected, setting_selected_open_y);
@@ -310,7 +329,7 @@ static void setting_prepare_entering_item(lv_obj_t *obj, int32_t y)
 {
     if(obj == NULL) return;
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_size(obj, 0, 0);
+    lv_obj_set_size(obj, 1, 1);
     lv_obj_set_y(obj, y);
 }
 
@@ -342,6 +361,7 @@ lv_anim_t * moveUp_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t a;
     lv_anim_init(&a);
+    lv_anim_set_var(&a, TargetObject);
     lv_anim_set_duration(&a, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&a, user_data);
     lv_anim_set_custom_exec_cb(&a, _ui_anim_callback_set_y);
@@ -364,6 +384,7 @@ lv_anim_t * moveDown_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t a;
     lv_anim_init(&a);
+    lv_anim_set_var(&a, TargetObject);
     lv_anim_set_duration(&a, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&a, user_data);
     lv_anim_set_custom_exec_cb(&a, _ui_anim_callback_set_y);
@@ -386,6 +407,7 @@ lv_anim_t * fadeout_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t width_anim;
     lv_anim_init(&width_anim);
+    lv_anim_set_var(&width_anim, TargetObject);
     lv_anim_set_duration(&width_anim, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&width_anim, width_user_data);
     lv_anim_set_custom_exec_cb(&width_anim, _ui_anim_callback_set_width);
@@ -403,6 +425,7 @@ lv_anim_t * fadeout_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t height_anim;
     lv_anim_init(&height_anim);
+    lv_anim_set_var(&height_anim, TargetObject);
     lv_anim_set_duration(&height_anim, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&height_anim, height_user_data);
     lv_anim_set_custom_exec_cb(&height_anim, _ui_anim_callback_set_height);
@@ -424,6 +447,7 @@ lv_anim_t * fadein_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t height_anim;
     lv_anim_init(&height_anim);
+    lv_anim_set_var(&height_anim, TargetObject);
     lv_anim_set_duration(&height_anim, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&height_anim, height_user_data);
     lv_anim_set_custom_exec_cb(&height_anim, _ui_anim_callback_set_height);
@@ -441,6 +465,7 @@ lv_anim_t * fadein_Animation(lv_obj_t * TargetObject, int delay)
 
     lv_anim_t width_anim;
     lv_anim_init(&width_anim);
+    lv_anim_set_var(&width_anim, TargetObject);
     lv_anim_set_duration(&width_anim, SETTING_ANIM_TIME_MS);
     lv_anim_set_user_data(&width_anim, width_user_data);
     lv_anim_set_custom_exec_cb(&width_anim, _ui_anim_callback_set_width);
@@ -468,6 +493,7 @@ static void setting_transition_done_timer_cb(lv_timer_t *timer)
     }
 
     setting_animating = false;
+    g_transition_timer = NULL;
     lv_timer_delete(timer);
 }
 
@@ -506,12 +532,12 @@ static void setting_transition_down(int leaving_idx, int moving1_idx, int moving
     setting_anim_done_data_t *done = lv_malloc(sizeof(setting_anim_done_data_t));
     if(done != NULL) {
         done->leaving_item = leaving;
-        lv_timer_t *timer = lv_timer_create(
+        g_transition_timer = lv_timer_create(
             setting_transition_done_timer_cb,
             SETTING_ANIM_TIME_MS + 20,
             done
         );
-        lv_timer_set_repeat_count(timer, 1);
+        lv_timer_set_repeat_count(g_transition_timer, 1);
     } else {
         setting_animating = false;
     }
@@ -553,12 +579,12 @@ static void setting_transition_up(int entering_idx, int moving1_idx, int moving2
     setting_anim_done_data_t *done = lv_malloc(sizeof(setting_anim_done_data_t));
     if(done != NULL) {
         done->leaving_item = leaving;
-        lv_timer_t *timer = lv_timer_create(
+        g_transition_timer = lv_timer_create(
             setting_transition_done_timer_cb,
             SETTING_ANIM_TIME_MS + 20,
             done
         );
-        lv_timer_set_repeat_count(timer, 1);
+        lv_timer_set_repeat_count(g_transition_timer, 1);
     } else {
         setting_animating = false;
     }
@@ -1105,10 +1131,69 @@ void ui_Setting_screen_init(void)
 
 void ui_Setting_screen_destroy(void)
 {
-    setting_animating = false;
+    // 1) اگر timer معلق داریم، user_data آن را هم آزاد کن
+    if (g_transition_timer != NULL) {
+        setting_anim_done_data_t *data =
+            (setting_anim_done_data_t *)lv_timer_get_user_data(g_transition_timer);
 
-    if(ui_Setting != NULL) {
-        lv_obj_del(ui_Setting);
+        if (data != NULL) {
+            lv_free(data);
+        }
+
+        lv_timer_delete(g_transition_timer);
+        g_transition_timer = NULL;
+    }
+
+    // 2) فقط انیمیشن‌های همین صفحه را لغو کن
+    ui_Setting_cancel_all_anims();
+
+    // 3) ریست stateها
+    setting_animating = false;
+    setting_open_anim_running = false;
+    setting_close_anim_running = false;
+    setting_open_target_index = -1;
+    setting_restore_focus_idx = 0;
+    setting_first_layout = true;
+    setting_force_update = false;
+
+    prev_visible[0] = -1;
+    prev_visible[1] = -1;
+    prev_visible[2] = -1;
+
+    // 4) حذف root
+    if (ui_Setting != NULL) {
+        lv_obj_delete(ui_Setting);
         ui_Setting = NULL;
     }
+
+    // 5) پاک کردن dangling pointerها
+    ui_AutoCal = NULL;
+    ui_LblAutoCal = NULL;
+    ui_AutoCalPls = NULL;
+    ui_LblAutoCalPls = NULL;
+    ui_PulsMax = NULL;
+    ui_LblPalsMax = NULL;
+    ui_DelayTime = NULL;
+    ui_LblDelayTime = NULL;
+    ui_StopTrg = NULL;
+    ui_LblStopTrg = NULL;
+    ui_Beep = NULL;
+    ui_LblBeep = NULL;
+    ui_BlAutoOff = NULL;
+    ui_LblBlAutoOff = NULL;
+    ui_BlAutoConnect = NULL;
+    ui_LblBlAutoConnect = NULL;
+    ui_BlPass = NULL;
+    ui_LblBlPass = NULL;
+    ui_BlName = NULL;
+    ui_LblBlName = NULL;
+    ui_LblAutoCalOff = NULL;
+    ui_SwAutoCal = NULL;
+    ui_LblAutoCalOn = NULL;
+
+    for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
+        setting_items[i] = NULL;
+    }
 }
+
+

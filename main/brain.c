@@ -39,7 +39,7 @@ scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
 static int last_applied_setting_focus = -1;
-static volatile bool setting_view_refresh_pending = false;
+//static volatile bool setting_view_refresh_pending = false;
 
 #define BRAIN_SETTING_ITEM_COUNT   10
 static int g_setting_index = 0;
@@ -144,10 +144,10 @@ void brain_setting_prev(void)
     brain_set_setting_index(g_setting_index - 1);
 }
 
-void brain_request_setting_view_refresh(void)
-{
-    setting_view_refresh_pending = true;
-}
+// void brain_request_setting_view_refresh(void)
+// {
+//     setting_view_refresh_pending = true;
+// }
 
 // تابع دسترسی Read-Only برای UI
 const system_settings_t* brain_get_settings(void)
