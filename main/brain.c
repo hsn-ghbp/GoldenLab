@@ -175,6 +175,85 @@ app_event_t brain_consume_events(void)
 // Internal helpers
 // -------------------------
 
+#include "brain.h"
+#include "ui.h"
+#include "ui_Setting.h"
+#include <string.h>
+
+static int32_t clamp_i32(int32_t value, int32_t min, int32_t max)
+{
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+void brain_setting_detail_step(bool increase)
+{
+    switch (g_setting_index) {
+        case SETTING_ITEM_AUTOCAL:
+            // براي bool بالا/پايين هر دو عملاً تغيير وضعيت مي‌دهند
+            brain_toggle_bool_setting(SETTING_ITEM_AUTOCAL);
+            break;
+
+        case SETTING_ITEM_AUTOCAL_PLS:
+            if (increase) {
+                g_settings.auto_cal_pls = clamp_i32(g_settings.auto_cal_pls + 1, 0, 9999);
+            } else {
+                g_settings.auto_cal_pls = clamp_i32(g_settings.auto_cal_pls - 1, 0, 9999);
+            }
+            break;
+
+        case SETTING_ITEM_PULS_MAX:
+            if (increase) {
+                g_settings.puls_max = clamp_i32(g_settings.puls_max + 1, 0, 9999);
+            } else {
+                g_settings.puls_max = clamp_i32(g_settings.puls_max - 1, 0, 9999);
+            }
+            break;
+
+        case SETTING_ITEM_DELAY_TIME:
+            if (increase) {
+                g_settings.delay_time = clamp_i32(g_settings.delay_time + 1, 0, 9999);
+            } else {
+                g_settings.delay_time = clamp_i32(g_settings.delay_time - 1, 0, 9999);
+            }
+            break;
+
+        case SETTING_ITEM_STOP_TRG:
+            brain_toggle_bool_setting(SETTING_ITEM_STOP_TRG);
+            break;
+
+        case SETTING_ITEM_BEEP:
+            brain_toggle_bool_setting(SETTING_ITEM_BEEP);
+            break;
+
+        case SETTING_ITEM_BL_AUTO_OFF:
+            brain_toggle_bool_setting(SETTING_ITEM_BL_AUTO_OFF);
+            break;
+
+        case SETTING_ITEM_BL_AUTO_CONNECT:
+            brain_toggle_bool_setting(SETTING_ITEM_BL_AUTO_CONNECT);
+            break;
+
+        case SETTING_ITEM_BL_PASS:
+            if (increase) {
+                g_settings.bl_pass = clamp_i32(g_settings.bl_pass + 1, 0, 999999);
+            } else {
+                g_settings.bl_pass = clamp_i32(g_settings.bl_pass - 1, 0, 999999);
+            }
+            break;
+
+        case SETTING_ITEM_BL_NAME:
+            // فعلاً بدون تغییر؛ بعداً برای ویرایش رشته منطق جدا می‌گذاریم
+            break;
+
+        default:
+            break;
+    }
+
+    // بعد از هر تغییر، detail دوباره render شود
+    ui_Setting_render_detail();
+}
 
 
 // تغییر مقدار بولین‌ها بر اساس اندیس منو
@@ -734,9 +813,15 @@ void brain_handle_key(key_evt_t evt)
                     ui_Setting_focus_close(g_setting_index);
                     current_setting_state = SETTING_STATE_CLOSING;
                     ui_Setting_hide_all_details();
-                    
-
                 }
+                else if (evt == KEY_UP){
+                    brain_setting_detail_step(true);
+                }
+                else if (evt== KEY_DOWN)
+                {
+                    brain_setting_detail_step(false);
+                }
+                
             }
             break;
 

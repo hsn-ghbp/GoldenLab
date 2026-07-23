@@ -52,6 +52,8 @@ void ui_Setting_focus_close(int focus_idx);
 bool ui_Setting_focus_close_done(void);
 void ui_Setting_force_refresh(void);
 void ui_Setting_hide_all_details(void);
+void ui_Setting_render_detail(void);
+
 
 
 

@@ -177,11 +177,12 @@ void ui_Setting_hide_all_details(void)
 
 static void setting_open_anim_ready_cb(lv_anim_t * a)
 {
-    lv_obj_clear_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
+    // lv_obj_clear_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
+    // lv_obj_clear_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
+    // lv_obj_clear_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
     
    // brain_request_setting_view_refresh();
+   ui_Setting_render_detail();
 }
 
 
@@ -704,6 +705,47 @@ void ui_Setting_update_view(int focus_idx)
     setting_force_update = false;
     setting_transition_to(wrapped);
     setting_update_visual_state();
+}
+
+void ui_Setting_render_detail(void)
+{
+    const system_settings_t *settings = brain_get_settings();
+
+    ui_Setting_hide_all_details();
+
+    switch (setting_selected_index) {
+        case SETTING_ITEM_AUTOCAL:
+            if (ui_SwAutoCal) {
+                lv_obj_remove_flag(ui_SwAutoCal, LV_OBJ_FLAG_HIDDEN);
+                if (settings->auto_cal) {
+                    lv_obj_add_state(ui_SwAutoCal, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(ui_SwAutoCal, LV_STATE_CHECKED);
+                }
+            }
+
+            if (ui_LblAutoCalOn) {
+                lv_obj_remove_flag(ui_LblAutoCalOn, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_style_text_opa(
+                    ui_LblAutoCalOn,
+                    settings->auto_cal ? LV_OPA_COVER : LV_OPA_30,
+                    LV_PART_MAIN
+                );
+            }
+
+            if (ui_LblAutoCalOff) {
+                lv_obj_remove_flag(ui_LblAutoCalOff, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_style_text_opa(
+                    ui_LblAutoCalOff,
+                    settings->auto_cal ? LV_OPA_30 : LV_OPA_COVER,
+                    LV_PART_MAIN
+                );
+            }
+            break;
+
+        default:
+            break;
+    }
 }
 
 bool ui_Setting_is_ready(void)
