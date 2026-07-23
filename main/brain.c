@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "ui.h"
-
+#include <string.h>
 #include "ui_MainMenu.h"
 #include "ui_ScanMenu.h"
 #include "ui_Screen1.h"
@@ -28,6 +28,7 @@ static app_page_t current_page = PAGE_SPLASH;
 static app_page_t loaded_page  = PAGE_SPLASH;
 static scan_sub_state_t current_scan_sub_state = SCAN_STATE_IDLE;
 static app_event_t pending_events = APP_EVENT_NONE;
+static setting_state_t current_setting_state = SETTING_STATE_LIST;
 
 
 static int selected_menu = 0;
@@ -175,10 +176,6 @@ app_event_t brain_consume_events(void)
 // Internal helpers
 // -------------------------
 
-#include "brain.h"
-#include "ui.h"
-#include "ui_Setting.h"
-#include <string.h>
 
 static int32_t clamp_i32(int32_t value, int32_t min, int32_t max)
 {
@@ -252,7 +249,9 @@ void brain_setting_detail_step(bool increase)
     }
 
     // بعد از هر تغییر، detail دوباره render شود
+    if (ui_Setting_is_ready() && loaded_page == PAGE_SETTING) {
     ui_Setting_render_detail();
+}
 }
 
 
@@ -607,6 +606,15 @@ static void brain_apply_focus_if_needed(void)
         case PAGE_SETTING:
             {
                 if (current_page == PAGE_SETTING &&
+                    current_setting_state == SETTING_STATE_OPENING) {
+
+                    if (ui_Setting_focus_open_done()) {
+                        current_setting_state = SETTING_STATE_DETAIL;
+                    }
+                    return;
+                }
+
+                if (current_page == PAGE_SETTING &&
                     current_setting_state == SETTING_STATE_CLOSING) {
 
                     if (ui_Setting_focus_close_done()) {
@@ -793,6 +801,12 @@ void brain_handle_key(key_evt_t evt)
                 }
                 break;
         case PAGE_SETTING :     //-----------------setting page---------------//
+            
+                if (current_setting_state == SETTING_STATE_OPENING ||
+                    current_setting_state == SETTING_STATE_CLOSING) {
+                    break;
+                }
+        
             if (current_setting_state == SETTING_STATE_LIST) {
                 if (evt == KEY_BACK) {
                     current_page = PAGE_MAIN_MENU;
@@ -805,7 +819,7 @@ void brain_handle_key(key_evt_t evt)
                 }
                 else if (evt == KEY_OK) {
                     ui_Setting_focus_open(g_setting_index);
-                    current_setting_state = SETTING_STATE_DETAIL;
+                    current_setting_state = SETTING_STATE_OPENING;
                 }
             }
             else if (current_setting_state == SETTING_STATE_DETAIL) {

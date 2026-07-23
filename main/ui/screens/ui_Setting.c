@@ -41,6 +41,8 @@ static void setting_anim_set_y_cb(void * var, int32_t v);
 static void setting_hide_all_except(int focus_idx);
 bool ui_Setting_focus_close_done(void);
 static volatile bool setting_close_anim_running = false;
+static volatile bool setting_open_anim_running = false;
+
 
 
 
@@ -152,7 +154,6 @@ static void setting_hide_all_except(int focus_idx)
     }
 }
 
-#include "ui_Setting.h"
 
 void ui_Setting_hide_all_details(void)
 {
@@ -177,9 +178,9 @@ void ui_Setting_hide_all_details(void)
 
 static void setting_open_anim_ready_cb(lv_anim_t * a)
 {
-    // lv_obj_clear_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
-    // lv_obj_clear_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
-    // lv_obj_clear_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
+    LV_UNUSED(a);
+
+    setting_open_anim_running = false;
     
    // brain_request_setting_view_refresh();
    ui_Setting_render_detail();
@@ -195,7 +196,7 @@ void ui_Setting_focus_open(int focus_idx)
 
     setting_restore_focus_idx = focus_idx;
     setting_close_anim_running = false; // ریست فلگ
-
+    setting_open_anim_running = true;
     setting_hide_all_except(focus_idx);
     lv_obj_move_foreground(selected);
 
@@ -213,6 +214,10 @@ void ui_Setting_focus_open(int focus_idx)
     lv_anim_start(&a);
 }
 
+bool ui_Setting_focus_open_done(void)
+{
+    return !setting_open_anim_running;
+}
 
 
 

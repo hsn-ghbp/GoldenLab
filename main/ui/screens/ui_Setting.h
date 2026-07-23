@@ -53,6 +53,8 @@ bool ui_Setting_focus_close_done(void);
 void ui_Setting_force_refresh(void);
 void ui_Setting_hide_all_details(void);
 void ui_Setting_render_detail(void);
+bool ui_Setting_focus_open_done(void);
+
 
 
 

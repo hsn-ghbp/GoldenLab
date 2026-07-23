@@ -40,6 +40,7 @@ typedef enum {
 
 typedef enum {
     SETTING_STATE_LIST = 0,
+    SETTING_STATE_OPENING,
     SETTING_STATE_DETAIL,
     SETTING_STATE_CLOSING,
 } setting_state_t;
@@ -81,18 +82,10 @@ const system_settings_t* brain_get_settings(void);
 // تابع متمرکز تغییر مقادیر بولین با استفاده از اندیس
 void brain_set_bool_setting(setting_item_index_t index, bool value);
 void brain_toggle_bool_setting(setting_item_index_t index);
-
-
-static setting_state_t current_setting_state = SETTING_STATE_LIST;
 void brain_setting_detail_step(bool increase);
-
-
-
 scan_sub_state_t brain_get_scan_sub_state(void);
-
 void brain_emit_event(app_event_t event);
 app_event_t brain_consume_events(void);
-
 
 // توابع اصلی Brain
 void brain_init(void);
