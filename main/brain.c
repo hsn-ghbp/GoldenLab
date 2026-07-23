@@ -250,7 +250,7 @@ void brain_setting_detail_step(bool increase)
 
     // بعد از هر تغییر، detail دوباره render شود
     if (ui_Setting_is_ready() && loaded_page == PAGE_SETTING) {
-    ui_Setting_render_detail();
+    ui_Setting_render_detail(g_setting_index);
 }
 }
 

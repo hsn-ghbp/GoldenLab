@@ -96,7 +96,8 @@ typedef struct {
 /* ========================= Internal State ========================= */
 
 static lv_obj_t *setting_items[SETTING_ITEM_COUNT];
-static int setting_selected_index = 0;
+//static int setting_index = 0;
+static int setting_open_target_index = 0;
 static bool setting_first_layout = true;
 static bool setting_animating = false;
 static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
@@ -183,7 +184,8 @@ static void setting_open_anim_ready_cb(lv_anim_t * a)
     setting_open_anim_running = false;
     
    // brain_request_setting_view_refresh();
-   ui_Setting_render_detail();
+   ui_Setting_render_detail(setting_open_target_index);
+   //ui_Setting_render_detail();
 }
 
 
@@ -196,6 +198,7 @@ void ui_Setting_focus_open(int focus_idx)
 
     setting_restore_focus_idx = focus_idx;
     setting_close_anim_running = false; // ریست فلگ
+    setting_open_target_index = focus_idx;
     setting_open_anim_running = true;
     setting_hide_all_except(focus_idx);
     lv_obj_move_foreground(selected);
@@ -561,70 +564,252 @@ static void setting_transition_up(int entering_idx, int moving1_idx, int moving2
     }
 }
 
+// static void setting_transition_to(int new_selected_index ,int setting_index)
+// {
+//     const int old_selected = setting_index;
+//     const bool moving_down = (setting_wrap_index(old_selected + 1) == new_selected_index);
+//     const bool moving_up   = (setting_wrap_index(old_selected - 1) == new_selected_index);
+
+//     const int new_top    = setting_wrap_index(new_selected_index - 1);
+//     const int new_center = new_selected_index;
+//     const int new_bottom = setting_wrap_index(new_selected_index + 1);
+
+//     if(setting_first_layout || prev_visible[0] < 0 || prev_visible[1] < 0 || prev_visible[2] < 0) {
+//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
+//             if(setting_items[i]) {
+//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
+//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
+//             }
+//         }
+
+//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
+//         setting_prepare_selected_item(setting_items[new_center], 0);
+//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
+//         lv_obj_move_foreground(setting_items[new_center]);
+
+//         setting_store_current_triplet(new_top, new_center, new_bottom);
+//         setting_index = new_selected_index;
+//         setting_first_layout = false;
+//         setting_animating = false;
+//         return;
+//     }
+
+//     if(setting_animating) return;
+//     setting_animating = true;
+
+//     if(moving_down) {
+//         setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
+//     }
+//     else if(moving_up) {
+//         setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
+//     }
+//     else {
+//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
+//             if(setting_items[i]) {
+//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
+//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
+//             }
+//         }
+
+//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
+//         setting_prepare_selected_item(setting_items[new_center], 0);
+//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
+//         lv_obj_move_foreground(setting_items[new_center]);
+
+//         setting_animating = false;
+//     }
+
+//     setting_store_current_triplet(new_top, new_center, new_bottom);
+//     setting_index = new_selected_index;
+// }
+
+// static void setting_transition_to(int new_selected_index, int old_selected_index)
+// {
+//     const bool moving_down = (setting_wrap_index(old_selected_index + 1) == new_selected_index);
+//     const bool moving_up   = (setting_wrap_index(old_selected_index - 1) == new_selected_index);
+
+//     const int new_top    = setting_wrap_index(new_selected_index - 1);
+//     const int new_center = new_selected_index;
+//     const int new_bottom = setting_wrap_index(new_selected_index + 1);
+
+//     // حالت اول: بار اول که صفحه لود می‌شود یا پرش بزرگ (نه بالا نه پایین)
+//     if(setting_first_layout || (!moving_down && !moving_up)) {
+//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
+//             if(setting_items[i]) {
+//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
+//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
+//             }
+//         }
+
+//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
+//         setting_prepare_selected_item(setting_items[new_center], 0);
+//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
+//         lv_obj_move_foreground(setting_items[new_center]);
+
+//         setting_store_current_triplet(new_top, new_center, new_bottom);
+//         setting_first_layout = false;
+//         setting_animating = false;
+//         return;
+//     }
+
+//     if(setting_animating) return;
+//     setting_animating = true;
+
+//     if(moving_down) {
+//         setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
+//     }
+//     else if(moving_up) {
+//         setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
+//     }
+
+//     setting_store_current_triplet(new_top, new_center, new_bottom);
+// }
 static void setting_transition_to(int new_selected_index)
 {
-    const int old_selected = setting_selected_index;
-    const bool moving_down = (setting_wrap_index(old_selected + 1) == new_selected_index);
-    const bool moving_up   = (setting_wrap_index(old_selected - 1) == new_selected_index);
+    new_selected_index = setting_wrap_index(new_selected_index);
 
-    const int new_top    = setting_wrap_index(new_selected_index - 1);
-    const int new_center = new_selected_index;
-    const int new_bottom = setting_wrap_index(new_selected_index + 1);
+    const int old_selected = prev_visible[1];
 
-    if(setting_first_layout || prev_visible[0] < 0 || prev_visible[1] < 0 || prev_visible[2] < 0) {
-        for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
-            if(setting_items[i]) {
-                lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
-                lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
+    const bool moving_down =
+        old_selected >= 0 &&
+        setting_wrap_index(old_selected + 1) == new_selected_index;
+
+    const bool moving_up =
+        old_selected >= 0 &&
+        setting_wrap_index(old_selected - 1) == new_selected_index;
+
+    const int new_top =
+        setting_wrap_index(new_selected_index - 1);
+
+    const int new_center =
+        new_selected_index;
+
+    const int new_bottom =
+        setting_wrap_index(new_selected_index + 1);
+
+    if (setting_first_layout ||
+        prev_visible[0] < 0 ||
+        prev_visible[1] < 0 ||
+        prev_visible[2] < 0) {
+
+        for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
+            if (setting_items[i] != NULL) {
+                lv_obj_add_flag(
+                    setting_items[i],
+                    LV_OBJ_FLAG_HIDDEN
+                );
+
+                lv_obj_set_size(
+                    setting_items[i],
+                    SETTING_SIDE_W,
+                    SETTING_SIDE_H
+                );
             }
         }
 
-        setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
-        setting_prepare_selected_item(setting_items[new_center], 0);
-        setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
+        setting_prepare_side_item(
+            setting_items[new_top],
+            -SETTING_SIDE_OFFSET_Y
+        );
+
+        setting_prepare_selected_item(
+            setting_items[new_center],
+            0
+        );
+
+        setting_prepare_side_item(
+            setting_items[new_bottom],
+            SETTING_SIDE_OFFSET_Y
+        );
+
         lv_obj_move_foreground(setting_items[new_center]);
 
-        setting_store_current_triplet(new_top, new_center, new_bottom);
-        setting_selected_index = new_selected_index;
+        setting_store_current_triplet(
+            new_top,
+            new_center,
+            new_bottom
+        );
+
         setting_first_layout = false;
         setting_animating = false;
         return;
     }
 
-    if(setting_animating) return;
+    if (setting_animating) {
+        return;
+    }
+
     setting_animating = true;
 
-    if(moving_down) {
-        setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
+    if (moving_down) {
+        setting_transition_down(
+            prev_visible[0],
+            prev_visible[1],
+            prev_visible[2],
+            new_bottom
+        );
     }
-    else if(moving_up) {
-        setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
+    else if (moving_up) {
+        setting_transition_up(
+            new_top,
+            prev_visible[0],
+            prev_visible[1],
+            prev_visible[2]
+        );
     }
     else {
-        for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
-            if(setting_items[i]) {
-                lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
-                lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
+        /*
+         * برای پرش بیش از یک آیتم، بدون انیمیشن دوباره layout می‌کنیم.
+         */
+        for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
+            if (setting_items[i] != NULL) {
+                lv_obj_add_flag(
+                    setting_items[i],
+                    LV_OBJ_FLAG_HIDDEN
+                );
+
+                lv_obj_set_size(
+                    setting_items[i],
+                    SETTING_SIDE_W,
+                    SETTING_SIDE_H
+                );
             }
         }
 
-        setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
-        setting_prepare_selected_item(setting_items[new_center], 0);
-        setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
+        setting_prepare_side_item(
+            setting_items[new_top],
+            -SETTING_SIDE_OFFSET_Y
+        );
+
+        setting_prepare_selected_item(
+            setting_items[new_center],
+            0
+        );
+
+        setting_prepare_side_item(
+            setting_items[new_bottom],
+            SETTING_SIDE_OFFSET_Y
+        );
+
         lv_obj_move_foreground(setting_items[new_center]);
 
         setting_animating = false;
     }
 
-    setting_store_current_triplet(new_top, new_center, new_bottom);
-    setting_selected_index = new_selected_index;
+    setting_store_current_triplet(
+        new_top,
+        new_center,
+        new_bottom
+    );
 }
+
+
 
 /* میزان شفافیت آیتم‌ها */
 #define SETTING_SELECTED_OPA   LV_OPA_COVER
 #define SETTING_SIDE_OPA       LV_OPA_50
 
-static void setting_update_visual_state(void)
+static void setting_update_visual_state(int setting_index)
 {
     for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
         lv_obj_t *item = setting_items[i];
@@ -633,7 +818,7 @@ static void setting_update_visual_state(void)
             continue;
         }
 
-        if(i == setting_selected_index) {
+        if(i == setting_index) {
             /*
              * آیتم فوکوس‌شده:
              * رنگ انتخاب‌شده + شفافیت کامل + اندازه بزرگ
@@ -703,22 +888,22 @@ static void setting_init_item_array(void)
 
 /* ========================= Public API ========================= */
 
-void ui_Setting_update_view(int focus_idx)
+void ui_Setting_update_view(int setting_index)
 {
-    int wrapped = setting_wrap_index(focus_idx);
-    if(wrapped == setting_selected_index && !setting_first_layout && !setting_force_update) return;
+    int wrapped = setting_wrap_index(setting_index);
+    if(wrapped == prev_visible[1] && !setting_first_layout && !setting_force_update) return;
     setting_force_update = false;
     setting_transition_to(wrapped);
-    setting_update_visual_state();
+    setting_update_visual_state(wrapped);
 }
 
-void ui_Setting_render_detail(void)
+void ui_Setting_render_detail(int setting_index)
 {
     const system_settings_t *settings = brain_get_settings();
 
     ui_Setting_hide_all_details();
 
-    switch (setting_selected_index) {
+    switch (setting_index) {
         case SETTING_ITEM_AUTOCAL:
             if (ui_SwAutoCal) {
                 lv_obj_remove_flag(ui_SwAutoCal, LV_OBJ_FLAG_HIDDEN);
@@ -908,11 +1093,14 @@ void ui_Setting_screen_init(void)
     prev_visible[1] = -1;
     prev_visible[2] = -1;
 
-    setting_selected_index = 0;
+    //setting_index = 0;
     setting_first_layout = true;
     setting_animating = false;
+    setting_force_update = false;
+    setting_open_anim_running = false;
+    setting_close_anim_running = false;
 
-    ui_Setting_update_view(0);
+    ui_Setting_update_view(brain_get_setting_index());
 }
 
 void ui_Setting_screen_destroy(void)
