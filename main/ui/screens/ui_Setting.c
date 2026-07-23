@@ -93,8 +93,19 @@ static int setting_selected_index = 0;
 static bool setting_first_layout = true;
 static bool setting_animating = false;
 static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
+static bool setting_force_update = false;
 
 /* ========================= Helpers ========================= */
+void ui_Setting_force_refresh(void)
+{
+
+    setting_force_update = true;
+    setting_first_layout = true;
+
+    prev_visible[0] = -1;
+    prev_visible[1] = -1;
+    prev_visible[2] = -1;
+}
 
 static void setting_anim_set_y_cb(void * var, int32_t v)
 {
@@ -633,8 +644,8 @@ static void setting_init_item_array(void)
 void ui_Setting_update_view(int focus_idx)
 {
     int wrapped = setting_wrap_index(focus_idx);
-    if(wrapped == setting_selected_index && !setting_first_layout) return;
-
+    if(wrapped == setting_selected_index && !setting_first_layout && !setting_force_update) return;
+    setting_force_update = false;
     setting_transition_to(wrapped);
     setting_update_visual_state();
 }

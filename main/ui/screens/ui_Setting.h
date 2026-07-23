@@ -50,6 +50,8 @@ void ui_Setting_screen_destroy(void);
 void ui_Setting_focus_open(int focus_idx);
 void ui_Setting_focus_close(int focus_idx);
 bool ui_Setting_focus_close_done(void);
+void ui_Setting_force_refresh(void);
+
 
 
 

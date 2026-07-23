@@ -433,6 +433,7 @@ static void brain_apply_focus_if_needed(void)
                     current_setting_state == SETTING_STATE_CLOSING) {
 
                     if (ui_Setting_focus_close_done()) {
+                        ui_Setting_force_refresh();
                         current_setting_state = SETTING_STATE_LIST;
                         ui_Setting_update_view(g_setting_index);
                         last_applied_setting_focus = g_setting_index;
