@@ -47,6 +47,21 @@ static int g_setting_index = 0;
 static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
 
 
+// مقداردهی اولیه پیش‌فرض مطابق با معماری پروژه
+static system_settings_t g_settings = {
+    .auto_cal = false,
+    .auto_cal_pls = 10,
+    .puls_max = 100,
+    .delay_time = 500,
+    .stop_trg = true,
+    .beep = true,
+    .bl_auto_off = false,
+    .bl_auto_connect = true,
+    .bl_pass = 1234,
+    .bl_name = "MAGI_ESP"
+};
+
+
 // -------------------------
 // External symbols
 // -------------------------
@@ -133,6 +148,12 @@ void brain_request_setting_view_refresh(void)
     setting_view_refresh_pending = true;
 }
 
+// تابع دسترسی Read-Only برای UI
+const system_settings_t* brain_get_settings(void)
+{
+    return &g_settings;
+}
+
 //-------------------------
 //event Function
 //-------------------------
@@ -153,6 +174,83 @@ app_event_t brain_consume_events(void)
 // -------------------------
 // Internal helpers
 // -------------------------
+
+
+
+// تغییر مقدار بولین‌ها بر اساس اندیس منو
+void brain_set_bool_setting(setting_item_index_t index, bool value)
+{
+    bool updated = false;
+    switch (index) {
+        case SETTING_ITEM_AUTOCAL:
+            if (g_settings.auto_cal != value) {
+                g_settings.auto_cal = value;
+                updated = true;
+            }
+            break;
+        case SETTING_ITEM_STOP_TRG:
+            if (g_settings.stop_trg != value) {
+                g_settings.stop_trg = value;
+                updated = true;
+            }
+            break;
+        case SETTING_ITEM_BEEP:
+            if (g_settings.beep != value) {
+                g_settings.beep = value;
+                updated = true;
+            }
+            break;
+        case SETTING_ITEM_BL_AUTO_OFF:
+            if (g_settings.bl_auto_off != value) {
+                g_settings.bl_auto_off = value;
+                updated = true;
+            }
+            break;
+        case SETTING_ITEM_BL_AUTO_CONNECT:
+            if (g_settings.bl_auto_connect != value) {
+                g_settings.bl_auto_connect = value;
+                updated = true;
+            }
+            break;
+        default:
+            ESP_LOGW(TAG, "Attempted to set non-boolean or invalid index %d as bool", index);
+            return;
+    }
+
+    if (updated) {
+        ESP_LOGI(TAG, "Setting index %d updated to: %s", index, value ? "ON" : "OFF");
+        // در صورت نیاز به ذخیره‌سازی فوری در فلش/NVS:
+        // settings_save_to_nvs(&g_settings);
+    }
+}
+
+// تغییر وضعیت Toggle برای بولین‌ها
+void brain_toggle_bool_setting(setting_item_index_t index)
+{
+    const system_settings_t *s = brain_get_settings();
+    switch (index) {
+        case SETTING_ITEM_AUTOCAL:
+            brain_set_bool_setting(index, !s->auto_cal);
+            break;
+        case SETTING_ITEM_STOP_TRG:
+            brain_set_bool_setting(index, !s->stop_trg);
+            break;
+        case SETTING_ITEM_BEEP:
+            brain_set_bool_setting(index, !s->beep);
+            break;
+        case SETTING_ITEM_BL_AUTO_OFF:
+            brain_set_bool_setting(index, !s->bl_auto_off);
+            break;
+        case SETTING_ITEM_BL_AUTO_CONNECT:
+            brain_set_bool_setting(index, !s->bl_auto_connect);
+            break;
+        default:
+            break;
+    }
+}
+
+
+
 static lv_obj_t *brain_get_page_root(app_page_t page)
 {
     switch (page)
@@ -635,6 +733,9 @@ void brain_handle_key(key_evt_t evt)
                 if (evt == KEY_BACK) {
                     ui_Setting_focus_close(g_setting_index);
                     current_setting_state = SETTING_STATE_CLOSING;
+                    ui_Setting_hide_all_details();
+                    
+
                 }
             }
             break;

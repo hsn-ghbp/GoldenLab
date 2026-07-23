@@ -44,7 +44,47 @@ typedef enum {
     SETTING_STATE_CLOSING,
 } setting_state_t;
 
+
+// تعاریف اندیس‌های منو برای خوانایی بیشتر کد
+typedef enum {
+    SETTING_ITEM_AUTOCAL = 0,      // bool
+    SETTING_ITEM_AUTOCAL_PLS,      // int
+    SETTING_ITEM_PULS_MAX,         // int
+    SETTING_ITEM_DELAY_TIME,       // int
+    SETTING_ITEM_STOP_TRG,         // bool
+    SETTING_ITEM_BEEP,             // bool
+    SETTING_ITEM_BL_AUTO_OFF,      // bool
+    SETTING_ITEM_BL_AUTO_CONNECT,  // bool
+    SETTING_ITEM_BL_PASS,          // int
+    SETTING_ITEM_BL_NAME           // string (char array)
+} setting_item_index_t;
+
+#define SETTING_ITEM_COUNT 10
+
+// ساختار متمرکز تنظیمات MAGI_ESP
+typedef struct {
+    bool auto_cal;           // setting_items[0]
+    int32_t auto_cal_pls;    // setting_items[1]
+    int32_t puls_max;        // setting_items[2]
+    int32_t delay_time;      // setting_items[3]
+    bool stop_trg;           // setting_items[4]
+    bool beep;               // setting_items[5]
+    bool bl_auto_off;        // setting_items[6]
+    bool bl_auto_connect;    // setting_items[7]
+    int32_t bl_pass;         // setting_items[8]
+    char bl_name[32];        // setting_items[9]
+} system_settings_t;
+
+// توابع مدیریت و دسترسی به تنظیمات از سمت Brain
+const system_settings_t* brain_get_settings(void);
+
+// تابع متمرکز تغییر مقادیر بولین با استفاده از اندیس
+void brain_set_bool_setting(setting_item_index_t index, bool value);
+void brain_toggle_bool_setting(setting_item_index_t index);
+
+
 static setting_state_t current_setting_state = SETTING_STATE_LIST;
+void brain_setting_detail_step(bool increase);
 
 
 

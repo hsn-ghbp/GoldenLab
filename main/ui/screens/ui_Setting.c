@@ -5,6 +5,7 @@
 #include "ui_Setting.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "brain.h"
 
 //--------------------------TO DO ------------------------//
 /*تغییر bg_opa فقط پس‌زمینه دکمه را کم‌رنگ می‌کند و متن همچنان با opacity 
@@ -77,6 +78,10 @@ lv_obj_t * ui_BlPass = NULL;
 lv_obj_t * ui_LblBlPass = NULL;
 lv_obj_t * ui_BlName = NULL;
 lv_obj_t * ui_LblBlName = NULL;
+lv_obj_t * ui_LblAutoCalOff = NULL;
+lv_obj_t * ui_SwAutoCal= NULL;
+lv_obj_t * ui_LblAutoCalOn = NULL;
+
 
 typedef struct {
     lv_obj_t * leaving_item;
@@ -96,6 +101,23 @@ static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
 static bool setting_force_update = false;
 
 /* ========================= Helpers ========================= */
+
+void ui_update_autocal_view(void)
+{
+    // دریافت آخرین وضعیت تنظیمات از لایه Brain
+    const system_settings_t* settings = brain_get_settings();
+    bool is_on = settings->auto_cal;
+
+    if (ui_SwAutoCal != NULL) {
+        // تغییر وضعیت فیزیکی سوییچ (LV_STATE_CHECKED) بدون تحریک رویدادها (بدون ارسال Event تصادفی)
+        if (is_on) {
+            lv_obj_add_state(ui_SwAutoCal, LV_STATE_CHECKED);
+        } else {
+            lv_obj_remove_state(ui_SwAutoCal, LV_STATE_CHECKED);
+        }
+    }
+}
+
 void ui_Setting_force_refresh(void)
 {
 
@@ -105,6 +127,8 @@ void ui_Setting_force_refresh(void)
     prev_visible[0] = -1;
     prev_visible[1] = -1;
     prev_visible[2] = -1;
+
+    
 }
 
 static void setting_anim_set_y_cb(void * var, int32_t v)
@@ -128,6 +152,37 @@ static void setting_hide_all_except(int focus_idx)
     }
 }
 
+#include "ui_Setting.h"
+
+void ui_Setting_hide_all_details(void)
+{
+    // ۱. مخفی‌سازی المان‌های مربوط به AutoCal (آیتم 0)
+    if (ui_SwAutoCal) {
+        lv_obj_add_flag(ui_SwAutoCal, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblAutoCalOn) {
+        lv_obj_add_flag(ui_LblAutoCalOn, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblAutoCalOff) {
+        lv_obj_add_flag(ui_LblAutoCalOff, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // ۲. [محل قرارگیری المان‌های بعدی]
+    // در آینده آبجکت‌های مربوط به آیتم‌های عددی (مانند Sliderها) یا متنی را در اینجا اضافه می‌کنیم.
+    // به عنوان مثال:
+    // if (ui_SliderPulseMax) lv_obj_add_flag(ui_SliderPulseMax, LV_OBJ_FLAG_HIDDEN);
+}
+
+
+
+static void setting_open_anim_ready_cb(lv_anim_t * a)
+{
+    lv_obj_clear_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
+    
+   // brain_request_setting_view_refresh();
+}
 
 
 void ui_Setting_focus_open(int focus_idx)
@@ -153,6 +208,7 @@ void ui_Setting_focus_open(int focus_idx)
     lv_anim_set_values(&a, setting_selected_closed_y, setting_selected_open_y);
     lv_anim_set_time(&a, SETTING_OK_ANIM_TIME_MS);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_ready_cb(&a, setting_open_anim_ready_cb);
     lv_anim_start(&a);
 }
 
@@ -764,6 +820,34 @@ void ui_Setting_screen_init(void)
     lv_label_set_text(ui_LblBlName, "نام بلوتوث");
     lv_obj_set_style_text_font(ui_LblBlName, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+     ui_SwAutoCal = lv_switch_create(ui_Setting);
+    lv_obj_set_width(ui_SwAutoCal, 76);
+    lv_obj_set_height(ui_SwAutoCal, 25);
+    lv_obj_set_x(ui_SwAutoCal, 0);
+    lv_obj_set_y(ui_SwAutoCal, 16);
+    lv_obj_set_align(ui_SwAutoCal, LV_ALIGN_CENTER);
+    //lv_obj_add_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblAutoCalOn = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblAutoCalOn, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblAutoCalOn, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblAutoCalOn, 70);
+    lv_obj_set_y(ui_LblAutoCalOn, 16);
+    lv_obj_set_align(ui_LblAutoCalOn, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblAutoCalOn, "روشن");
+    lv_obj_set_style_text_font(ui_LblAutoCalOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_add_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblAutoCalOff = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblAutoCalOff, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblAutoCalOff, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblAutoCalOff, -75);
+    lv_obj_set_y(ui_LblAutoCalOff, 16);
+    lv_obj_set_align(ui_LblAutoCalOff, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblAutoCalOff, "خاموش");
+    lv_obj_set_style_text_font(ui_LblAutoCalOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_add_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
+
     setting_init_item_array();
 
     for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
@@ -771,6 +855,7 @@ void ui_Setting_screen_init(void)
             lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
         }
     }
+    ui_Setting_hide_all_details();
 
     prev_visible[0] = -1;
     prev_visible[1] = -1;
