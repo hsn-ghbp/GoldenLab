@@ -89,9 +89,6 @@ typedef struct {
     lv_obj_t * leaving_item;
 } setting_anim_done_data_t;
 
-typedef struct {
-    int focus_idx;
-} setting_restore_ctx_t;
 
 /* ========================= Internal State ========================= */
 
@@ -122,21 +119,7 @@ static void ui_Setting_cancel_all_anims(void)
 }
 
 
-void ui_update_autocal_view(void)
-{
-    // دریافت آخرین وضعیت تنظیمات از لایه Brain
-    const system_settings_t* settings = brain_get_settings();
-    bool is_on = settings->auto_cal;
 
-    if (ui_SwAutoCal != NULL) {
-        // تغییر وضعیت فیزیکی سوییچ (LV_STATE_CHECKED) بدون تحریک رویدادها (بدون ارسال Event تصادفی)
-        if (is_on) {
-            lv_obj_add_state(ui_SwAutoCal, LV_STATE_CHECKED);
-        } else {
-            lv_obj_remove_state(ui_SwAutoCal, LV_STATE_CHECKED);
-        }
-    }
-}
 
 void ui_Setting_force_refresh(void)
 {
