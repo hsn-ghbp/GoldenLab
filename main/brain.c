@@ -628,9 +628,10 @@ static void brain_apply_focus_if_needed(void)
 
                 if (current_setting_state == SETTING_STATE_LIST) {
                 if (g_setting_index != last_applied_setting_focus) {
-                    ui_Setting_update_view(g_setting_index);
-                    last_applied_setting_focus = g_setting_index;
-                    ESP_LOGD(TAG, "Applied setting focus: %d", g_setting_index);
+                    if (ui_Setting_update_view(g_setting_index)) {
+                        last_applied_setting_focus = g_setting_index;
+                        ESP_LOGD(TAG, "Applied setting focus: %d", g_setting_index);
+                    }
                 }
             }
             break;

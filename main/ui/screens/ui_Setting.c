@@ -673,7 +673,7 @@ static void setting_transition_up(int entering_idx, int moving1_idx, int moving2
 
 //     setting_store_current_triplet(new_top, new_center, new_bottom);
 // }
-static void setting_transition_to(int new_selected_index)
+static bool setting_transition_to(int new_selected_index)
 {
     new_selected_index = setting_wrap_index(new_selected_index);
 
@@ -687,14 +687,9 @@ static void setting_transition_to(int new_selected_index)
         old_selected >= 0 &&
         setting_wrap_index(old_selected - 1) == new_selected_index;
 
-    const int new_top =
-        setting_wrap_index(new_selected_index - 1);
-
-    const int new_center =
-        new_selected_index;
-
-    const int new_bottom =
-        setting_wrap_index(new_selected_index + 1);
+    const int new_top = setting_wrap_index(new_selected_index - 1);
+    const int new_center = new_selected_index;
+    const int new_bottom = setting_wrap_index(new_selected_index + 1);
 
     if (setting_first_layout ||
         prev_visible[0] < 0 ||
@@ -703,114 +698,55 @@ static void setting_transition_to(int new_selected_index)
 
         for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
             if (setting_items[i] != NULL) {
-                lv_obj_add_flag(
-                    setting_items[i],
-                    LV_OBJ_FLAG_HIDDEN
-                );
-
-                lv_obj_set_size(
-                    setting_items[i],
-                    SETTING_SIDE_W,
-                    SETTING_SIDE_H
-                );
+                lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
             }
         }
 
-        setting_prepare_side_item(
-            setting_items[new_top],
-            -SETTING_SIDE_OFFSET_Y
-        );
-
-        setting_prepare_selected_item(
-            setting_items[new_center],
-            0
-        );
-
-        setting_prepare_side_item(
-            setting_items[new_bottom],
-            SETTING_SIDE_OFFSET_Y
-        );
-
+        setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
+        setting_prepare_selected_item(setting_items[new_center], 0);
+        setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
         lv_obj_move_foreground(setting_items[new_center]);
 
-        setting_store_current_triplet(
-            new_top,
-            new_center,
-            new_bottom
-        );
+        setting_store_current_triplet(new_top, new_center, new_bottom);
 
         setting_first_layout = false;
         setting_animating = false;
-        return;
+        return true;
     }
 
     if (setting_animating) {
-        return;
+        return false;
     }
 
     setting_animating = true;
 
     if (moving_down) {
-        setting_transition_down(
-            prev_visible[0],
-            prev_visible[1],
-            prev_visible[2],
-            new_bottom
-        );
+        setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
     }
     else if (moving_up) {
-        setting_transition_up(
-            new_top,
-            prev_visible[0],
-            prev_visible[1],
-            prev_visible[2]
-        );
+        setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
     }
     else {
-        /*
-         * برای پرش بیش از یک آیتم، بدون انیمیشن دوباره layout می‌کنیم.
-         */
         for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
             if (setting_items[i] != NULL) {
-                lv_obj_add_flag(
-                    setting_items[i],
-                    LV_OBJ_FLAG_HIDDEN
-                );
-
-                lv_obj_set_size(
-                    setting_items[i],
-                    SETTING_SIDE_W,
-                    SETTING_SIDE_H
-                );
+                lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
+                lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
             }
         }
 
-        setting_prepare_side_item(
-            setting_items[new_top],
-            -SETTING_SIDE_OFFSET_Y
-        );
-
-        setting_prepare_selected_item(
-            setting_items[new_center],
-            0
-        );
-
-        setting_prepare_side_item(
-            setting_items[new_bottom],
-            SETTING_SIDE_OFFSET_Y
-        );
-
+        setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
+        setting_prepare_selected_item(setting_items[new_center], 0);
+        setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
         lv_obj_move_foreground(setting_items[new_center]);
 
         setting_animating = false;
     }
 
-    setting_store_current_triplet(
-        new_top,
-        new_center,
-        new_bottom
-    );
+    setting_store_current_triplet(new_top, new_center, new_bottom);
+    return true;
 }
+
 
 
 
@@ -897,14 +833,24 @@ static void setting_init_item_array(void)
 
 /* ========================= Public API ========================= */
 
-void ui_Setting_update_view(int setting_index)
+bool ui_Setting_update_view(int setting_index)
 {
     int wrapped = setting_wrap_index(setting_index);
-    if(wrapped == prev_visible[1] && !setting_first_layout && !setting_force_update) return;
+
+    if (wrapped == prev_visible[1] && !setting_first_layout && !setting_force_update) {
+        return true;
+    }
+
+    bool changed = setting_transition_to(wrapped);
+    if (!changed) {
+        return false;
+    }
+
     setting_force_update = false;
-    setting_transition_to(wrapped);
     setting_update_visual_state(wrapped);
+    return true;
 }
+
 
 void ui_Setting_render_detail(int setting_index)
 {

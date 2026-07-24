@@ -45,7 +45,7 @@ extern lv_obj_t * ui_LblBlName;
 /* API */
 void ui_Setting_screen_init(void);
 bool ui_Setting_is_ready(void);
-void ui_Setting_update_view(int setting_index);
+bool ui_Setting_update_view(int setting_index);
 void ui_Setting_screen_destroy(void);
 void ui_Setting_focus_open(int focus_idx);
 void ui_Setting_focus_close(int focus_idx);
