@@ -1174,7 +1174,7 @@ void ui_Setting_screen_init(void)
     lv_obj_set_x(ui_SwTrigerToStop, 0);
     lv_obj_set_y(ui_SwTrigerToStop, 16);
     lv_obj_set_align(ui_SwTrigerToStop, LV_ALIGN_CENTER);
-    lv_obj_add_state(ui_SwTrigerToStop, LV_STATE_DISABLED);
+   //lv_obj_add_state(ui_SwTrigerToStop, LV_STATE_DISABLED);
     lv_obj_add_flag(ui_SwTrigerToStop, LV_OBJ_FLAG_HIDDEN);
 
     ui_LblTrigerToStopOn = lv_label_create(ui_Setting);
@@ -1203,7 +1203,7 @@ void ui_Setting_screen_init(void)
     lv_obj_set_x(ui_SwBeep, 0);
     lv_obj_set_y(ui_SwBeep, 16);
     lv_obj_set_align(ui_SwBeep, LV_ALIGN_CENTER);
-    lv_obj_add_state(ui_SwBeep, LV_STATE_DISABLED);
+    //lv_obj_add_state(ui_SwBeep, LV_STATE_DISABLED);
     lv_obj_add_flag(ui_SwBeep, LV_OBJ_FLAG_HIDDEN);
 
     ui_LblBeepOn = lv_label_create(ui_Setting);
@@ -1234,7 +1234,7 @@ void ui_Setting_screen_init(void)
     lv_obj_set_x(ui_SwBlAutoOff, 0);
     lv_obj_set_y(ui_SwBlAutoOff, 16);
     lv_obj_set_align(ui_SwBlAutoOff, LV_ALIGN_CENTER);
-    lv_obj_add_state(ui_SwBlAutoOff, LV_STATE_DISABLED); // فقط جنبه نمایشی دارد و تغییر با کلیدهای فیزیکی است
+    //lv_obj_add_state(ui_SwBlAutoOff, LV_STATE_DISABLED); // فقط جنبه نمایشی دارد و تغییر با کلیدهای فیزیکی است
     lv_obj_add_flag(ui_SwBlAutoOff, LV_OBJ_FLAG_HIDDEN);
 
     // ایجاد لیبل روشن
@@ -1266,7 +1266,7 @@ void ui_Setting_screen_init(void)
     lv_obj_set_x(ui_SwBlAutoConnect, 0);
     lv_obj_set_y(ui_SwBlAutoConnect, 16);
     lv_obj_set_align(ui_SwBlAutoConnect, LV_ALIGN_CENTER);
-    lv_obj_add_state(ui_SwBlAutoConnect, LV_STATE_DISABLED); // فقط نمایشی
+   // lv_obj_add_state(ui_SwBlAutoConnect, LV_STATE_DISABLED); // فقط نمایشی
     lv_obj_add_flag(ui_SwBlAutoConnect, LV_OBJ_FLAG_HIDDEN);
 
     // ایجاد لیبل روشن برای اتصال خودکار
