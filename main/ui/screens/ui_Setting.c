@@ -97,6 +97,8 @@ lv_obj_t * ui_LblBlAutoOffOn = NULL;
 lv_obj_t * ui_SwBlAutoConnect = NULL;
 lv_obj_t * ui_LblBlAutoConnectOff = NULL;
 lv_obj_t * ui_LblBlAutoConnectOn = NULL;
+lv_obj_t * ui_LblBlutoothName = NULL;
+lv_obj_t * ui_LblBlutoothNameShow = NULL;
 
 
 
@@ -233,6 +235,12 @@ void ui_Setting_hide_all_details(void)
         lv_obj_add_flag(ui_LblBlAutoConnectOn, LV_OBJ_FLAG_HIDDEN);
     }
    
+    if (ui_LblBlutoothName) {
+        lv_obj_add_flag(ui_LblBlutoothName, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBlutoothNameShow) {
+        lv_obj_add_flag(ui_LblBlutoothNameShow, LV_OBJ_FLAG_HIDDEN);
+    }
 
 
 
@@ -922,6 +930,30 @@ void ui_Setting_render_detail(int setting_index)
                 }
             }
             break;
+        case SETTING_ITEM_BL_PASS:
+            if (ui_LblBlutoothName && ui_LblBlutoothNameShow) {
+                lv_obj_remove_flag(ui_LblBlutoothName, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(ui_LblBlutoothNameShow, LV_OBJ_FLAG_HIDDEN);
+                
+                lv_label_set_text(ui_LblBlutoothName, "رمز عبور:");
+                // نمایش مقدار عددی bl_pass از g_settings
+                char buf[16];
+                lv_snprintf(buf, sizeof(buf), "%d", settings->bl_pass);
+                lv_label_set_text(ui_LblBlutoothNameShow, buf);
+            }
+            break;
+
+        case SETTING_ITEM_BL_NAME:
+            if (ui_LblBlutoothName && ui_LblBlutoothNameShow) {
+                lv_obj_remove_flag(ui_LblBlutoothName, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_remove_flag(ui_LblBlutoothNameShow, LV_OBJ_FLAG_HIDDEN);
+                
+                lv_label_set_text(ui_LblBlutoothName, "نام بلوتوث:");
+                // نمایش مقدار رشته‌ای bl_name از g_settings
+                lv_label_set_text(ui_LblBlutoothNameShow, settings->bl_name);
+            }
+            break;
+
         
 
         default:
@@ -1248,6 +1280,27 @@ void ui_Setting_screen_init(void)
     lv_obj_set_style_text_font(ui_LblBlAutoConnectOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_flag(ui_LblBlAutoConnectOn, LV_OBJ_FLAG_HIDDEN);
 
+    // ایجاد لیبل عنوان (ثابت)
+    ui_LblBlutoothName = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlutoothName, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlutoothName, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlutoothName, 60); // قرارگیری در سمت راست برای زبان فارسی
+    lv_obj_set_y(ui_LblBlutoothName, 16);
+    lv_obj_set_align(ui_LblBlutoothName, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlutoothName, "نام بلوتوث");
+    lv_obj_set_style_text_font(ui_LblBlutoothName, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlutoothName, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد لیبل نمایش مقدار (داینامیک)
+    ui_LblBlutoothNameShow = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlutoothNameShow, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlutoothNameShow, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlutoothNameShow, -50); // قرارگیری در سمت چپ مقدار عددی/رشته‌ای
+    lv_obj_set_y(ui_LblBlutoothNameShow, 16);
+    lv_obj_set_align(ui_LblBlutoothNameShow, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlutoothNameShow, ""); // مقدار در رندر تعیین می‌شود
+    lv_obj_set_style_text_font(ui_LblBlutoothNameShow, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlutoothNameShow, LV_OBJ_FLAG_HIDDEN);
 
 
 
@@ -1349,6 +1402,9 @@ void ui_Setting_screen_destroy(void)
     ui_SwBlAutoConnect = NULL;
     ui_LblBlAutoConnectOff = NULL;
     ui_LblBlAutoConnectOn = NULL;
+    ui_LblBlutoothName = NULL;
+    ui_LblBlutoothNameShow = NULL;
+
 
     
 
