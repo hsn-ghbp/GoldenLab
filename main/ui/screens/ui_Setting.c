@@ -85,6 +85,23 @@ lv_obj_t * ui_LblPlsMax = NULL;
 lv_obj_t * ui_LblPlsMaxQTY = NULL;
 lv_obj_t * ui_LblDelayTimeDtl = NULL;
 lv_obj_t * ui_LblDelayTimeQTY = NULL;
+lv_obj_t * ui_SwTrigerToStop = NULL;
+lv_obj_t * ui_LblTrigerToStopOff = NULL;
+lv_obj_t * ui_LblTrigerToStopOn = NULL;
+lv_obj_t * ui_SwBeep = NULL;
+lv_obj_t * ui_LblBeepOff = NULL;
+lv_obj_t * ui_LblBeepOn = NULL;
+lv_obj_t * ui_SwBlAutoOff = NULL;
+lv_obj_t * ui_LblBlAutoOffOff = NULL;
+lv_obj_t * ui_LblBlAutoOffOn = NULL;
+lv_obj_t * ui_SwBlAutoConnect = NULL;
+lv_obj_t * ui_LblBlAutoConnectOff = NULL;
+lv_obj_t * ui_LblBlAutoConnectOn = NULL;
+
+
+
+
+
 
 
 
@@ -179,6 +196,46 @@ void ui_Setting_hide_all_details(void)
     if (ui_LblDelayTimeQTY) {
         lv_obj_add_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
     }
+    if (ui_SwTrigerToStop) {
+        lv_obj_add_flag(ui_SwTrigerToStop, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblTrigerToStopOff) {
+        lv_obj_add_flag(ui_LblTrigerToStopOff, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblTrigerToStopOn) {
+        lv_obj_add_flag(ui_LblTrigerToStopOn, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_SwBeep) {
+        lv_obj_add_flag(ui_SwBeep, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBeepOff) {
+        lv_obj_add_flag(ui_LblBeepOff, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBeepOn) {
+        lv_obj_add_flag(ui_LblBeepOn, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_SwBlAutoOff) {
+        lv_obj_add_flag(ui_SwBlAutoOff, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBlAutoOffOff) {
+        lv_obj_add_flag(ui_LblBlAutoOffOff, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBlAutoOffOn) {
+        lv_obj_add_flag(ui_LblBlAutoOffOn, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_SwBlAutoConnect) {
+        lv_obj_add_flag(ui_SwBlAutoConnect, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBlAutoConnectOff) {
+        lv_obj_add_flag(ui_LblBlAutoConnectOff, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblBlAutoConnectOn) {
+        lv_obj_add_flag(ui_LblBlAutoConnectOn, LV_OBJ_FLAG_HIDDEN);
+    }
+   
+
+
+
 
 
 
@@ -747,7 +804,125 @@ void ui_Setting_render_detail(int setting_index)
                 lv_obj_remove_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
             }
             break;
+        case SETTING_ITEM_STOP_TRG:
+            if (ui_LblTrigerToStopOff) {
+                lv_obj_remove_flag(ui_LblTrigerToStopOff, LV_OBJ_FLAG_HIDDEN);
+            }
 
+            if (ui_SwTrigerToStop) {
+                lv_obj_remove_flag(ui_SwTrigerToStop, LV_OBJ_FLAG_HIDDEN);
+
+                if (settings->stop_trg) {
+                    lv_obj_add_state(ui_SwTrigerToStop, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(ui_SwTrigerToStop, LV_STATE_CHECKED);
+                }
+            }
+
+            if (ui_LblTrigerToStopOn) {
+                lv_obj_remove_flag(ui_LblTrigerToStopOn, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_LblTrigerToStopOff && ui_LblTrigerToStopOn) {
+                if (settings->stop_trg) {
+                    lv_obj_set_style_text_opa(ui_LblTrigerToStopOff, LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblTrigerToStopOn,  LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                } else {
+                    lv_obj_set_style_text_opa(ui_LblTrigerToStopOff, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblTrigerToStopOn,  LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+            }
+            break;
+        case SETTING_ITEM_BEEP:
+            if (ui_LblBeepOff) {
+                lv_obj_remove_flag(ui_LblBeepOff, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_SwBeep) {
+                lv_obj_remove_flag(ui_SwBeep, LV_OBJ_FLAG_HIDDEN);
+
+                if (settings->beep) {
+                    lv_obj_add_state(ui_SwBeep, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(ui_SwBeep, LV_STATE_CHECKED);
+                }
+            }
+
+            if (ui_LblBeepOn) {
+                lv_obj_remove_flag(ui_LblBeepOn, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_LblBeepOff && ui_LblBeepOn) {
+                if (settings->beep) {
+                    lv_obj_set_style_text_opa(ui_LblBeepOff, LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBeepOn,  LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                } else {
+                    lv_obj_set_style_text_opa(ui_LblBeepOff, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBeepOn,  LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+            }
+            break;
+        case SETTING_ITEM_BL_AUTO_OFF:
+            if (ui_LblBlAutoOffOff) {
+                lv_obj_remove_flag(ui_LblBlAutoOffOff, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_SwBlAutoOff) {
+                lv_obj_remove_flag(ui_SwBlAutoOff, LV_OBJ_FLAG_HIDDEN);
+
+                if (settings->bl_auto_off) {
+                    lv_obj_add_state(ui_SwBlAutoOff, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(ui_SwBlAutoOff, LV_STATE_CHECKED);
+                }
+            }
+
+            if (ui_LblBlAutoOffOn) {
+                lv_obj_remove_flag(ui_LblBlAutoOffOn, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            // تنظیم اوپاسیتی (شفافیت) برای نمایش وضعیت فعال/غیرفعال
+            if (ui_LblBlAutoOffOff && ui_LblBlAutoOffOn) {
+                if (settings->bl_auto_off) {
+                    lv_obj_set_style_text_opa(ui_LblBlAutoOffOff, LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBlAutoOffOn,  LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                } else {
+                    lv_obj_set_style_text_opa(ui_LblBlAutoOffOff, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBlAutoOffOn,  LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+            }
+            break;
+        case SETTING_ITEM_BL_AUTO_CONNECT:
+            if (ui_LblBlAutoConnectOff) {
+                lv_obj_remove_flag(ui_LblBlAutoConnectOff, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_SwBlAutoConnect) {
+                lv_obj_remove_flag(ui_SwBlAutoConnect, LV_OBJ_FLAG_HIDDEN);
+
+                if (settings->bl_auto_connect) {
+                    lv_obj_add_state(ui_SwBlAutoConnect, LV_STATE_CHECKED);
+                } else {
+                    lv_obj_remove_state(ui_SwBlAutoConnect, LV_STATE_CHECKED);
+                }
+            }
+
+            if (ui_LblBlAutoConnectOn) {
+                lv_obj_remove_flag(ui_LblBlAutoConnectOn, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            // تنظیم شفافیت (Opacity) بر اساس وضعیت فعال/غیرفعال بودن اتصال خودکار
+            if (ui_LblBlAutoConnectOff && ui_LblBlAutoConnectOn) {
+                if (settings->bl_auto_connect) {
+                    lv_obj_set_style_text_opa(ui_LblBlAutoConnectOff, LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBlAutoConnectOn,  LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                } else {
+                    lv_obj_set_style_text_opa(ui_LblBlAutoConnectOff, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_opa(ui_LblBlAutoConnectOn,  LV_OPA_40, LV_PART_MAIN | LV_STATE_DEFAULT);
+                }
+            }
+            break;
+        
 
         default:
             break;
@@ -951,6 +1126,130 @@ void ui_Setting_screen_init(void)
     lv_obj_set_style_text_font(ui_LblDelayTimeQTY, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
 
+    ui_LblTrigerToStopOff = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblTrigerToStopOff, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblTrigerToStopOff, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblTrigerToStopOff, -75);
+    lv_obj_set_y(ui_LblTrigerToStopOff, 16);
+    lv_obj_set_align(ui_LblTrigerToStopOff, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblTrigerToStopOff, "خاموش");
+    lv_obj_set_style_text_font(ui_LblTrigerToStopOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblTrigerToStopOff, LV_OBJ_FLAG_HIDDEN);
+
+    ui_SwTrigerToStop = lv_switch_create(ui_Setting);
+    lv_obj_set_width(ui_SwTrigerToStop, 76);
+    lv_obj_set_height(ui_SwTrigerToStop, 25);
+    lv_obj_set_x(ui_SwTrigerToStop, 0);
+    lv_obj_set_y(ui_SwTrigerToStop, 16);
+    lv_obj_set_align(ui_SwTrigerToStop, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_SwTrigerToStop, LV_STATE_DISABLED);
+    lv_obj_add_flag(ui_SwTrigerToStop, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblTrigerToStopOn = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblTrigerToStopOn, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblTrigerToStopOn, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblTrigerToStopOn, 70);
+    lv_obj_set_y(ui_LblTrigerToStopOn, 16);
+    lv_obj_set_align(ui_LblTrigerToStopOn, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblTrigerToStopOn, "روشن");
+    lv_obj_set_style_text_font(ui_LblTrigerToStopOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblTrigerToStopOn, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblBeepOff = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBeepOff, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBeepOff, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBeepOff, -75);
+    lv_obj_set_y(ui_LblBeepOff, 16);
+    lv_obj_set_align(ui_LblBeepOff, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBeepOff, "خاموش");
+    lv_obj_set_style_text_font(ui_LblBeepOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBeepOff, LV_OBJ_FLAG_HIDDEN);
+
+    ui_SwBeep = lv_switch_create(ui_Setting);
+    lv_obj_set_width(ui_SwBeep, 76);
+    lv_obj_set_height(ui_SwBeep, 25);
+    lv_obj_set_x(ui_SwBeep, 0);
+    lv_obj_set_y(ui_SwBeep, 16);
+    lv_obj_set_align(ui_SwBeep, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_SwBeep, LV_STATE_DISABLED);
+    lv_obj_add_flag(ui_SwBeep, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblBeepOn = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBeepOn, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBeepOn, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBeepOn, 70);
+    lv_obj_set_y(ui_LblBeepOn, 16);
+    lv_obj_set_align(ui_LblBeepOn, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBeepOn, "روشن");
+    lv_obj_set_style_text_font(ui_LblBeepOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBeepOn, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد لیبل خاموش
+    ui_LblBlAutoOffOff = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlAutoOffOff, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlAutoOffOff, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlAutoOffOff, -75);
+    lv_obj_set_y(ui_LblBlAutoOffOff, 16);
+    lv_obj_set_align(ui_LblBlAutoOffOff, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlAutoOffOff, "خاموش");
+    lv_obj_set_style_text_font(ui_LblBlAutoOffOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlAutoOffOff, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد سوئیچ
+    ui_SwBlAutoOff = lv_switch_create(ui_Setting);
+    lv_obj_set_width(ui_SwBlAutoOff, 76);
+    lv_obj_set_height(ui_SwBlAutoOff, 25);
+    lv_obj_set_x(ui_SwBlAutoOff, 0);
+    lv_obj_set_y(ui_SwBlAutoOff, 16);
+    lv_obj_set_align(ui_SwBlAutoOff, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_SwBlAutoOff, LV_STATE_DISABLED); // فقط جنبه نمایشی دارد و تغییر با کلیدهای فیزیکی است
+    lv_obj_add_flag(ui_SwBlAutoOff, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد لیبل روشن
+    ui_LblBlAutoOffOn = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlAutoOffOn, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlAutoOffOn, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlAutoOffOn, 70);
+    lv_obj_set_y(ui_LblBlAutoOffOn, 16);
+    lv_obj_set_align(ui_LblBlAutoOffOn, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlAutoOffOn, "روشن");
+    lv_obj_set_style_text_font(ui_LblBlAutoOffOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlAutoOffOn, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد لیبل خاموش برای اتصال خودکار
+    ui_LblBlAutoConnectOff = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlAutoConnectOff, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlAutoConnectOff, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlAutoConnectOff, -75);
+    lv_obj_set_y(ui_LblBlAutoConnectOff, 16);
+    lv_obj_set_align(ui_LblBlAutoConnectOff, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlAutoConnectOff, "خاموش");
+    lv_obj_set_style_text_font(ui_LblBlAutoConnectOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlAutoConnectOff, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد سوئیچ برای اتصال خودکار
+    ui_SwBlAutoConnect = lv_switch_create(ui_Setting);
+    lv_obj_set_width(ui_SwBlAutoConnect, 76);
+    lv_obj_set_height(ui_SwBlAutoConnect, 25);
+    lv_obj_set_x(ui_SwBlAutoConnect, 0);
+    lv_obj_set_y(ui_SwBlAutoConnect, 16);
+    lv_obj_set_align(ui_SwBlAutoConnect, LV_ALIGN_CENTER);
+    lv_obj_add_state(ui_SwBlAutoConnect, LV_STATE_DISABLED); // فقط نمایشی
+    lv_obj_add_flag(ui_SwBlAutoConnect, LV_OBJ_FLAG_HIDDEN);
+
+    // ایجاد لیبل روشن برای اتصال خودکار
+    ui_LblBlAutoConnectOn = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblBlAutoConnectOn, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblBlAutoConnectOn, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblBlAutoConnectOn, 70);
+    lv_obj_set_y(ui_LblBlAutoConnectOn, 16);
+    lv_obj_set_align(ui_LblBlAutoConnectOn, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblBlAutoConnectOn, "روشن");
+    lv_obj_set_style_text_font(ui_LblBlAutoConnectOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblBlAutoConnectOn, LV_OBJ_FLAG_HIDDEN);
+
+
+
 
 
 
@@ -1038,6 +1337,24 @@ void ui_Setting_screen_destroy(void)
     ui_LblPlsMaxQTY = NULL;
     ui_LblDelayTimeDtl = NULL;
     ui_LblDelayTimeQTY = NULL;
+    ui_SwTrigerToStop = NULL;
+    ui_LblTrigerToStopOff = NULL;
+    ui_LblTrigerToStopOn = NULL;
+    ui_SwBeep = NULL;
+    ui_LblBeepOff = NULL;
+    ui_LblBeepOn = NULL;
+    ui_SwBlAutoOff = NULL;
+    ui_LblBlAutoOffOff = NULL;
+    ui_LblBlAutoOffOn = NULL;
+    ui_SwBlAutoConnect = NULL;
+    ui_LblBlAutoConnectOff = NULL;
+    ui_LblBlAutoConnectOn = NULL;
+
+    
+
+
+
+
 
 
 
