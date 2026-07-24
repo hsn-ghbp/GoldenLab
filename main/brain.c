@@ -210,9 +210,9 @@ void brain_setting_detail_step(bool increase)
 
         case SETTING_ITEM_DELAY_TIME:
             if (increase) {
-                g_settings.delay_time = clamp_i32(g_settings.delay_time + 1, 0, 9999);
+                g_settings.delay_time = clamp_i32(g_settings.delay_time + 100, 100, 9999);
             } else {
-                g_settings.delay_time = clamp_i32(g_settings.delay_time - 1, 0, 9999);
+                g_settings.delay_time = clamp_i32(g_settings.delay_time - 100, 100, 9999);
             }
             break;
 

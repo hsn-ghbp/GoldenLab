@@ -83,6 +83,9 @@ lv_obj_t * ui_LblAutoCalPlsDtl = NULL;
 lv_obj_t * ui_LblAutoCalPlsQTY = NULL;
 lv_obj_t * ui_LblPlsMax = NULL;
 lv_obj_t * ui_LblPlsMaxQTY = NULL;
+lv_obj_t * ui_LblDelayTimeDtl = NULL;
+lv_obj_t * ui_LblDelayTimeQTY = NULL;
+
 
 
 
@@ -170,6 +173,13 @@ void ui_Setting_hide_all_details(void)
     if (ui_LblPlsMaxQTY) {
         lv_obj_add_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
     }
+    if (ui_LblDelayTimeDtl) {
+        lv_obj_add_flag(ui_LblDelayTimeDtl, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblDelayTimeQTY) {
+        lv_obj_add_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
+    }
+
 
 
 }
@@ -720,6 +730,23 @@ void ui_Setting_render_detail(int setting_index)
                 lv_obj_remove_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
             }
             break;
+        case SETTING_ITEM_DELAY_TIME:
+            if (ui_LblDelayTimeDtl) {
+                lv_obj_remove_flag(ui_LblDelayTimeDtl, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_LblDelayTimeQTY) {
+                static char qty_buf[16];
+                int32_t val = settings->delay_time;
+                // تقسیم بر 100 برای ثانیه و باقیمانده برای صدم ثانیه
+                int32_t sec = val / 1000;
+                int32_t centiseconds = val % 1000;
+                
+                lv_snprintf(qty_buf, sizeof(qty_buf), "%ld.%02ld", (long)sec, (long)centiseconds);
+                lv_label_set_text(ui_LblDelayTimeQTY, qty_buf);
+                lv_obj_remove_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
+            }
+            break;
 
 
         default:
@@ -904,6 +931,27 @@ void ui_Setting_screen_init(void)
     lv_obj_set_style_text_font(ui_LblPlsMaxQTY, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
 
+    ui_LblDelayTimeDtl = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblDelayTimeDtl, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblDelayTimeDtl, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblDelayTimeDtl, 0);
+    lv_obj_set_y(ui_LblDelayTimeDtl, 10);
+    lv_obj_set_align(ui_LblDelayTimeDtl, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblDelayTimeDtl, "زمان بین دو پالس");
+    lv_obj_set_style_text_font(ui_LblDelayTimeDtl, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblDelayTimeDtl, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblDelayTimeQTY = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblDelayTimeQTY, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblDelayTimeQTY, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblDelayTimeQTY, 0);
+    lv_obj_set_y(ui_LblDelayTimeQTY, 45);
+    lv_obj_set_align(ui_LblDelayTimeQTY, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblDelayTimeQTY, "5.00");
+    lv_obj_set_style_text_font(ui_LblDelayTimeQTY, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblDelayTimeQTY, LV_OBJ_FLAG_HIDDEN);
+
+
 
 
     setting_init_item_array();
@@ -988,6 +1036,9 @@ void ui_Setting_screen_destroy(void)
     ui_LblAutoCalPlsQTY = NULL;
     ui_LblPlsMax = NULL;
     ui_LblPlsMaxQTY = NULL;
+    ui_LblDelayTimeDtl = NULL;
+    ui_LblDelayTimeQTY = NULL;
+
 
 
 
