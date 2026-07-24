@@ -142,62 +142,6 @@ static void scanpage_apply_run_state(void)
 }
 
 
-
-
-// event funtions
-
-//
-
-// static void scanpage_apply_run_state(void)
-// {
-//     // برای اطمینان: هر بار اول هر دو را مخفی کن
-//    // lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
-//    // lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
-
-//     // سپس بر اساس state فقط یکی را نشان بده
-//     scan_sub_state_t st = brain_get_scan_sub_state();
-//     if(st == SCAN_STATE_RUNNING) {
-//         lv_obj_remove_flag(ui_play, LV_OBJ_FLAG_HIDDEN);   // پلی
-//     } else {
-//         lv_obj_remove_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);   // استاپ
-//     }
-// }
-
-// static void scanpage_apply_logic_mode(void)
-// {
-//     // دریافت حالت انتخاب شده از مغز
-//     int mode = brain_get_scan_mode();
-
-
-//     // ۲. بر اساس ایندکس منوی اسکن، المان‌های مربوطه را فعال می‌کنیم
-//     switch(mode)
-//     {
-//         case 0: // ui_manpc (Manual + PC)
-//             lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
-//             lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
-//             break;
-
-//         case 1: // ui_autopc (Auto + PC)
-//             lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
-//             lv_obj_remove_flag(ui_SendDataa, LV_OBJ_FLAG_HIDDEN);
-//             break;
-
-//         case 2: // ui_automem (Auto + Memory)
-//             lv_obj_remove_flag(ui_Auto,      LV_OBJ_FLAG_HIDDEN);
-//             lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
-//             break;
-
-//         case 3: // ui_manmem (Manual + Memory)
-//             lv_obj_remove_flag(ui_Tap,       LV_OBJ_FLAG_HIDDEN);
-//             lv_obj_remove_flag(ui_Save,      LV_OBJ_FLAG_HIDDEN);
-//             break;
-
-//         default:
-//             // حالت پیش‌فرض یا خطا (اختیاری)
-//             break;
-//     }
-// }
-
 //--------------------------------------
 // Refresh page
 //--------------------------------------
