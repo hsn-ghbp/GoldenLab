@@ -7,12 +7,6 @@
 #include <stdint.h>
 #include "brain.h"
 
-//--------------------------TO DO ------------------------//
-/*تغییر bg_opa فقط پس‌زمینه دکمه را کم‌رنگ می‌کند و متن همچنان با opacity 
-کامل نمایش داده می‌شود.
- اگر می‌خواهی خود متن آیتم‌های کناری هم کم‌رنگ شود،
- */
-
 /* ========================= Config ========================= */
 
 #define SETTING_ITEM_COUNT          10
@@ -33,6 +27,15 @@
 
 #define SETTING_OK_MOVE_UP_Y        50
 #define SETTING_OK_ANIM_TIME_MS     220
+
+/* میزان شفافیت آیتم‌ها */
+#define SETTING_SELECTED_OPA   LV_OPA_COVER
+#define SETTING_SIDE_OPA       LV_OPA_50
+
+/* میزان شفافیت متن‌ها برای آیتم انتخاب‌شده و کناری */
+#define SETTING_TEXT_OPA_SELECTED LV_OPA_COVER
+#define SETTING_TEXT_OPA_SIDE     LV_OPA_70
+
 static int32_t setting_selected_closed_y = 0;
 static int32_t setting_selected_open_y   = -60;
 static int setting_restore_focus_idx = 0;
@@ -42,13 +45,6 @@ static void setting_hide_all_except(int focus_idx);
 bool ui_Setting_focus_close_done(void);
 static volatile bool setting_close_anim_running = false;
 static volatile bool setting_open_anim_running = false;
-
-
-
-
-
-// #define SETTING_SELECTED_OPA   LV_OPA_COVER
-// #define SETTING_SIDE_OPA       LV_OPA_30
 
 /*
  * فاصله مرکز تا مرکز برای رسیدن به gap واقعی:
@@ -84,18 +80,14 @@ lv_obj_t * ui_LblAutoCalOff = NULL;
 lv_obj_t * ui_SwAutoCal= NULL;
 lv_obj_t * ui_LblAutoCalOn = NULL;
 
-
 typedef struct {
     lv_obj_t * leaving_item;
 } setting_anim_done_data_t;
 
-
 /* ========================= Internal State ========================= */
 
 static lv_obj_t *setting_items[SETTING_ITEM_COUNT];
-//static int setting_index = 0;
-static int setting_open_target_index = -1; // تغییر کرد: -1 یعنی هیچ هدفی برای باز شدن نیست
-//static int setting_open_target_index = 0;
+static int setting_open_target_index = -1; // -1 یعنی هیچ هدفی برای باز شدن نیست
 static bool setting_first_layout = true;
 static bool setting_animating = false;
 static int prev_visible[3] = { -1, -1, -1 };   // top, center, bottom
@@ -118,20 +110,14 @@ static void ui_Setting_cancel_all_anims(void)
     if (ui_LblAutoCalOff) lv_anim_delete(ui_LblAutoCalOff, NULL);
 }
 
-
-
-
 void ui_Setting_force_refresh(void)
 {
-
     setting_force_update = true;
     setting_first_layout = true;
 
     prev_visible[0] = -1;
     prev_visible[1] = -1;
     prev_visible[2] = -1;
-
-    
 }
 
 static void setting_anim_set_y_cb(void * var, int32_t v)
@@ -155,10 +141,8 @@ static void setting_hide_all_except(int focus_idx)
     }
 }
 
-
 void ui_Setting_hide_all_details(void)
 {
-    // ۱. مخفی‌سازی المان‌های مربوط به AutoCal (آیتم 0)
     if (ui_SwAutoCal) {
         lv_obj_add_flag(ui_SwAutoCal, LV_OBJ_FLAG_HIDDEN);
     }
@@ -168,44 +152,33 @@ void ui_Setting_hide_all_details(void)
     if (ui_LblAutoCalOff) {
         lv_obj_add_flag(ui_LblAutoCalOff, LV_OBJ_FLAG_HIDDEN);
     }
-
-    // ۲. [محل قرارگیری المان‌های بعدی]
-    // در آینده آبجکت‌های مربوط به آیتم‌های عددی (مانند Sliderها) یا متنی را در اینجا اضافه می‌کنیم.
-    // به عنوان مثال:
-    // if (ui_SliderPulseMax) lv_obj_add_flag(ui_SliderPulseMax, LV_OBJ_FLAG_HIDDEN);
 }
-
-
 
 static void setting_open_anim_ready_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
     setting_open_anim_running = false;
     
-    // پچ Race Condition: 
-    // اگر هدف باز شدن ریست شده باشد (مثلا توسط تابع Close)، رندر را انجام نده.
     if (setting_open_target_index != -1) {
         ui_Setting_render_detail(setting_open_target_index);
     }
 }
 
-
-
 void ui_Setting_focus_open(int focus_idx)
 {
     if(focus_idx < 0 || focus_idx >= SETTING_ITEM_COUNT) return;
-    if(setting_open_anim_running || setting_close_anim_running) return; // Guard
+    if(setting_open_anim_running || setting_close_anim_running) return; 
     lv_obj_t * selected = setting_items[focus_idx];
     if(selected == NULL) return;
     setting_open_anim_running = true;
-    setting_close_anim_running = false; // ریست فلگ
+    setting_close_anim_running = false; 
     setting_open_target_index = focus_idx;
     
     setting_hide_all_except(focus_idx);
     lv_obj_move_foreground(selected);
 
     lv_obj_set_y(selected, setting_selected_closed_y);
-    lv_anim_del(selected, setting_anim_set_y_cb);
+    lv_anim_delete(selected, setting_anim_set_y_cb);
 
     lv_anim_t a;
     lv_anim_init(&a);
@@ -223,22 +196,11 @@ bool ui_Setting_focus_open_done(void)
     return !setting_open_anim_running;
 }
 
-
-
-// static void setting_restore_triplet_timer_cb(lv_timer_t * t)
-// {
-//     LV_UNUSED(t);
-//     setting_restore_visible_triplet();
-//     lv_timer_delete(t);
-// }
-
 static void setting_close_anim_ready_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
     setting_close_anim_running = false;
-   // brain_request_setting_view_refresh();
 }
-
 
 void ui_Setting_focus_close(int focus_idx)
 {
@@ -251,7 +213,7 @@ void ui_Setting_focus_close(int focus_idx)
     setting_close_anim_running = true;
     setting_open_anim_running = false;
 
-    lv_anim_del(selected, setting_anim_set_y_cb);
+    lv_anim_delete(selected, setting_anim_set_y_cb);
     lv_obj_set_y(selected, setting_selected_open_y);
 
     lv_anim_t a;
@@ -263,20 +225,12 @@ void ui_Setting_focus_close(int focus_idx)
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
     lv_anim_set_ready_cb(&a, setting_close_anim_ready_cb);
     lv_anim_start(&a);
-
-    
 }
-
 
 bool ui_Setting_focus_close_done(void)
 {
     return !setting_close_anim_running;
 }
-
-
-
-
-
 
 static int setting_wrap_index(int index)
 {
@@ -332,7 +286,6 @@ static void setting_store_current_triplet(int top, int center, int bottom)
 }
 
 /* ========================= Animations ========================= */
-
 
 lv_anim_t * moveUp_Animation(lv_obj_t * TargetObject, int delay)
 {
@@ -487,19 +440,6 @@ static void setting_transition_down(int leaving_idx, int moving1_idx, int moving
     lv_obj_t *moving2  = setting_items[moving2_idx];
     lv_obj_t *entering = setting_items[entering_idx];
 
-    /*
-     * قبل از حرکت:
-     * leaving  : top    (-offset)
-     * moving1  : center (0)
-     * moving2  : bottom (+offset)
-     * entering : bottom (+offset)  -> با fade in ظاهر می‌شود
-     *
-     * بعد از حرکت:
-     * moving1 به top
-     * moving2 به center
-     * entering در bottom
-     */
-
     setting_prepare_leaving_item(leaving, -SETTING_SIDE_OFFSET_Y);
     setting_prepare_selected_item(moving1, 0);
     setting_prepare_side_item(moving2, SETTING_SIDE_OFFSET_Y);
@@ -533,20 +473,6 @@ static void setting_transition_up(int entering_idx, int moving1_idx, int moving2
     lv_obj_t *moving2  = setting_items[moving2_idx];
     lv_obj_t *leaving  = setting_items[leaving_idx];
 
-    /*
-     * قبل از حرکت:
-     * entering : top    (-offset) -> با fade in ظاهر می‌شود
-     * moving1  : top    (-offset)
-     * moving2  : center (0)
-     * leaving  : bottom (+offset)
-     *
-     * بعد از حرکت:
-     * entering در top
-     * moving1 به center
-     * moving2 به bottom
-     * leaving حذف می‌شود
-     */
-
     setting_prepare_entering_item(entering, -SETTING_SIDE_OFFSET_Y);
     setting_prepare_side_item(moving1, -SETTING_SIDE_OFFSET_Y);
     setting_prepare_selected_item(moving2, 0);
@@ -573,106 +499,6 @@ static void setting_transition_up(int entering_idx, int moving1_idx, int moving2
     }
 }
 
-// static void setting_transition_to(int new_selected_index ,int setting_index)
-// {
-//     const int old_selected = setting_index;
-//     const bool moving_down = (setting_wrap_index(old_selected + 1) == new_selected_index);
-//     const bool moving_up   = (setting_wrap_index(old_selected - 1) == new_selected_index);
-
-//     const int new_top    = setting_wrap_index(new_selected_index - 1);
-//     const int new_center = new_selected_index;
-//     const int new_bottom = setting_wrap_index(new_selected_index + 1);
-
-//     if(setting_first_layout || prev_visible[0] < 0 || prev_visible[1] < 0 || prev_visible[2] < 0) {
-//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
-//             if(setting_items[i]) {
-//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
-//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
-//             }
-//         }
-
-//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
-//         setting_prepare_selected_item(setting_items[new_center], 0);
-//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
-//         lv_obj_move_foreground(setting_items[new_center]);
-
-//         setting_store_current_triplet(new_top, new_center, new_bottom);
-//         setting_index = new_selected_index;
-//         setting_first_layout = false;
-//         setting_animating = false;
-//         return;
-//     }
-
-//     if(setting_animating) return;
-//     setting_animating = true;
-
-//     if(moving_down) {
-//         setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
-//     }
-//     else if(moving_up) {
-//         setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
-//     }
-//     else {
-//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
-//             if(setting_items[i]) {
-//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
-//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
-//             }
-//         }
-
-//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
-//         setting_prepare_selected_item(setting_items[new_center], 0);
-//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
-//         lv_obj_move_foreground(setting_items[new_center]);
-
-//         setting_animating = false;
-//     }
-
-//     setting_store_current_triplet(new_top, new_center, new_bottom);
-//     setting_index = new_selected_index;
-// }
-
-// static void setting_transition_to(int new_selected_index, int old_selected_index)
-// {
-//     const bool moving_down = (setting_wrap_index(old_selected_index + 1) == new_selected_index);
-//     const bool moving_up   = (setting_wrap_index(old_selected_index - 1) == new_selected_index);
-
-//     const int new_top    = setting_wrap_index(new_selected_index - 1);
-//     const int new_center = new_selected_index;
-//     const int new_bottom = setting_wrap_index(new_selected_index + 1);
-
-//     // حالت اول: بار اول که صفحه لود می‌شود یا پرش بزرگ (نه بالا نه پایین)
-//     if(setting_first_layout || (!moving_down && !moving_up)) {
-//         for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
-//             if(setting_items[i]) {
-//                 lv_obj_add_flag(setting_items[i], LV_OBJ_FLAG_HIDDEN);
-//                 lv_obj_set_size(setting_items[i], SETTING_SIDE_W, SETTING_SIDE_H);
-//             }
-//         }
-
-//         setting_prepare_side_item(setting_items[new_top], -SETTING_SIDE_OFFSET_Y);
-//         setting_prepare_selected_item(setting_items[new_center], 0);
-//         setting_prepare_side_item(setting_items[new_bottom], SETTING_SIDE_OFFSET_Y);
-//         lv_obj_move_foreground(setting_items[new_center]);
-
-//         setting_store_current_triplet(new_top, new_center, new_bottom);
-//         setting_first_layout = false;
-//         setting_animating = false;
-//         return;
-//     }
-
-//     if(setting_animating) return;
-//     setting_animating = true;
-
-//     if(moving_down) {
-//         setting_transition_down(prev_visible[0], prev_visible[1], prev_visible[2], new_bottom);
-//     }
-//     else if(moving_up) {
-//         setting_transition_up(new_top, prev_visible[0], prev_visible[1], prev_visible[2]);
-//     }
-
-//     setting_store_current_triplet(new_top, new_center, new_bottom);
-// }
 static bool setting_transition_to(int new_selected_index)
 {
     new_selected_index = setting_wrap_index(new_selected_index);
@@ -747,13 +573,6 @@ static bool setting_transition_to(int new_selected_index)
     return true;
 }
 
-
-
-
-/* میزان شفافیت آیتم‌ها */
-#define SETTING_SELECTED_OPA   LV_OPA_COVER
-#define SETTING_SIDE_OPA       LV_OPA_50
-
 static void setting_update_visual_state(int setting_index)
 {
     for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
@@ -763,59 +582,29 @@ static void setting_update_visual_state(int setting_index)
             continue;
         }
 
+        // پیدا کردن آبجکت فرزند (برچسب/Label دکمه) جهت تغییر شفافیت متن آن
+        lv_obj_t *label = lv_obj_get_child(item, 0);
+
         if(i == setting_index) {
-            /*
-             * آیتم فوکوس‌شده:
-             * رنگ انتخاب‌شده + شفافیت کامل + اندازه بزرگ
-             */
-            lv_obj_set_style_bg_color(
-                item,
-                SETTING_ITEM_COLOR_SELECTED,
-                LV_PART_MAIN | LV_STATE_DEFAULT
-            );
-
-            lv_obj_set_style_bg_opa(
-                item,
-                SETTING_SELECTED_OPA,
-                LV_PART_MAIN | LV_STATE_DEFAULT
-            );
-
-            lv_obj_set_size(
-                item,
-                SETTING_SELECTED_W,
-                SETTING_SELECTED_H
-            );
+            lv_obj_set_style_bg_color(item, SETTING_ITEM_COLOR_SELECTED, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(item, SETTING_SELECTED_OPA, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_size(item, SETTING_SELECTED_W, SETTING_SELECTED_H);
+            
+            if (label != NULL) {
+                lv_obj_set_style_text_opa(label, SETTING_TEXT_OPA_SELECTED, LV_PART_MAIN | LV_STATE_DEFAULT);
+            }
         }
         else if(setting_is_visible_index(i)) {
-            /*
-             * آیتم‌های کناری:
-             * رنگ معمولی + شفافیت کمتر + اندازه کوچک
-             * 
-             * تغییر bg_opa فقط پس‌زمینه دکمه را کم‌رنگ می‌کند و متن همچنان با opacity
-             *  کامل نمایش داده می‌شود. 
-             * اگر می‌خواهی خود متن آیتم‌های کناری هم کم‌رنگ شود،
-             */
-            lv_obj_set_style_bg_color(
-                item,
-                SETTING_ITEM_COLOR_NORMAL,
-                LV_PART_MAIN | LV_STATE_DEFAULT
-            );
-
-            lv_obj_set_style_bg_opa(
-                item,
-                SETTING_SIDE_OPA,
-                LV_PART_MAIN | LV_STATE_DEFAULT
-            );
-
-            lv_obj_set_size(
-                item,
-                SETTING_SIDE_W,
-                SETTING_SIDE_H
-            );
+            lv_obj_set_style_bg_color(item, SETTING_ITEM_COLOR_NORMAL, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(item, SETTING_SIDE_OPA, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_size(item, SETTING_SIDE_W, SETTING_SIDE_H);
+            
+            if (label != NULL) {
+                lv_obj_set_style_text_opa(label, SETTING_TEXT_OPA_SIDE, LV_PART_MAIN | LV_STATE_DEFAULT);
+            }
         }
     }
 }
-
 
 static void setting_init_item_array(void)
 {
@@ -850,7 +639,6 @@ bool ui_Setting_update_view(int setting_index)
     setting_update_visual_state(wrapped);
     return true;
 }
-
 
 void ui_Setting_render_detail(int setting_index)
 {
@@ -897,8 +685,6 @@ bool ui_Setting_is_ready(void)
 {
     return (ui_Setting != NULL) && (ui_AutoCal != NULL);
 }
-
-
 
 void ui_Setting_screen_init(void)
 {
@@ -1007,33 +793,30 @@ void ui_Setting_screen_init(void)
     lv_label_set_text(ui_LblBlName, "نام بلوتوث");
     lv_obj_set_style_text_font(ui_LblBlName, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-     ui_SwAutoCal = lv_switch_create(ui_Setting);
+    ui_SwAutoCal = lv_switch_create(ui_Setting);
     lv_obj_set_width(ui_SwAutoCal, 76);
     lv_obj_set_height(ui_SwAutoCal, 25);
     lv_obj_set_x(ui_SwAutoCal, 0);
     lv_obj_set_y(ui_SwAutoCal, 16);
     lv_obj_set_align(ui_SwAutoCal, LV_ALIGN_CENTER);
-    //lv_obj_add_flag(ui_SwAutoCal,LV_OBJ_FLAG_HIDDEN);
 
     ui_LblAutoCalOn = lv_label_create(ui_Setting);
-    lv_obj_set_width(ui_LblAutoCalOn, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_LblAutoCalOn, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_width(ui_LblAutoCalOn, LV_SIZE_CONTENT);   
+    lv_obj_set_height(ui_LblAutoCalOn, LV_SIZE_CONTENT);    
     lv_obj_set_x(ui_LblAutoCalOn, 70);
     lv_obj_set_y(ui_LblAutoCalOn, 16);
     lv_obj_set_align(ui_LblAutoCalOn, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblAutoCalOn, "روشن");
     lv_obj_set_style_text_font(ui_LblAutoCalOn, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
-    //lv_obj_add_flag(ui_LblAutoCalOn,LV_OBJ_FLAG_HIDDEN);
 
     ui_LblAutoCalOff = lv_label_create(ui_Setting);
-    lv_obj_set_width(ui_LblAutoCalOff, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_LblAutoCalOff, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_width(ui_LblAutoCalOff, LV_SIZE_CONTENT);   
+    lv_obj_set_height(ui_LblAutoCalOff, LV_SIZE_CONTENT);    
     lv_obj_set_x(ui_LblAutoCalOff, -75);
     lv_obj_set_y(ui_LblAutoCalOff, 16);
     lv_obj_set_align(ui_LblAutoCalOff, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblAutoCalOff, "خاموش");
     lv_obj_set_style_text_font(ui_LblAutoCalOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
-    //lv_obj_add_flag(ui_LblAutoCalOff,LV_OBJ_FLAG_HIDDEN);
 
     setting_init_item_array();
 
@@ -1048,7 +831,6 @@ void ui_Setting_screen_init(void)
     prev_visible[1] = -1;
     prev_visible[2] = -1;
 
-    //setting_index = 0;
     setting_first_layout = true;
     setting_animating = false;
     setting_force_update = false;
@@ -1060,7 +842,6 @@ void ui_Setting_screen_init(void)
 
 void ui_Setting_screen_destroy(void)
 {
-    // 1) اگر timer معلق داریم، user_data آن را هم آزاد کن
     if (g_transition_timer != NULL) {
         setting_anim_done_data_t *data =
             (setting_anim_done_data_t *)lv_timer_get_user_data(g_transition_timer);
@@ -1073,10 +854,8 @@ void ui_Setting_screen_destroy(void)
         g_transition_timer = NULL;
     }
 
-    // 2) فقط انیمیشن‌های همین صفحه را لغو کن
     ui_Setting_cancel_all_anims();
 
-    // 3) ریست stateها
     setting_animating = false;
     setting_open_anim_running = false;
     setting_close_anim_running = false;
@@ -1089,13 +868,11 @@ void ui_Setting_screen_destroy(void)
     prev_visible[1] = -1;
     prev_visible[2] = -1;
 
-    // 4) حذف root
     if (ui_Setting != NULL) {
         lv_obj_delete(ui_Setting);
         ui_Setting = NULL;
     }
 
-    // 5) پاک کردن dangling pointerها
     ui_AutoCal = NULL;
     ui_LblAutoCal = NULL;
     ui_AutoCalPls = NULL;
@@ -1124,5 +901,3 @@ void ui_Setting_screen_destroy(void)
         setting_items[i] = NULL;
     }
 }
-
-
