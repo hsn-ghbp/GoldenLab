@@ -15,8 +15,8 @@
 #include "ui_ScanPage.h"
 #include "scan_process.h"
 #include "battery_process.h"
-#include "app_settings.h"
-//#include "bluetooth_mgr.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 
 
 static const char *TAG = "BRAIN";
@@ -29,19 +29,14 @@ static app_page_t loaded_page  = PAGE_SPLASH;
 static scan_sub_state_t current_scan_sub_state = SCAN_STATE_IDLE;
 static app_event_t pending_events = APP_EVENT_NONE;
 static setting_state_t current_setting_state = SETTING_STATE_LIST;
-
-
 static int selected_menu = 0;
 static int scan_selected = 0;
 scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
-
-
 static int last_applied_menu_focus = -1;
 static int last_applied_scan_focus = -1;
 static int last_applied_setting_focus = -1;
-//static volatile bool setting_view_refresh_pending = false;
-
-#define BRAIN_SETTING_ITEM_COUNT   10
+static const char *NVS_NS = "brain_cfg";
+static const char *NVS_KEY_SETTINGS = "settings";
 static int g_setting_index = 0;
 
 
@@ -49,7 +44,7 @@ static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
 
 
 // مقداردهی اولیه پیش‌فرض مطابق با معماری پروژه
-static system_settings_t g_settings = {
+system_settings_t g_settings = {
     .auto_cal = false,
     .auto_cal_pls = 16,
     .puls_max = 300,
@@ -116,13 +111,117 @@ void brain_update_battery(void)
 static int brain_wrap_setting_index(int index)
 {
     while(index < 0) {
-        index += BRAIN_SETTING_ITEM_COUNT;
+        index += SETTING_ITEM_COUNT;
     }
-    while(index >= BRAIN_SETTING_ITEM_COUNT) {
-        index -= BRAIN_SETTING_ITEM_COUNT;
+    while(index >= SETTING_ITEM_COUNT) {
+        index -= SETTING_ITEM_COUNT;
     }
     return index;
 }
+
+static esp_err_t brain_nvs_init_once(void)
+{
+    esp_err_t err = nvs_flash_init();
+
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition was truncated or version changed, erasing...");
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_flash_init failed: %s", esp_err_to_name(err));
+    }
+
+    return err;
+}
+
+void brain_settings_set_defaults(void)
+{
+    memset(&g_settings, 0, sizeof(g_settings));
+
+    g_settings.auto_cal        = false;
+    g_settings.auto_cal_pls    = 16;
+    g_settings.puls_max        = 300;
+    g_settings.delay_time      = 500;
+    g_settings.stop_trg        = true;
+    g_settings.beep            = true;
+    g_settings.bl_auto_off     = false;
+    g_settings.bl_auto_connect = true;
+    g_settings.bl_pass         = 1234;
+
+    strncpy(g_settings.bl_name, "MAGI_ESP", sizeof(g_settings.bl_name) - 1);
+    g_settings.bl_name[sizeof(g_settings.bl_name) - 1] = '\0';
+}
+
+
+bool brain_settings_save(void)
+{
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_open(write) failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    err = nvs_set_blob(handle, NVS_KEY_SETTINGS, &g_settings, sizeof(g_settings));
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+
+    nvs_close(handle);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "brain_settings_save failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Settings saved");
+    return true;
+}
+
+bool brain_settings_load(void)
+{
+    brain_settings_set_defaults();
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(NVS_NS, NVS_READONLY, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "nvs_open(read) failed, using defaults: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    size_t required_size = sizeof(g_settings);
+    err = nvs_get_blob(handle, NVS_KEY_SETTINGS, &g_settings, &required_size);
+    nvs_close(handle);
+
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "No saved settings found, writing defaults");
+        brain_settings_set_defaults();
+        brain_settings_save();
+        return true;
+    }
+
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "nvs_get_blob failed, using defaults: %s", esp_err_to_name(err));
+        brain_settings_set_defaults();
+        brain_settings_save();
+        return false;
+    }
+
+    if (required_size != sizeof(g_settings)) {
+        ESP_LOGW(TAG, "Settings size mismatch, resetting defaults");
+        brain_settings_set_defaults();
+        brain_settings_save();
+        return false;
+    }
+
+    g_settings.bl_name[sizeof(g_settings.bl_name) - 1] = '\0';
+
+    ESP_LOGI(TAG, "Settings loaded");
+    return true;
+}
+
 int brain_get_setting_index(void)
 {
     return g_setting_index;
@@ -143,11 +242,6 @@ void brain_setting_prev(void)
 {
     brain_set_setting_index(g_setting_index - 1);
 }
-
-// void brain_request_setting_view_refresh(void)
-// {
-//     setting_view_refresh_pending = true;
-// }
 
 // تابع دسترسی Read-Only برای UI
 const system_settings_t* brain_get_settings(void)
@@ -186,72 +280,108 @@ static int32_t clamp_i32(int32_t value, int32_t min, int32_t max)
 
 void brain_setting_detail_step(bool increase)
 {
+    bool changed = false;
+
     switch (g_setting_index) {
         case SETTING_ITEM_AUTOCAL:
-            // براي bool بالا/پايين هر دو عملاً تغيير وضعيت مي‌دهند
             brain_toggle_bool_setting(SETTING_ITEM_AUTOCAL);
-            break;
+            return;
 
         case SETTING_ITEM_AUTOCAL_PLS:
             if (increase) {
-                g_settings.auto_cal_pls = clamp_i32(g_settings.auto_cal_pls + 1, 0, 9999);
+                int32_t new_val = clamp_i32(g_settings.auto_cal_pls + 1, 0, 9999);
+                if (new_val != g_settings.auto_cal_pls) {
+                    g_settings.auto_cal_pls = new_val;
+                    changed = true;
+                }
             } else {
-                g_settings.auto_cal_pls = clamp_i32(g_settings.auto_cal_pls - 1, 0, 9999);
+                int32_t new_val = clamp_i32(g_settings.auto_cal_pls - 1, 0, 9999);
+                if (new_val != g_settings.auto_cal_pls) {
+                    g_settings.auto_cal_pls = new_val;
+                    changed = true;
+                }
             }
             break;
 
         case SETTING_ITEM_PULS_MAX:
             if (increase) {
-                g_settings.puls_max = clamp_i32(g_settings.puls_max + 10, 10, 9999);
+                int32_t new_val = clamp_i32(g_settings.puls_max + 10, 10, 9999);
+                if (new_val != g_settings.puls_max) {
+                    g_settings.puls_max = new_val;
+                    changed = true;
+                }
             } else {
-                g_settings.puls_max = clamp_i32(g_settings.puls_max - 10, 10, 9999);
+                int32_t new_val = clamp_i32(g_settings.puls_max - 10, 10, 9999);
+                if (new_val != g_settings.puls_max) {
+                    g_settings.puls_max = new_val;
+                    changed = true;
+                }
             }
             break;
 
         case SETTING_ITEM_DELAY_TIME:
             if (increase) {
-                g_settings.delay_time = clamp_i32(g_settings.delay_time + 100, 100, 9999);
+                int32_t new_val = clamp_i32(g_settings.delay_time + 100, 100, 9999);
+                if (new_val != g_settings.delay_time) {
+                    g_settings.delay_time = new_val;
+                    changed = true;
+                }
             } else {
-                g_settings.delay_time = clamp_i32(g_settings.delay_time - 100, 100, 9999);
+                int32_t new_val = clamp_i32(g_settings.delay_time - 100, 100, 9999);
+                if (new_val != g_settings.delay_time) {
+                    g_settings.delay_time = new_val;
+                    changed = true;
+                }
             }
             break;
 
         case SETTING_ITEM_STOP_TRG:
             brain_toggle_bool_setting(SETTING_ITEM_STOP_TRG);
-            break;
+            return;
 
         case SETTING_ITEM_BEEP:
             brain_toggle_bool_setting(SETTING_ITEM_BEEP);
-            break;
+            return;
 
         case SETTING_ITEM_BL_AUTO_OFF:
             brain_toggle_bool_setting(SETTING_ITEM_BL_AUTO_OFF);
-            break;
+            return;
 
         case SETTING_ITEM_BL_AUTO_CONNECT:
             brain_toggle_bool_setting(SETTING_ITEM_BL_AUTO_CONNECT);
-            break;
+            return;
 
         case SETTING_ITEM_BL_PASS:
             if (increase) {
-                g_settings.bl_pass = clamp_i32(g_settings.bl_pass + 1, 0, 999999);
+                int32_t new_val = clamp_i32(g_settings.bl_pass + 1, 0, 999999);
+                if (new_val != g_settings.bl_pass) {
+                    g_settings.bl_pass = new_val;
+                    changed = true;
+                }
             } else {
-                g_settings.bl_pass = clamp_i32(g_settings.bl_pass - 1, 0, 999999);
+                int32_t new_val = clamp_i32(g_settings.bl_pass - 1, 0, 999999);
+                if (new_val != g_settings.bl_pass) {
+                    g_settings.bl_pass = new_val;
+                    changed = true;
+                }
             }
             break;
 
         case SETTING_ITEM_BL_NAME:
-            // فعلاً بدون تغییر؛ بعداً برای ویرایش رشته منطق جدا می‌گذاریم
+            // فعلاً بدون تغییر
             break;
 
         default:
             break;
     }
 
-    // بعد از هر تغییر، detail دوباره render شود
+    if (changed) {
+        brain_settings_save();
+    }
+
     if (ui_Setting_is_ready() && loaded_page == PAGE_SETTING) {
-    ui_Setting_render_detail(g_setting_index);
-}
+        ui_Setting_render_detail(g_setting_index);
+    }
 }
 
 
@@ -298,7 +428,11 @@ void brain_set_bool_setting(setting_item_index_t index, bool value)
     if (updated) {
         ESP_LOGI(TAG, "Setting index %d updated to: %s", index, value ? "ON" : "OFF");
         // در صورت نیاز به ذخیره‌سازی فوری در فلش/NVS:
-        // settings_save_to_nvs(&g_settings);
+        brain_settings_save();
+
+        if (ui_Setting_is_ready() && loaded_page == PAGE_SETTING) {
+            ui_Setting_render_detail(g_setting_index);
+        }
     }
 }
 
@@ -648,6 +782,8 @@ static void brain_apply_focus_if_needed(void)
 // -------------------------
 void brain_init(void)
 {
+    ESP_ERROR_CHECK(brain_nvs_init_once());
+    brain_settings_load();
     current_page = PAGE_SPLASH;
     loaded_page  = PAGE_SPLASH;
     current_scan_sub_state = SCAN_STATE_IDLE;
@@ -670,16 +806,16 @@ void brain_init(void)
     battery_process_init();
     battery_process_update();
     current_battery_level = battery_process_get_level();
-    esp_err_t err = app_settings_load();
+    //esp_err_t err = app_settings_load();
     // brain_init()
     // bt_mgr_init(&(bt_mgr_config_t){
     //         .device_name = "ESP32_Scanner",
     //         .state_cb = NULL,
     //     });
 
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "app_settings_load failed, defaults will be used");
-    }
+    // if (err != ESP_OK) {
+    //     ESP_LOGW(TAG, "app_settings_load failed, defaults will be used");
+    // }
 
 
 

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "pcf8574.h"
 #include "battery_process.h"
+#include <stdint.h>
 
 typedef enum {
     PAGE_NONE = 0,
@@ -76,6 +77,8 @@ typedef struct {
     char bl_name[32];        // setting_items[9]
 } system_settings_t;
 
+extern system_settings_t g_settings;
+
 // توابع مدیریت و دسترسی به تنظیمات از سمت Brain
 const system_settings_t* brain_get_settings(void);
 
@@ -94,6 +97,10 @@ void brain_process_ui_cmds(void);
 int brain_get_scan_selected(void);
 battery_level_t brain_get_battery_level(void);
 uint8_t brain_get_battery_percent(void);
+/* اختیاری ولی مفید */
+bool brain_settings_load(void);
+bool brain_settings_save(void);
+void brain_settings_set_defaults(void);
 
 //int brain_get_scan_mode(void);
 
