@@ -51,8 +51,8 @@ static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
 // مقداردهی اولیه پیش‌فرض مطابق با معماری پروژه
 static system_settings_t g_settings = {
     .auto_cal = false,
-    .auto_cal_pls = 10,
-    .puls_max = 100,
+    .auto_cal_pls = 16,
+    .puls_max = 300,
     .delay_time = 500,
     .stop_trg = true,
     .beep = true,
@@ -202,9 +202,9 @@ void brain_setting_detail_step(bool increase)
 
         case SETTING_ITEM_PULS_MAX:
             if (increase) {
-                g_settings.puls_max = clamp_i32(g_settings.puls_max + 1, 0, 9999);
+                g_settings.puls_max = clamp_i32(g_settings.puls_max + 10, 10, 9999);
             } else {
-                g_settings.puls_max = clamp_i32(g_settings.puls_max - 1, 0, 9999);
+                g_settings.puls_max = clamp_i32(g_settings.puls_max - 10, 10, 9999);
             }
             break;
 

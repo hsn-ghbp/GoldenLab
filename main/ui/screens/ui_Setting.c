@@ -79,6 +79,12 @@ lv_obj_t * ui_LblBlName = NULL;
 lv_obj_t * ui_LblAutoCalOff = NULL;
 lv_obj_t * ui_SwAutoCal= NULL;
 lv_obj_t * ui_LblAutoCalOn = NULL;
+lv_obj_t * ui_LblAutoCalPlsDtl = NULL;
+lv_obj_t * ui_LblAutoCalPlsQTY = NULL;
+lv_obj_t * ui_LblPlsMax = NULL;
+lv_obj_t * ui_LblPlsMaxQTY = NULL;
+
+
 
 typedef struct {
     lv_obj_t * leaving_item;
@@ -152,6 +158,20 @@ void ui_Setting_hide_all_details(void)
     if (ui_LblAutoCalOff) {
         lv_obj_add_flag(ui_LblAutoCalOff, LV_OBJ_FLAG_HIDDEN);
     }
+    if (ui_LblAutoCalPlsDtl) {
+        lv_obj_add_flag(ui_LblAutoCalPlsDtl, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblAutoCalPlsQTY) {
+        lv_obj_add_flag(ui_LblAutoCalPlsQTY, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblPlsMax) {
+        lv_obj_add_flag(ui_LblPlsMax, LV_OBJ_FLAG_HIDDEN);
+    }
+    if (ui_LblPlsMaxQTY) {
+        lv_obj_add_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
+    }
+
+
 }
 
 static void setting_open_anim_ready_cb(lv_anim_t * a)
@@ -676,6 +696,32 @@ void ui_Setting_render_detail(int setting_index)
             }
             break;
 
+        case SETTING_ITEM_AUTOCAL_PLS:
+            if (ui_LblAutoCalPlsDtl) {
+                lv_obj_remove_flag(ui_LblAutoCalPlsDtl, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_LblAutoCalPlsQTY) {
+                static char qty_buf[12];
+                lv_snprintf(qty_buf, sizeof(qty_buf), "%ld", (long)settings->auto_cal_pls);
+                lv_label_set_text(ui_LblAutoCalPlsQTY, qty_buf);
+                lv_obj_remove_flag(ui_LblAutoCalPlsQTY, LV_OBJ_FLAG_HIDDEN);
+            }
+            break;
+        case SETTING_ITEM_PULS_MAX:
+            if (ui_LblPlsMax) {
+                lv_obj_remove_flag(ui_LblPlsMax, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            if (ui_LblPlsMaxQTY) {
+                static char qty_buf[12];
+                lv_snprintf(qty_buf, sizeof(qty_buf), "%ld", (long)settings->puls_max);
+                lv_label_set_text(ui_LblPlsMaxQTY, qty_buf);
+                lv_obj_remove_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
+            }
+            break;
+
+
         default:
             break;
     }
@@ -818,6 +864,48 @@ void ui_Setting_screen_init(void)
     lv_label_set_text(ui_LblAutoCalOff, "خاموش");
     lv_obj_set_style_text_font(ui_LblAutoCalOff, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_LblAutoCalPlsDtl = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblAutoCalPlsDtl, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblAutoCalPlsDtl, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblAutoCalPlsDtl, 0);
+    lv_obj_set_y(ui_LblAutoCalPlsDtl, 10);
+    lv_obj_set_align(ui_LblAutoCalPlsDtl, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblAutoCalPlsDtl, "تعداد پالس رفرنس");
+    lv_obj_set_style_text_font(ui_LblAutoCalPlsDtl, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblAutoCalPlsDtl, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblAutoCalPlsQTY = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblAutoCalPlsQTY, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblAutoCalPlsQTY, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblAutoCalPlsQTY, 0);
+    lv_obj_set_y(ui_LblAutoCalPlsQTY, 45);
+    lv_obj_set_align(ui_LblAutoCalPlsQTY, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblAutoCalPlsQTY, "16");
+    lv_obj_set_style_text_font(ui_LblAutoCalPlsQTY, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblAutoCalPlsQTY, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblPlsMax = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblPlsMax, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblPlsMax, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblPlsMax, 0);
+    lv_obj_set_y(ui_LblPlsMax, 10);
+    lv_obj_set_align(ui_LblPlsMax, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblPlsMax, "تعداد پالس هر اسکن");
+    lv_obj_set_style_text_font(ui_LblPlsMax, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblPlsMax, LV_OBJ_FLAG_HIDDEN);
+
+    ui_LblPlsMaxQTY = lv_label_create(ui_Setting);
+    lv_obj_set_width(ui_LblPlsMaxQTY, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_LblPlsMaxQTY, LV_SIZE_CONTENT);
+    lv_obj_set_x(ui_LblPlsMaxQTY, 0);
+    lv_obj_set_y(ui_LblPlsMaxQTY, 45);
+    lv_obj_set_align(ui_LblPlsMaxQTY, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblPlsMaxQTY, "300");
+    lv_obj_set_style_text_font(ui_LblPlsMaxQTY, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_flag(ui_LblPlsMaxQTY, LV_OBJ_FLAG_HIDDEN);
+
+
+
     setting_init_item_array();
 
     for(int i = 0; i < SETTING_ITEM_COUNT; i++) {
@@ -896,6 +984,12 @@ void ui_Setting_screen_destroy(void)
     ui_LblAutoCalOff = NULL;
     ui_SwAutoCal = NULL;
     ui_LblAutoCalOn = NULL;
+    ui_LblAutoCalPlsDtl = NULL;
+    ui_LblAutoCalPlsQTY = NULL;
+    ui_LblPlsMax = NULL;
+    ui_LblPlsMaxQTY = NULL;
+
+
 
     for (int i = 0; i < SETTING_ITEM_COUNT; i++) {
         setting_items[i] = NULL;
