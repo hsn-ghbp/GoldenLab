@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 static const char *TAG = "SCAN_PROCESS";
 
@@ -14,7 +15,9 @@ static int s_needle_angle = 0;
 static int s_pulse_count = 0;
 static bool s_rand_seeded = false;
 
-
+// بافر موقت در رم برای نگهداری نقاط اسکن جاری تا قبل از فینالایز شدن
+static int16_t s_temp_scan_buffer[MAX_SCAN_POINTS];
+static uint16_t s_temp_point_count = 0;
 
 static int clamp_int(int value, int min_value, int max_value)
 {
@@ -60,6 +63,30 @@ static void scan_process_calculate_display_values(void)
     }
 }
 
+void scan_process_clear_temp_buffer(void)
+{
+    s_temp_point_count = 0;
+    memset(s_temp_scan_buffer, 0, sizeof(s_temp_scan_buffer));
+}
+
+bool scan_process_add_point_to_buffer(int16_t adc_val)
+{
+    if (s_temp_point_count >= MAX_SCAN_POINTS) {
+        ESP_LOGW(TAG, "Temporary scan buffer is full!");
+        return false;
+    }
+    s_temp_scan_buffer[s_temp_point_count++] = adc_val;
+    return true;
+}
+
+const int16_t* scan_process_get_buffer_data(uint16_t *out_count)
+{
+    if (out_count) {
+        *out_count = s_temp_point_count;
+    }
+    return s_temp_scan_buffer;
+}
+
 void scan_process_init(void)
 {
     if (!s_rand_seeded) {
@@ -70,6 +97,8 @@ void scan_process_init(void)
     s_current_adc_value = ADC_MID_RESOLUTION;
     s_pulse_count = 0;
     
+    // پاک کردن بافر موقت برای اسکن جدید
+    scan_process_clear_temp_buffer();
 
     scan_process_calculate_display_values();
 
@@ -78,22 +107,20 @@ void scan_process_init(void)
 
 void scan_process_stop(void)
 {
-    //s_pulse_count = 0;
-    
-    ESP_LOGI(TAG, "Scan process stopped");
+    ESP_LOGI(TAG, "Scan process stopped. Recorded %d points in memory", s_temp_point_count);
 }
 
 void scan_process_handle_trigger(scan_mode_t mode)
 {
-  
-
-    //scan_mode_t mode = (scan_mode_t)brain_get_scan_mode();
-
     switch (mode) {
         case SCAN_MODE_MANPC:
         case SCAN_MODE_MANMEM:
             s_current_adc_value = rand() % (ADC_MAX_RESOLUTION + 1);
             s_pulse_count++;
+            
+            // اضافه کردن داده اسکن به بافر
+            scan_process_add_point_to_buffer((int16_t)s_current_adc_value);
+            
             scan_process_calculate_display_values();
             ESP_LOGI(TAG, "Manual trigger: val=%d pulse=%d", s_signed_value, s_pulse_count);
             break;
@@ -108,11 +135,6 @@ void scan_process_handle_trigger(scan_mode_t mode)
             break;
     }
 }
-
-
-
-
-
 
 int scan_process_get_current_adc_value(void)
 {
