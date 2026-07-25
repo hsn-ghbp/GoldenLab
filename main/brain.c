@@ -17,6 +17,9 @@
 #include "battery_process.h"
 #include "nvs_flash.h"
 #include "nvs.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 
 
 static const char *TAG = "BRAIN";
@@ -38,10 +41,16 @@ static int last_applied_setting_focus = -1;
 static const char *NVS_NS = "brain_cfg";
 static const char *NVS_KEY_SETTINGS = "settings";
 static int g_setting_index = 0;
-
-
 static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
+static int s_scan_trigger_phase = 0;
+/*
+phase:
+0 = هنوز شروع فاز اسکن نشده
+1 = اگر auto_cal فعال بوده، کالیبراسیون انجام شده
+2 = task اتوماتیک شروع شده
+*/
 
+static portMUX_TYPE s_event_lock = portMUX_INITIALIZER_UNLOCKED;
 
 // مقداردهی اولیه پیش‌فرض مطابق با معماری پروژه
 system_settings_t g_settings = {
@@ -254,15 +263,20 @@ const system_settings_t* brain_get_settings(void)
 //-------------------------
 void brain_emit_event(app_event_t event)
 {
+    portENTER_CRITICAL(&s_event_lock);
     pending_events |= event;
+    portEXIT_CRITICAL(&s_event_lock);
 }
 
 app_event_t brain_consume_events(void)
 {
+    portENTER_CRITICAL(&s_event_lock);
     app_event_t events = pending_events;
     pending_events = APP_EVENT_NONE;
+    portEXIT_CRITICAL(&s_event_lock);
     return events;
 }
+
 
 
 
@@ -788,6 +802,7 @@ void brain_init(void)
     loaded_page  = PAGE_SPLASH;
     current_scan_sub_state = SCAN_STATE_IDLE;
     pending_events = APP_EVENT_NONE;
+    s_scan_trigger_phase = 0;
 
 
     selected_menu = 0;
@@ -905,17 +920,17 @@ void brain_handle_key(key_evt_t evt)
 
             else if (evt == KEY_OK) {
                 current_scan_mode = (scan_mode_t)scan_selected;
-    
-                // brain دستور آماده‌سازی می‌دهد
-                scan_process_init(); 
-                scan_process_start(current_scan_mode); 
-                
-                // brain وضعیت را خودش مدیریت می‌کند (بدون وابستگی به وضعیت داخلی ماژول)
-                current_scan_sub_state = SCAN_STATE_RUNNING; 
-                
+
+                scan_process_init();
+                scan_process_start(current_scan_mode);
+
+                current_scan_sub_state = SCAN_STATE_RUNNING;
+                s_scan_trigger_phase = 0;
+
                 brain_emit_event(APP_EVENT_SCAN_CHANGED);
                 current_page = PAGE_SCAN_PAGE;
-                ESP_LOGI(TAG, "Brain: Scan mode set to %d, status -> RUNNING", current_scan_mode);
+                ESP_LOGI(TAG, "Brain: Scan mode=%d, sub_state=RUNNING, phase=0", current_scan_mode);
+
 
             }
 
@@ -926,27 +941,89 @@ void brain_handle_key(key_evt_t evt)
                 if (evt == KEY_BACK) {
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
                         current_scan_sub_state = SCAN_STATE_IDLE;
+                        s_scan_trigger_phase = 0;
                         scan_process_stop();
                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                        ESP_LOGI(TAG, "Process Stopped.");
+                        ESP_LOGI(TAG, "Process stopped by BACK");
                     }
                     else {
                         current_page = PAGE_SCAN;
                     }
                 }
                 else if (evt == KEY_TRIG) {
-                    // brain بررسی می‌کند: آیا مجاز به اسکن هستیم؟
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
-                        // دستور به کارگزار برای انجام یک عملیات اسکن
-                        scan_process_handle_trigger(current_scan_mode);
-                        
-                        // بعد از انجام کار توسط Worker، حالا brain دستور آپدیت UI را صادر می‌کند
-                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                    }
-                    //TO DO move to another part here jusst for test
-                    brain_update_battery();
+
+                        switch (current_scan_mode) {
+
+                            case SCAN_MODE_MANPC:
+                            case SCAN_MODE_MANMEM:
+                            {
+                                if (g_settings.auto_cal && s_scan_trigger_phase == 0) {
+                                    if (scan_process_calibrate_now()) {
+                                        s_scan_trigger_phase = 1;
+                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                        ESP_LOGI(TAG, "Manual calibration done. phase=1");
+                                    }
+                                } else {
+                                    if (!g_settings.auto_cal && s_scan_trigger_phase == 0) {
+                                        s_scan_trigger_phase = 1;
+                                    }
+
+                                    if (scan_process_capture_one_pulse()) {
+                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                        ESP_LOGI(TAG, "Manual capture done. pulse=%d",
+                                                scan_process_get_pulse_count());
+                                    }
+                                }
+                                break;
+                            }
+
+                            case SCAN_MODE_AUTOPC:
+                            case SCAN_MODE_AUTOMEM:
+                            {
+                                if (s_scan_trigger_phase == 2) {
+                                    if (g_settings.stop_trg) {
+                                        current_scan_sub_state = SCAN_STATE_IDLE;
+                                        s_scan_trigger_phase = 0;
+                                        scan_process_stop();
+                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                        ESP_LOGI(TAG, "Auto scan stopped by TRIG");
+                                    } else {
+                                        ESP_LOGI(TAG, "TRIG ignored in auto mode because stop_trg=false");
+                                    }
+                                    break;
+                                }
+
+                                if (g_settings.auto_cal && s_scan_trigger_phase == 0) {
+                                    if (scan_process_calibrate_now()) {
+                                        s_scan_trigger_phase = 1;
+                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                        ESP_LOGI(TAG, "Auto calibration done. phase=1");
+                                    }
+                                } else {
+                                    if (!g_settings.auto_cal && s_scan_trigger_phase == 0) {
+                                        s_scan_trigger_phase = 1;
+                                    }
+
+                                    if (scan_process_capture_multi_pulse(g_settings.delay_time)) {
+                                        s_scan_trigger_phase = 2;
+                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                        ESP_LOGI(TAG, "Auto scan task started. phase=2");
+                                    }
+                                }
+                                break;
                 }
-                break;
+
+                default:
+                    ESP_LOGW(TAG, "Unknown scan mode: %d", current_scan_mode);
+                    break;
+            }
+        }
+
+        brain_update_battery();
+    }
+    break;
+
         case PAGE_SETTING :     //-----------------setting page---------------//
             
                 if (current_setting_state == SETTING_STATE_OPENING ||
@@ -1017,6 +1094,20 @@ void brain_process_ui_cmds(void)
     }
 
     brain_apply_focus_if_needed();
+    if (current_page == PAGE_SCAN_PAGE &&
+        current_scan_sub_state == SCAN_STATE_RUNNING &&
+        s_scan_trigger_phase == 2 &&
+        (current_scan_mode == SCAN_MODE_AUTOPC || current_scan_mode == SCAN_MODE_AUTOMEM)) {
+
+        if (scan_process_get_pulse_count() >= g_settings.puls_max) {
+            current_scan_sub_state = SCAN_STATE_IDLE;
+            s_scan_trigger_phase = 0;
+            scan_process_stop();
+            brain_emit_event(APP_EVENT_SCAN_CHANGED);
+            ESP_LOGI(TAG, "Auto scan stopped by puls_max=%d", g_settings.puls_max);
+        }
+    }
+
     app_event_t events = brain_consume_events();
 
     if ((events & APP_EVENT_SCAN_CHANGED) &&
