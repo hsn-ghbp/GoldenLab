@@ -904,12 +904,19 @@ void brain_handle_key(key_evt_t evt)
             }
 
             else if (evt == KEY_OK) {
-                current_scan_mode = scan_selected;
-                current_scan_sub_state = SCAN_STATE_RUNNING;
+                current_scan_mode = (scan_mode_t)scan_selected;
+    
+                // brain دستور آماده‌سازی می‌دهد
+                scan_process_init(); 
+                scan_process_start(current_scan_mode); 
+                
+                // brain وضعیت را خودش مدیریت می‌کند (بدون وابستگی به وضعیت داخلی ماژول)
+                current_scan_sub_state = SCAN_STATE_RUNNING; 
+                
                 brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                scan_process_init();
                 current_page = PAGE_SCAN_PAGE;
-                ESP_LOGI(TAG, "Scan item selected: %d, started running", current_scan_mode);
+                ESP_LOGI(TAG, "Brain: Scan mode set to %d, status -> RUNNING", current_scan_mode);
+
             }
 
             break;
@@ -928,10 +935,13 @@ void brain_handle_key(key_evt_t evt)
                     }
                 }
                 else if (evt == KEY_TRIG) {
+                    // brain بررسی می‌کند: آیا مجاز به اسکن هستیم؟
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                        // دستور به کارگزار برای انجام یک عملیات اسکن
                         scan_process_handle_trigger(current_scan_mode);
-                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
                         
+                        // بعد از انجام کار توسط Worker، حالا brain دستور آپدیت UI را صادر می‌کند
+                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
                     }
                     //TO DO move to another part here jusst for test
                     brain_update_battery();

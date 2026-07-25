@@ -52,11 +52,15 @@ static int map_adc_magnitude_to_percent(int magnitude)
     return (magnitude * 100) / ADC_MID_RESOLUTION;
 }
 
-static int map_adc_diff_to_needle_angle(int diff)
-{
+
+    // داخل scan_process.c
+static int map_adc_diff_to_needle_angle(int diff) {
     diff = clamp_int(diff, -ADC_MID_RESOLUTION, ADC_MID_RESOLUTION);
-    return (diff * SCAN_NEEDLE_MAX_ANGLE) / ADC_MID_RESOLUTION;
+    // بازگشت مقدار با ضریب 10 برای LVGL 9
+    return (diff * (SCAN_NEEDLE_MAX_ANGLE * 10)) / ADC_MID_RESOLUTION;
 }
+
+
 
 // محاسبه مقادیر خروجی جهت نمایش در عقربه و نوارهای پیشرفت UI
 static void scan_process_calculate_display_values(void)
