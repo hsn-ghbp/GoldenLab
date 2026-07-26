@@ -15,5 +15,6 @@
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\kimiya\\Documents\\ESP-IDF\\Projects\\MG_GUI\\build"
   ],
-  "idf.flashType": "JTAG"
+  "idf.flashType": "JTAG",
+  "idf.monitorPort": "COM4"
 }

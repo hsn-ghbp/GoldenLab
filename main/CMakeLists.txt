@@ -15,4 +15,5 @@ idf_component_register(
         lvgl
         bt
         nvs_flash
+        littlefs 
 )

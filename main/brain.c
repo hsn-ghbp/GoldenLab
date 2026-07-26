@@ -19,6 +19,7 @@
 #include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "storage_littlefs.h"
 
 
 
@@ -74,6 +75,102 @@ extern volatile bool splash_done;
 
 extern void menu_set_focused_index(int index);
 extern void scan_set_focused_index(int index);
+
+
+
+//-----------------------------
+// test reading
+//-----------------------------
+
+
+static void brain_log_scan_index(void)
+{
+    scan_index_item_t items[16];
+    size_t count = 0;
+
+    esp_err_t err = storage_littlefs_load_index(items, 16, &count);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    ESP_LOGI(TAG, "Scan index count = %u", (unsigned)count);
+
+    for (size_t i = 0; i < count; i++) {
+        ESP_LOGI(TAG,
+                 "[%u] id=%lu mode=%lu points=%lu ts=%lu",
+                 (unsigned)i,
+                 (unsigned long)items[i].id,
+                 (unsigned long)items[i].mode,
+                 (unsigned long)items[i].point_count,
+                 (unsigned long)items[i].timestamp_sec);
+    }
+}
+
+static void brain_log_scan_by_id(uint32_t scan_id)
+{
+    scan_record_header_t header;
+    int16_t samples[MAX_SCAN_POINTS];
+    size_t count = 0;
+
+    esp_err_t err = storage_littlefs_load_scan_header(scan_id, &header);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_scan_header(%lu) failed: %s",
+                 (unsigned long)scan_id, esp_err_to_name(err));
+        return;
+    }
+
+    ESP_LOGI(TAG,
+             "SCAN HEADER: id=%lu mode=%lu points=%lu ts=%lu",
+             (unsigned long)header.id,
+             (unsigned long)header.mode,
+             (unsigned long)header.point_count,
+             (unsigned long)header.timestamp_sec);
+
+    err = storage_littlefs_load_scan_samples(scan_id, samples, MAX_SCAN_POINTS, &count);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_scan_samples(%lu) failed: %s",
+                 (unsigned long)scan_id, esp_err_to_name(err));
+        return;
+    }
+
+    ESP_LOGI(TAG, "Loaded sample count = %u", (unsigned)count);
+
+    for (size_t i = 0; i < count; i++) {
+        ESP_LOGI(TAG, "sample[%u] = %d", (unsigned)i, samples[i]);
+    }
+}
+
+
+static void brain_log_last_scan(void)
+{
+    scan_index_item_t items[16];
+    size_t count = 0;
+
+    esp_err_t err = storage_littlefs_load_index(items, 16, &count);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    if (count == 0) {
+        ESP_LOGW(TAG, "No saved scans found");
+        return;
+    }
+
+    scan_index_item_t *last = &items[count - 1];
+
+    ESP_LOGI(TAG,
+             "Last scan => id=%lu mode=%lu points=%lu ts=%lu",
+             (unsigned long)last->id,
+             (unsigned long)last->mode,
+             (unsigned long)last->point_count,
+             (unsigned long)last->timestamp_sec);
+
+    brain_log_scan_by_id(last->id);
+}
+
+
 
 // -------------------------
 // Public getters for state
@@ -283,6 +380,58 @@ app_event_t brain_consume_events(void)
 // -------------------------
 // Internal helpers
 // -------------------------
+static bool brain_scan_mode_should_save(scan_mode_t mode)
+{
+    return (mode == SCAN_MODE_AUTOMEM || mode == SCAN_MODE_MANMEM);
+}
+
+
+static esp_err_t brain_save_current_scan(uint32_t *out_scan_id)
+{
+    if (!brain_scan_mode_should_save(current_scan_mode)) {
+        ESP_LOGI(TAG, "Skip saving scan for mode=%d", current_scan_mode);
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+    uint16_t point_count = 0;
+    const int16_t *samples = scan_process_get_buffer_data(&point_count);
+
+    if (samples == NULL || point_count == 0) {
+        ESP_LOGW(TAG, "No scan data available to save");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    storage_scan_record_t record = {
+        .mode = (uint32_t)current_scan_mode,
+        .timestamp_sec = 0, // فعلا RTC نداریم
+        .samples = samples,
+        .sample_count = point_count,
+    };
+
+    return storage_littlefs_save_scan(&record, out_scan_id);
+}
+
+static void brain_stop_scan_and_save(void)
+{
+    uint32_t scan_id = 0;
+    esp_err_t err;
+
+    scan_process_stop();
+    if (brain_scan_mode_should_save(current_scan_mode)) {
+        esp_err_t err = brain_save_current_scan(&scan_id);
+
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Scan saved successfully, id=%lu", (unsigned long)scan_id);
+        } else {
+            ESP_LOGE(TAG, "Failed to save scan: %s", esp_err_to_name(err));
+        }
+    } else {
+        ESP_LOGI(TAG, "Scan stopped without saving, mode=%d", current_scan_mode);
+    }
+
+    current_scan_sub_state = SCAN_STATE_STOPPED_WAIT_BACK;
+    s_scan_trigger_phase = 0;
+    brain_emit_event(APP_EVENT_SCAN_CHANGED);
+}
 
 
 static int32_t clamp_i32(int32_t value, int32_t min, int32_t max)
@@ -798,6 +947,7 @@ void brain_init(void)
 {
     ESP_ERROR_CHECK(brain_nvs_init_once());
     brain_settings_load();
+    ESP_ERROR_CHECK(storage_littlefs_init());
     current_page = PAGE_SPLASH;
     loaded_page  = PAGE_SPLASH;
     current_scan_sub_state = SCAN_STATE_IDLE;
@@ -940,11 +1090,13 @@ void brain_handle_key(key_evt_t evt)
 
                 if (evt == KEY_BACK) {
                     if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                        brain_stop_scan_and_save();
+                        ESP_LOGI(TAG, "Process stopped and saved by BACK");
+                    }
+                    else if (current_scan_sub_state == SCAN_STATE_STOPPED_WAIT_BACK) {
                         current_scan_sub_state = SCAN_STATE_IDLE;
-                        s_scan_trigger_phase = 0;
-                        scan_process_stop();
-                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                        ESP_LOGI(TAG, "Process stopped by BACK");
+                        current_page = PAGE_SCAN;
+                        ESP_LOGI(TAG, "Leaving scan page by second BACK");
                     }
                     else {
                         current_page = PAGE_SCAN;
@@ -985,7 +1137,7 @@ void brain_handle_key(key_evt_t evt)
                                     if (g_settings.stop_trg) {
                                         current_scan_sub_state = SCAN_STATE_IDLE;
                                         s_scan_trigger_phase = 0;
-                                        scan_process_stop();
+                                        brain_stop_scan_and_save();
                                         brain_emit_event(APP_EVENT_SCAN_CHANGED);
                                         ESP_LOGI(TAG, "Auto scan stopped by TRIG");
                                     } else {
@@ -1062,6 +1214,14 @@ void brain_handle_key(key_evt_t evt)
                 
             }
             break;
+        case PAGE_MEMORY:
+            if (evt == KEY_OK) {
+                brain_log_scan_index();
+                brain_log_last_scan();
+            } else if (evt == KEY_BACK) {
+                current_page = PAGE_MAIN_MENU;
+            }
+            break;
 
         
                    
@@ -1094,32 +1254,38 @@ void brain_process_ui_cmds(void)
     }
 
     brain_apply_focus_if_needed();
-    if (current_page == PAGE_SCAN_PAGE &&
+
+    app_event_t events = brain_consume_events();
+
+    if ((events & APP_EVENT_SCAN_CHANGED) &&
+        current_page == PAGE_SCAN_PAGE &&
         current_scan_sub_state == SCAN_STATE_RUNNING &&
         s_scan_trigger_phase == 2 &&
         (current_scan_mode == SCAN_MODE_AUTOPC || current_scan_mode == SCAN_MODE_AUTOMEM)) {
 
-        if (scan_process_get_pulse_count() >= g_settings.puls_max) {
-            current_scan_sub_state = SCAN_STATE_IDLE;
-            s_scan_trigger_phase = 0;
-            scan_process_stop();
-            brain_emit_event(APP_EVENT_SCAN_CHANGED);
-            ESP_LOGI(TAG, "Auto scan stopped by puls_max=%d", g_settings.puls_max);
+        if (g_settings.puls_max > 0 &&
+            scan_process_get_pulse_count() >= g_settings.puls_max) {
+            ESP_LOGI(TAG, "Auto scan reached puls_max=%d", g_settings.puls_max);
+            brain_stop_scan_and_save();
+
+            // چون brain_stop_scan_and_save خودش event تولید می‌کند،
+            // فعلاً از render همین سیکل خارج می‌شویم
+            return;
         }
     }
-
-    app_event_t events = brain_consume_events();
 
     if ((events & APP_EVENT_SCAN_CHANGED) &&
         current_page == PAGE_SCAN_PAGE &&
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
     }
+
     if ((events & APP_EVENT_BATTERY_CHANGED) &&
-    current_page == PAGE_SCAN_PAGE &&
-    ui_ScanPage_is_ready()) {
-    ui_scanpage_render();
+        current_page == PAGE_SCAN_PAGE &&
+        ui_ScanPage_is_ready()) {
+        ui_scanpage_render();
     }
-
-
 }
+
+
+

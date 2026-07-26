@@ -210,10 +210,15 @@ bool scan_process_capture_one_pulse(void)
     int16_t raw = read_hardware_adc();
     s_current_adc_value = raw;
 
+    if (scan_mode_is_memory(s_current_mode)) {
     if (!scan_process_add_point_to_buffer(raw)) {
         ESP_LOGW(TAG, "capture_one failed: buffer full");
         return false;
     }
+    } else if (scan_mode_is_pc_send(s_current_mode)) {
+        scan_process_send_bt_placeholder(raw);
+    }
+
 
     s_pulse_count++;
     scan_process_calculate_display_values();

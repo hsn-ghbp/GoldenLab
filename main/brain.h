@@ -23,7 +23,8 @@ typedef enum {
 
 typedef enum {
     SCAN_STATE_IDLE = 0,
-    SCAN_STATE_RUNNING
+    SCAN_STATE_RUNNING,
+    SCAN_STATE_STOPPED_WAIT_BACK
 } scan_sub_state_t;
 
 typedef enum {
