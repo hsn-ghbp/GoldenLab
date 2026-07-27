@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "bluetooth.h"
 
 static const char *TAG = "SCAN_PROCESS";
 
@@ -85,8 +86,10 @@ static bool scan_mode_is_pc_send(int mode)
 
 static void scan_process_send_bt_placeholder(int16_t value)
 {
-    // TODO: وقتی API واقعی بلوتوث اضافه شد اینجا وصل شود
-    ESP_LOGI(TAG, "BT_SEND_TODO raw=%d", value);
+    if (bluetooth_is_enabled()) {
+        bluetooth_send_int32((int32_t)value);
+        ESP_LOGD(TAG, "Sent to BT: %d", value);
+    }
 }
 
 void scan_process_clear_temp_buffer(void)

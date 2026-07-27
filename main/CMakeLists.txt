@@ -16,4 +16,6 @@ idf_component_register(
         bt
         nvs_flash
         littlefs 
+        bt
+        
 )

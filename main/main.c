@@ -15,8 +15,9 @@
 #include "ui.h"
 #include "pcf8574.h"
 #include "brain.h"
+#include "bluetooth.h"
 
-#define TAG "MAGI"
+#define TAG "MAIN"
 
 // ── Display pins (fixed, do not change) ───────────────────────
 #define LCD_HOST        SPI2_HOST
@@ -195,7 +196,17 @@ void app_main(void)
         2,
         NULL
     );
-
+    esp_err_t ret = bluetooth_init("ESP32_BT");
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "bluetooth_init failed: %s", esp_err_to_name(ret));
+        } else {
+            ret = bluetooth_enable();
+            if (ret != ESP_OK) {
+                ESP_LOGE(TAG, "bluetooth_enable failed: %s", esp_err_to_name(ret));
+            } else {
+                ESP_LOGI(TAG, "Bluetooth started, waiting for connection...");
+            }
+        }
     // 2 bytes/pixel for RGB565 (NOT sizeof(lv_color_t), which is 3 in LVGL9)
     size_t buf_size = LCD_W * LVGL_BUF_HEIGHT * sizeof(uint16_t);
     void *buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_DMA);

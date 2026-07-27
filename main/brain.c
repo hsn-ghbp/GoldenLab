@@ -64,7 +64,7 @@ system_settings_t g_settings = {
     .bl_auto_off = false,
     .bl_auto_connect = true,
     .bl_pass = 1234,
-    .bl_name = "MAGI_ESP"
+    .bl_name = "GOLDEN LAB"
 };
 
 
