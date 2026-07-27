@@ -1,12 +1,9 @@
 #include "pcf8574.h"
 
-#include "driver/i2c_master.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 
 static const char *TAG = "KEY";
-
-static i2c_master_bus_handle_t bus_handle = NULL;
-static i2c_master_dev_handle_t dev_handle = NULL;
 
 static volatile key_evt_t key_event = KEY_NONE;
 
@@ -17,8 +14,9 @@ static volatile key_evt_t key_event = KEY_NONE;
 typedef struct
 {
     uint8_t bit;
+    gpio_num_t gpio;
 
-    bool last_state;
+    bool last_state;      // true = released, false = pressed
     bool hold_sent;
 
     uint32_t press_time;
@@ -28,71 +26,99 @@ typedef struct
 
 static key_t keys[] =
 {
-    { KEY_UP_BIT   , true, false, 0, 0 },
-    { KEY_DOWN_BIT , true, false, 0, 0 },
-    { KEY_OK_BIT   , true, false, 0, 0 },
-    { KEY_BACK_BIT , true, false, 0, 0 },
-    { KEY_TRIG_BIT , true, false, 0, 0 }
+    { KEY_UP_BIT   , KEY_UP_GPIO   , true, false, 0, 0 },
+    { KEY_DOWN_BIT , KEY_DOWN_GPIO , true, false, 0, 0 },
+    { KEY_OK_BIT   , KEY_OK_GPIO   , true, false, 0, 0 },
+    { KEY_BACK_BIT , KEY_BACK_GPIO , true, false, 0, 0 },
+    { KEY_TRIG_BIT , KEY_TRIG_GPIO , true, false, 0, 0 }
 };
+
+#define KEY_COUNT   (sizeof(keys) / sizeof(keys[0]))
 
 //--------------------------------------------------
 
 static uint32_t key_time_ms(void)
 {
-    return (uint32_t)(esp_log_timestamp());
+    return (uint32_t)esp_log_timestamp();
+}
+
+//--------------------------------------------------
+// Read direct GPIOs and build raw byte
+// Active low:
+// bit = 1 => released
+// bit = 0 => pressed
+//--------------------------------------------------
+
+static uint8_t read_keys_gpio_raw(void)
+{
+    uint8_t raw = 0xFF;
+
+    for (int i = 0; i < KEY_COUNT; i++)
+    {
+        int level = gpio_get_level(keys[i].gpio);
+
+        if (level == 0)
+        {
+            raw &= ~(keys[i].bit);
+        }
+        else
+        {
+            raw |= keys[i].bit;
+        }
+    }
+
+    return raw;
 }
 
 //--------------------------------------------------
 
 esp_err_t pcf8574_init(void)
 {
-    i2c_master_bus_config_t bus_cfg =
+    gpio_config_t io_conf =
     {
-        .i2c_port = I2C_NUM_0,
-        .sda_io_num = GPIO_NUM_8,
-        .scl_io_num = GPIO_NUM_21,
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
+        .pin_bit_mask =
+            (1ULL << KEY_UP_GPIO)   |
+            (1ULL << KEY_DOWN_GPIO) |
+            (1ULL << KEY_OK_GPIO)   |
+            (1ULL << KEY_BACK_GPIO) |
+            (1ULL << KEY_TRIG_GPIO),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
     };
 
-    ESP_ERROR_CHECK(
-        i2c_new_master_bus(&bus_cfg, &bus_handle));
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
 
-    i2c_device_config_t dev_cfg =
-    {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = PCF8574_ADDR,
-        .scl_speed_hz = 100000,
-    };
-
-    ESP_ERROR_CHECK(
-        i2c_master_bus_add_device(
-            bus_handle,
-            &dev_cfg,
-            &dev_handle));
-
-    ESP_LOGI(TAG, "PCF8574 OK");
+    ESP_LOGI(TAG, "Direct GPIO keys init OK");
+    ESP_LOGI(TAG, "UP=%d DOWN=%d OK=%d BACK=%d TRIG=%d",
+             KEY_UP_GPIO,
+             KEY_DOWN_GPIO,
+             KEY_OK_GPIO,
+             KEY_BACK_GPIO,
+             KEY_TRIG_GPIO);
 
     return ESP_OK;
 }
 
 //--------------------------------------------------
+// Keep same API name to minimize project changes
+//--------------------------------------------------
 
 esp_err_t pcf8574_read(uint8_t *value)
 {
-    return i2c_master_receive(
-        dev_handle,
-        value,
-        1,
-        100);
+    if (value == NULL)
+        return ESP_ERR_INVALID_ARG;
+
+    *value = read_keys_gpio_raw();
+    return ESP_OK;
 }
 
 //--------------------------------------------------
 
 static void push_event(key_evt_t evt)
 {
-    if(key_event == KEY_NONE)
+    if (key_event == KEY_NONE)
     {
         key_event = evt;
     }
@@ -103,6 +129,19 @@ static void push_event(key_evt_t evt)
 void key_init(void)
 {
     key_event = KEY_NONE;
+
+    uint32_t now = key_time_ms();
+    uint8_t raw = read_keys_gpio_raw();
+
+    for (int i = 0; i < KEY_COUNT; i++)
+    {
+        bool released = (raw & keys[i].bit) ? true : false;
+
+        keys[i].last_state = released;
+        keys[i].hold_sent = false;
+        keys[i].press_time = now;
+        keys[i].debounce_time = now;
+    }
 }
 
 //--------------------------------------------------
@@ -111,12 +150,12 @@ void key_scan(void)
 {
     uint8_t raw;
 
-    if(pcf8574_read(&raw) != ESP_OK)
+    if (pcf8574_read(&raw) != ESP_OK)
         return;
 
     uint32_t now = key_time_ms();
 
-    for(int i = 0; i < 5; i++)
+    for (int i = 0; i < KEY_COUNT; i++)
     {
         bool released = (raw & keys[i].bit) ? true : false;
 
@@ -124,9 +163,9 @@ void key_scan(void)
         // state changed
         //--------------------------------------------------
 
-        if(released != keys[i].last_state)
+        if (released != keys[i].last_state)
         {
-            if((now - keys[i].debounce_time) < KEY_DEBOUNCE_MS)
+            if ((now - keys[i].debounce_time) < KEY_DEBOUNCE_MS)
                 continue;
 
             keys[i].debounce_time = now;
@@ -136,7 +175,7 @@ void key_scan(void)
             // pressed
             //----------------------------------------------
 
-            if(!released)
+            if (!released)
             {
                 keys[i].press_time = now;
                 keys[i].hold_sent = false;
@@ -148,9 +187,9 @@ void key_scan(void)
 
             else
             {
-                if(!keys[i].hold_sent)
+                if (!keys[i].hold_sent)
                 {
-                    switch(keys[i].bit)
+                    switch (keys[i].bit)
                     {
                         case KEY_UP_BIT:
                             push_event(KEY_UP);
@@ -171,6 +210,9 @@ void key_scan(void)
                         case KEY_TRIG_BIT:
                             push_event(KEY_TRIG);
                             break;
+
+                        default:
+                            break;
                     }
                 }
             }
@@ -180,13 +222,13 @@ void key_scan(void)
         // hold detection
         //--------------------------------------------------
 
-        if(!released &&
-           !keys[i].hold_sent &&
-           (now - keys[i].press_time >= KEY_HOLD_MS))
+        if (!released &&
+            !keys[i].hold_sent &&
+            (now - keys[i].press_time >= KEY_HOLD_MS))
         {
             keys[i].hold_sent = true;
 
-            switch(keys[i].bit)
+            switch (keys[i].bit)
             {
                 case KEY_OK_BIT:
                     push_event(KEY_OK_HOLD);
@@ -208,8 +250,6 @@ void key_scan(void)
 key_evt_t key_get(void)
 {
     key_evt_t evt = key_event;
-
     key_event = KEY_NONE;
-
     return evt;
 }

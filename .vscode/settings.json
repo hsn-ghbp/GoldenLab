@@ -2,12 +2,13 @@
   "C_Cpp.intelliSenseEngine": "default",
   "idf.extensionActivationMode": "always",
   "idf.openOcdConfigs": [
-    "board/esp32c3-builtin.cfg"
+    "interface/ftdi/esp_ftdi.cfg",
+    "target/esp32.cfg"
   ],
-  "idf.portWin": "COM4",
+  "idf.portWin": "COM9",
   "idf.currentSetup": "c:\\Users\\kimiya\\esp\\v5.5.1\\esp-idf",
   "idf.customExtraVars": {
-    "IDF_TARGET": "esp32c3"
+    "IDF_TARGET": "esp32"
   },
   "clangd.path": "C:\\Users\\kimiya\\.espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
   "clangd.arguments": [
@@ -15,6 +16,6 @@
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\kimiya\\Documents\\ESP-IDF\\Projects\\MG_GUI\\build"
   ],
-  "idf.flashType": "JTAG",
-  "idf.monitorPort": "COM4"
+  "idf.flashType": "UART",
+  "idf.monitorPort": "COM9"
 }

@@ -20,10 +20,10 @@
 
 // ── Display pins (fixed, do not change) ───────────────────────
 #define LCD_HOST        SPI2_HOST
-#define LCD_SCLK        6
-#define LCD_MOSI        7
-#define LCD_CS          10
-#define LCD_DC          20
+#define LCD_SCLK        18
+#define LCD_MOSI        19
+#define LCD_DC          21
+#define LCD_CS          3
 #define LCD_RST         -1
 #define LCD_W           240
 #define LCD_H           240
