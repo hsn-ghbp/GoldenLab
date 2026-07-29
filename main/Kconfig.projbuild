@@ -1,0 +1,10 @@
+menu "Bluetooth Settings"
+
+config APP_SSP_ENABLED
+    bool "Enable Secure Simple Pairing"
+    default n
+    help
+        If enabled, Bluetooth Classic will use SSP behavior.
+        If disabled, Legacy Pairing with fixed PIN will be used.
+
+endmenu

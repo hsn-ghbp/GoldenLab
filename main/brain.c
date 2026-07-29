@@ -63,7 +63,7 @@ system_settings_t g_settings = {
     .beep = true,
     .bl_auto_off = false,
     .bl_auto_connect = true,
-    .bl_pass = 1234,
+    .bl_pass = 33138,
     .bl_name = "GOLDEN LAB"
 };
 
@@ -254,9 +254,9 @@ void brain_settings_set_defaults(void)
     g_settings.beep            = true;
     g_settings.bl_auto_off     = false;
     g_settings.bl_auto_connect = true;
-    g_settings.bl_pass         = 1234;
+    g_settings.bl_pass         = 3313;
 
-    strncpy(g_settings.bl_name, "MAGI_ESP", sizeof(g_settings.bl_name) - 1);
+    strncpy(g_settings.bl_name, "GOLDEN LAB BRAIN", sizeof(g_settings.bl_name) - 1);
     g_settings.bl_name[sizeof(g_settings.bl_name) - 1] = '\0';
 }
 

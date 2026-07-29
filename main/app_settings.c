@@ -55,7 +55,7 @@ void app_settings_defaults(app_settings_t *settings)
     settings->auto_power_enabled = true;
 
     strncpy(settings->bluetooth_name, "ESP32_Device", sizeof(settings->bluetooth_name) - 1);
-    strncpy(settings->bluetooth_password, "12345678", sizeof(settings->bluetooth_password) - 1);
+    strncpy(settings->bluetooth_password, "33138", sizeof(settings->bluetooth_password) - 1);
 }
 
 esp_err_t app_settings_save(void)
