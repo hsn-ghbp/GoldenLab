@@ -195,3 +195,13 @@ Notes:
 - All detail widgets are created hidden, then shown per selected item.
 - Some switches are display-only; actual state changes happen in Brain / physical key handling.
 - Care must be taken to keep names and show/hide logic synchronized with brain.h structures.
+
+
+
+SDK changed 
+in C:\Users\kimiya\esp\v5.5.1\esp-idf\components\bt\host\bluedroid\bta\dm
+bta_dm_pm.c file modifyed and in line 629 added this code :
+ /* [PATCH BY NINJA]: Force Disable Sniff for Latency improvement */
+        APPL_TRACE_WARNING("bta_dm_pm_set_mode: SNIFF requested but BLOCKED by patch. Keeping Active.");
+        bta_dm_pm_active(peer_addr); // به جای اسنیف، مطمئن شو لینک اکتیو می‌ماند
+        return; // از ادامه تابع خارج شو
