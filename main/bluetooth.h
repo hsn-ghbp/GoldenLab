@@ -19,6 +19,12 @@ bool bluetooth_is_connected(void);
 
 esp_err_t bluetooth_send_int32(int32_t value);
 esp_err_t bluetooth_send_array(const int32_t *data, size_t count);
+esp_err_t bluetooth_send_raw(const uint8_t *data, size_t len);
+esp_err_t bluetooth_send_int32_stream_begin(const int32_t *data, size_t count);
+bool bluetooth_stream_is_active(void);
+void bluetooth_stream_abort(void);
+
+
 
 #ifdef __cplusplus
 }

@@ -1059,7 +1059,6 @@ void brain_handle_key(key_evt_t evt)
         case PAGE_SCAN:         //------------ Scan Menu-------------//
             if (evt == KEY_BACK) {
                 current_page = PAGE_MAIN_MENU;
-                
             }
             else if (evt == KEY_UP) {
                 scan_selected = (scan_selected - 1 + 4) % 4;
@@ -1067,7 +1066,6 @@ void brain_handle_key(key_evt_t evt)
             else if (evt == KEY_DOWN) {
                 scan_selected = (scan_selected + 1) % 4;
             }
-
             else if (evt == KEY_OK) {
                 current_scan_mode = (scan_mode_t)scan_selected;
 
@@ -1080,109 +1078,110 @@ void brain_handle_key(key_evt_t evt)
                 brain_emit_event(APP_EVENT_SCAN_CHANGED);
                 current_page = PAGE_SCAN_PAGE;
                 ESP_LOGI(TAG, "Brain: Scan mode=%d, sub_state=RUNNING, phase=0", current_scan_mode);
-
-
             }
-
             break;
 
-           case PAGE_SCAN_PAGE:        //----------------- Scan Page ------------------//
-
-                if (evt == KEY_BACK) {
-                    if (current_scan_sub_state == SCAN_STATE_RUNNING) {
-                        brain_stop_scan_and_save();
-                        ESP_LOGI(TAG, "Process stopped and saved by BACK");
-                    }
-                    else if (current_scan_sub_state == SCAN_STATE_STOPPED_WAIT_BACK) {
-                        current_scan_sub_state = SCAN_STATE_IDLE;
-                        current_page = PAGE_SCAN;
-                        ESP_LOGI(TAG, "Leaving scan page by second BACK");
-                    }
-                    else {
-                        current_page = PAGE_SCAN;
-                    }
+        case PAGE_SCAN_PAGE:        //----------------- Scan Page ------------------//
+            if (evt == KEY_BACK) {
+                if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                    brain_stop_scan_and_save();
+                    ESP_LOGI(TAG, "Process stopped and saved by BACK");
                 }
-                else if (evt == KEY_TRIG) {
-                    if (current_scan_sub_state == SCAN_STATE_RUNNING) {
-
-                        switch (current_scan_mode) {
-
-                            case SCAN_MODE_MANPC:
-                            case SCAN_MODE_MANMEM:
-                            {
-                                if (g_settings.auto_cal && s_scan_trigger_phase == 0) {
-                                    if (scan_process_calibrate_now()) {
-                                        s_scan_trigger_phase = 1;
-                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                                        ESP_LOGI(TAG, "Manual calibration done. phase=1");
-                                    }
+                else if (current_scan_sub_state == SCAN_STATE_STOPPED_WAIT_BACK) {
+                    current_scan_sub_state = SCAN_STATE_IDLE;
+                    current_page = PAGE_SCAN;
+                    ESP_LOGI(TAG, "Leaving scan page by second BACK");
+                }
+                else {
+                    current_page = PAGE_SCAN;
+                }
+            }
+            else if (evt == KEY_TRIG) {
+                if (current_scan_sub_state == SCAN_STATE_RUNNING) {
+                    switch (current_scan_mode) {
+                        case SCAN_MODE_MANPC:
+                        case SCAN_MODE_MANMEM:
+                        {
+                            if (s_scan_trigger_phase == 0 && g_settings.auto_cal) {
+                                if (scan_process_calibrate_now()) {
+                                    s_scan_trigger_phase = 1;
+                                    brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                    ESP_LOGI(TAG, "Manual calibration done. phase=1");
                                 } else {
-                                    if (!g_settings.auto_cal && s_scan_trigger_phase == 0) {
-                                        s_scan_trigger_phase = 1;
-                                    }
-
-                                    if (scan_process_capture_one_pulse()) {
-                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                                        ESP_LOGI(TAG, "Manual capture done. pulse=%d",
-                                                scan_process_get_pulse_count());
-                                    }
+                                    ESP_LOGW(TAG, "Manual calibration failed");
                                 }
                                 break;
                             }
 
-                            case SCAN_MODE_AUTOPC:
-                            case SCAN_MODE_AUTOMEM:
-                            {
-                                if (s_scan_trigger_phase == 2) {
-                                    if (g_settings.stop_trg) {
-                                        current_scan_sub_state = SCAN_STATE_IDLE;
-                                        s_scan_trigger_phase = 0;
-                                        brain_stop_scan_and_save();
-                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                                        ESP_LOGI(TAG, "Auto scan stopped by TRIG");
-                                    } else {
-                                        ESP_LOGI(TAG, "TRIG ignored in auto mode because stop_trg=false");
-                                    }
-                                    break;
-                                }
+                            if (s_scan_trigger_phase == 0 && !g_settings.auto_cal) {
+                                s_scan_trigger_phase = 1;
+                            }
 
-                                if (g_settings.auto_cal && s_scan_trigger_phase == 0) {
-                                    if (scan_process_calibrate_now()) {
-                                        s_scan_trigger_phase = 1;
-                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                                        ESP_LOGI(TAG, "Auto calibration done. phase=1");
-                                    }
+                            if (scan_process_capture_one_pulse()) {
+                                brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                ESP_LOGI(TAG, "Manual capture done. pulse=%d",
+                                        scan_process_get_pulse_count());
+                            } else {
+                                            ESP_LOGW(TAG, "Manual capture failed");
+                            }
+                            break;
+                        }
+
+                        case SCAN_MODE_AUTOPC:
+                        case SCAN_MODE_AUTOMEM:
+                        {
+                            if (s_scan_trigger_phase == 2) {
+                                if (g_settings.stop_trg) {
+                                    current_scan_sub_state = SCAN_STATE_IDLE;
+                                    s_scan_trigger_phase = 0;
+                                    brain_stop_scan_and_save();
+                                    brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                    ESP_LOGI(TAG, "Auto scan stopped by TRIG");
                                 } else {
-                                    if (!g_settings.auto_cal && s_scan_trigger_phase == 0) {
-                                        s_scan_trigger_phase = 1;
-                                    }
-
-                                    if (scan_process_capture_multi_pulse(g_settings.delay_time)) {
-                                        s_scan_trigger_phase = 2;
-                                        brain_emit_event(APP_EVENT_SCAN_CHANGED);
-                                        ESP_LOGI(TAG, "Auto scan task started. phase=2");
-                                    }
+                                    ESP_LOGI(TAG, "TRIG ignored in auto mode because stop_trg=false");
                                 }
                                 break;
-                }
+                            }
 
-                default:
-                    ESP_LOGW(TAG, "Unknown scan mode: %d", current_scan_mode);
-                    break;
+                            if (s_scan_trigger_phase == 0 && g_settings.auto_cal) {
+                                if (scan_process_calibrate_now()) {
+                                    s_scan_trigger_phase = 1;
+                                    brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                    ESP_LOGI(TAG, "Auto calibration done. phase=1");
+                                } else {
+                                    ESP_LOGW(TAG, "Auto calibration failed");
+                                }
+                                break;
+                            }
+
+                            if (s_scan_trigger_phase == 0 && !g_settings.auto_cal) {
+                                s_scan_trigger_phase = 1;
+                            }
+
+                            if (scan_process_capture_multi_pulse(g_settings.delay_time)) {
+                                s_scan_trigger_phase = 2;
+                                brain_emit_event(APP_EVENT_SCAN_CHANGED);
+                                ESP_LOGI(TAG, "Auto scan task started. phase=2");
+                            } else {
+                                ESP_LOGW(TAG, "Auto scan task start failed");
+                            }
+                            break;
+                        }
+
+                        default:
+                            ESP_LOGW(TAG, "Unknown scan mode: %d", current_scan_mode);
+                            break;
+                    }
+                }
             }
-        }
+            break;
 
-        brain_update_battery();
-    }
-    break;
-
-        case PAGE_SETTING :     //-----------------setting page---------------//
-            
-                if (current_setting_state == SETTING_STATE_OPENING ||
-                    current_setting_state == SETTING_STATE_CLOSING) {
-                    break;
-                }
-        
+        case PAGE_SETTING:     //-----------------setting page---------------//
+            if (current_setting_state == SETTING_STATE_OPENING ||
+                current_setting_state == SETTING_STATE_CLOSING) {
+                break;
+            }
+    
             if (current_setting_state == SETTING_STATE_LIST) {
                 if (evt == KEY_BACK) {
                     current_page = PAGE_MAIN_MENU;
@@ -1207,13 +1206,12 @@ void brain_handle_key(key_evt_t evt)
                 else if (evt == KEY_UP){
                     brain_setting_detail_step(true);
                 }
-                else if (evt== KEY_DOWN)
-                {
+                else if (evt == KEY_DOWN) {
                     brain_setting_detail_step(false);
                 }
-                
             }
             break;
+
         case PAGE_MEMORY:
             if (evt == KEY_OK) {
                 brain_log_scan_index();
@@ -1223,13 +1221,13 @@ void brain_handle_key(key_evt_t evt)
             }
             break;
 
-        
-                   
-
         default:
             break;
     }
+
+    brain_update_battery();
 }
+
 
 void brain_process_ui_cmds(void)
 {

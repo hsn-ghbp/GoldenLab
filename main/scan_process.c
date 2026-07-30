@@ -170,6 +170,57 @@ void scan_process_stop(void)
     ESP_LOGI(TAG, "Scan process stop requested");
 }
 
+static bool scan_process_send_calibration_block_from_buffer(const int16_t *data, uint16_t count)
+{
+    if (data == NULL || count == 0) {
+        ESP_LOGW(TAG, "Calibration send skipped: empty buffer");
+        return false;
+    }
+
+    if (!bluetooth_is_enabled() || !bluetooth_is_connected()) {
+        ESP_LOGW(TAG, "Calibration send skipped: bluetooth not connected");
+        return false;
+    }
+
+    char tx_buffer[256];
+    int offset = 0;
+
+    for (uint16_t i = 0; i < count; i++) {
+        int written = snprintf(
+            tx_buffer + offset,
+            sizeof(tx_buffer) - offset,
+            (i == 0) ? "%d" : ",%d",
+            data[i]
+        );
+
+        if (written < 0 || written >= (int)(sizeof(tx_buffer) - offset)) {
+            ESP_LOGE(TAG, "Calibration tx buffer overflow at index=%u", i);
+            return false;
+        }
+
+        offset += written;
+    }
+
+    if (offset + 2 >= (int)sizeof(tx_buffer)) {
+        ESP_LOGE(TAG, "Calibration tx buffer has no room for line ending");
+        return false;
+    }
+
+    tx_buffer[offset++] = '\r';
+    tx_buffer[offset++] = '\n';
+
+    esp_err_t err = bluetooth_send_raw((const uint8_t *)tx_buffer, offset);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Calibration block send failed: %s", esp_err_to_name(err));
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Calibration block sent. count=%u, bytes=%d", count, offset);
+    return true;
+}
+
+
+
 bool scan_process_calibrate_now(void)
 {
     uint16_t sample_count = g_settings.auto_cal_pls;
@@ -182,26 +233,93 @@ bool scan_process_calibrate_now(void)
 
     ESP_LOGI(TAG, "Calibration started. samples=%u mode=%d", sample_count, s_current_mode);
 
-    for (uint16_t i = 0; i < sample_count; i++) {
-        int16_t raw = read_hardware_adc();
-        s_current_adc_value = raw;
-        scan_process_calculate_display_values();
+    if (scan_mode_is_pc_send(s_current_mode)) {
+        static int32_t bt_samples[1024];   // اندازه را متناسب با حداکثر نیازت تنظیم کن
 
-        if (scan_mode_is_memory(s_current_mode)) {
-            if (!scan_process_add_point_to_buffer(raw)) {
-                ESP_LOGW(TAG, "Calibration buffer full at sample %u", i);
-                break;
+        if (sample_count > (sizeof(bt_samples) / sizeof(bt_samples[0]))) {
+            ESP_LOGW(TAG, "Calibration sample_count=%u exceeds bt_samples capacity=%u",
+                     sample_count,
+                     (unsigned)(sizeof(bt_samples) / sizeof(bt_samples[0])));
+            return false;
+        }
+
+        for (uint16_t i = 0; i < sample_count; i++) {
+            int16_t raw = read_hardware_adc();
+            s_current_adc_value = raw;
+            scan_process_calculate_display_values();
+            bt_samples[i] = (int32_t)raw;
+        }
+
+        esp_err_t err = bluetooth_send_int32_stream_begin(bt_samples, sample_count);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "Calibration send array failed: %s", esp_err_to_name(err));
+            return false;
+        }
+    }
+    else {
+        for (uint16_t i = 0; i < sample_count; i++) {
+            int16_t raw = read_hardware_adc();
+            s_current_adc_value = raw;
+            scan_process_calculate_display_values();
+
+            if (scan_mode_is_memory(s_current_mode)) {
+                if (!scan_process_add_point_to_buffer(raw)) {
+                    ESP_LOGW(TAG, "Calibration buffer full at sample %u", i);
+                    break;
+                }
             }
-        } else if (scan_mode_is_pc_send(s_current_mode)) {
-            scan_process_send_bt_placeholder(raw);
         }
     }
 
     s_is_calibrated = true;
-
-    ESP_LOGI(TAG, "Calibration finished. pulse_count unchanged=%d", s_pulse_count);
+    ESP_LOGI(TAG, "Calibration finished.");
     return true;
 }
+
+
+
+
+
+// bool scan_process_calibrate_now(void)
+// {
+//     uint16_t sample_count = g_settings.auto_cal_pls;
+
+//     if (sample_count == 0) {
+//         s_is_calibrated = true;
+//         ESP_LOGI(TAG, "Calibration skipped because auto_cal_pls=0");
+//         return true;
+//     }
+
+//     ESP_LOGI(TAG, "Calibration started. samples=%u mode=%d", sample_count, s_current_mode);
+
+//     for (uint16_t i = 0; i < sample_count; i++) {
+//         int16_t raw = read_hardware_adc();
+//         s_current_adc_value = raw;
+//         scan_process_calculate_display_values();
+
+//         if (scan_mode_is_memory(s_current_mode)) {
+//             if (!scan_process_add_point_to_buffer(raw)) {
+//                 ESP_LOGW(TAG, "Calibration buffer full at sample %u", i);
+//                 break;
+//             }
+//         } 
+//         else if (scan_mode_is_pc_send(s_current_mode)) {
+//             esp_err_t err = bluetooth_send_int32((int32_t)raw);
+//             if (err != ESP_OK) {
+//                 ESP_LOGW(TAG, "Calibration enqueue failed at sample %u: %s", i, esp_err_to_name(err));
+//             }
+//         }
+//     }
+
+//     s_is_calibrated = true;
+//     ESP_LOGI(TAG, "Calibration finished. Samples queued individually.");
+//     return true;
+// }
+
+
+
+
+  
 
 bool scan_process_capture_one_pulse(void)
 {
