@@ -180,6 +180,32 @@ void ui_ScanPage_update_bluetooth_icon(void)
     );
 }
 
+#include "brain.h"
+
+void ui_ScanPage_update_calibration_icon(void)
+{
+    static bool initialized = false;
+    static bool last_calibrated = false;
+
+    if (ui_balance == NULL) {
+        return;
+    }
+
+    const bool calibrated = scan_process_is_calibrated();
+
+    if (initialized && calibrated == last_calibrated) {
+        return;
+    }
+
+    initialized = true;
+    last_calibrated = calibrated;
+
+    if (calibrated) {
+        lv_obj_remove_flag(ui_balance, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(ui_balance, LV_OBJ_FLAG_HIDDEN);
+    }
+}
 
 
 
@@ -459,6 +485,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_x(ui_balance, -19);
     lv_obj_set_y(ui_balance, 46);
     lv_obj_set_align(ui_balance, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_balance,LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_balance, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_balance, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     

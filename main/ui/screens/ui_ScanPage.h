@@ -15,6 +15,7 @@ void ui_ScanPage_screen_destroy(void);
 bool ui_ScanPage_is_ready(void);
 void ui_scanpage_render(void);
 void ui_ScanPage_update_bluetooth_icon(void);
+void ui_ScanPage_update_calibration_icon(void);
 
 
 #ifdef __cplusplus

@@ -108,6 +108,7 @@ static void lvgl_task(void *arg)
             // فراخوانی تابع جدید در brain.c برای مدیریت وضعیت نمایش صفحات
             brain_process_ui_cmds();
             ui_ScanPage_update_bluetooth_icon();
+            ui_ScanPage_update_calibration_icon();
             delay = lv_timer_handler();
             xSemaphoreGive(lvgl_mux);
         }
