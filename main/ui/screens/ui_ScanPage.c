@@ -8,6 +8,7 @@
 #include "brain.h" // حتما انکلود شود
 #include "ui_ScanPage.h"
 #include"scan_process.h"
+#include "bluetooth.h"
 //#include "bluetooth_mgr.h"
 
 lv_obj_t * ui_ScanPage = NULL;
@@ -142,6 +143,46 @@ static void scanpage_apply_run_state(void)
     }
 }
 
+void ui_ScanPage_update_bluetooth_icon(void)
+{
+    static bool last_enabled = false;
+    static bool last_connected = false;
+    static bool initialized = false;
+
+    if (ui_Blutooth == NULL) {
+        return;
+    }
+
+    const bool enabled = bluetooth_is_enabled();
+    const bool connected = enabled && bluetooth_is_connected();
+
+    if (initialized &&
+        enabled == last_enabled &&
+        connected == last_connected) {
+        return;
+    }
+
+    initialized = true;
+    last_enabled = enabled;
+    last_connected = connected;
+
+    if (!enabled) {
+        lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    lv_obj_remove_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_set_style_opa(
+        ui_Blutooth,
+        connected ? LV_OPA_COVER : 100,
+        LV_PART_MAIN | LV_STATE_DEFAULT
+    );
+}
+
+
+
+
 
 //--------------------------------------
 // Refresh page
@@ -252,8 +293,8 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_align(ui_Blutooth, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_Blutooth, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_image_recolor(ui_Blutooth, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_image_recolor_opa(ui_Blutooth, 150, LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_image_recolor(ui_Blutooth, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    //lv_obj_set_style_image_recolor_opa(ui_Blutooth, 150, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_SendDataa = lv_image_create(ui_ScanPage);
     lv_image_set_src(ui_SendDataa, &ui_img_send_png);

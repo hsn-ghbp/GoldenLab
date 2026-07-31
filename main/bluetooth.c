@@ -23,6 +23,11 @@ static bool s_enabled = false;
 static bool s_connected = false;
 static uint32_t s_spp_handle = 0;
 static char s_device_name[32] = "ESP32_SPP";
+static uint8_t s_last_peer_bda[ESP_BD_ADDR_LEN];
+static bool s_has_last_peer = false;
+static bool s_shutting_down = false;
+
+
 
 extern system_settings_t g_settings;
 
@@ -240,9 +245,15 @@ static void bt_stream_stop_locked(void)
 static void bt_stream_retry_timer_cb(TimerHandle_t xTimer)
 {
     (void)xTimer;
+    if (s_shutting_down) {
+        return;
+    }
 
     portENTER_CRITICAL(&s_bt_tx_mux);
-    if (!s_stream_active) {
+    if (!s_stream_active ||
+        !s_enabled ||
+        !s_connected ||
+        s_spp_handle == 0) {
         portEXIT_CRITICAL(&s_bt_tx_mux);
         return;
     }
@@ -292,6 +303,11 @@ static esp_err_t bt_stream_try_send_locked(void)
  * ========================= */
 static void bt_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 {
+    if (s_shutting_down &&
+        event != ESP_SPP_CLOSE_EVT &&
+        event != ESP_SPP_UNINIT_EVT) {
+        return;
+    }
     switch (event) {
     case ESP_SPP_INIT_EVT:
         //ESP_LOGI(TAG, "SPP init done");
@@ -307,6 +323,9 @@ static void bt_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
 
     case ESP_SPP_SRV_OPEN_EVT:
+        memcpy(s_last_peer_bda, param->srv_open.rem_bda, ESP_BD_ADDR_LEN);
+        s_has_last_peer = true;
+
         s_connected = true;
         s_spp_handle = param->srv_open.handle;
 
@@ -411,7 +430,7 @@ esp_err_t bluetooth_init(const char *device_name)
 esp_err_t bluetooth_enable(void)
 {
     if (s_enabled) return ESP_OK;
-
+    s_shutting_down = false;    
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -529,7 +548,21 @@ esp_err_t bluetooth_enable(void)
 esp_err_t bluetooth_disable(void)
 {
     if (!s_enabled) return ESP_OK;
+    s_shutting_down = true;
+    const uint32_t handle = s_spp_handle;
+    if (s_stream_retry_timer != NULL) {
+        xTimerStop(s_stream_retry_timer, 0);
+    }
+    if (s_connected && handle != 0) {
+        esp_err_t disconnect_ret = esp_spp_disconnect(handle);
 
+        if (disconnect_ret != ESP_OK &&
+            disconnect_ret != ESP_ERR_INVALID_STATE) {
+            ESP_LOGW(TAG,
+                     "esp_spp_disconnect failed: %s",
+                     esp_err_to_name(disconnect_ret));
+        }
+    }
     s_connected = false;
     s_spp_handle = 0;
     bt_tx_queue_clear();
@@ -566,6 +599,9 @@ esp_err_t bluetooth_disable(void)
     }
 
     s_enabled = false;
+    s_shutting_down = false;
+    s_connected = false;
+
     ESP_LOGI(TAG, "Bluetooth disabled");
 
     return ESP_OK;

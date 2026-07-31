@@ -23,6 +23,10 @@ esp_err_t bluetooth_send_raw(const uint8_t *data, size_t len);
 esp_err_t bluetooth_send_int32_stream_begin(const int32_t *data, size_t count);
 bool bluetooth_stream_is_active(void);
 void bluetooth_stream_abort(void);
+bool bluetooth_has_last_peer(void);
+//void bluetooth_get_last_peer(uint8_t out_bda[ESP_BD_ADDR_LEN]);
+esp_err_t bluetooth_connect_last_peer(void);
+
 
 
 

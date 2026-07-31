@@ -107,7 +107,7 @@ static void lvgl_task(void *arg)
         {
             // فراخوانی تابع جدید در brain.c برای مدیریت وضعیت نمایش صفحات
             brain_process_ui_cmds();
-            
+            ui_ScanPage_update_bluetooth_icon();
             delay = lv_timer_handler();
             xSemaphoreGive(lvgl_mux);
         }
@@ -196,17 +196,17 @@ void app_main(void)
         2,
         NULL
     );
-    esp_err_t ret = bluetooth_init("ESP32_BT");
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "bluetooth_init failed: %s", esp_err_to_name(ret));
-        } else {
-            ret = bluetooth_enable();
-            if (ret != ESP_OK) {
-                ESP_LOGE(TAG, "bluetooth_enable failed: %s", esp_err_to_name(ret));
-            } else {
-                ESP_LOGI(TAG, "Bluetooth started, waiting for connection...");
-            }
-        }
+    esp_err_t bt_init_ret = bluetooth_init(NULL);
+
+    if (bt_init_ret != ESP_OK) {
+    ESP_LOGE(TAG,
+             "bluetooth_init failed: %s",
+             esp_err_to_name(bt_init_ret));
+} else {
+    ESP_LOGI(TAG, "bluetooth_init completed");
+}
+
+
     // 2 bytes/pixel for RGB565 (NOT sizeof(lv_color_t), which is 3 in LVGL9)
     size_t buf_size = LCD_W * LVGL_BUF_HEIGHT * sizeof(uint16_t);
     void *buf1 = heap_caps_malloc(buf_size, MALLOC_CAP_DMA);

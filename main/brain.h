@@ -98,6 +98,7 @@ void brain_process_ui_cmds(void);
 int brain_get_scan_selected(void);
 battery_level_t brain_get_battery_level(void);
 uint8_t brain_get_battery_percent(void);
+bool brain_should_bluetooth_be_enabled(void);
 /* اختیاری ولی مفید */
 bool brain_settings_load(void);
 bool brain_settings_save(void);

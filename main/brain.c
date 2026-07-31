@@ -20,6 +20,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "storage_littlefs.h"
+#include "bluetooth.h"
 
 
 
@@ -75,6 +76,7 @@ extern volatile bool splash_done;
 
 extern void menu_set_focused_index(int index);
 extern void scan_set_focused_index(int index);
+extern system_settings_t g_settings;
 
 
 
@@ -383,6 +385,78 @@ app_event_t brain_consume_events(void)
 static bool brain_scan_mode_should_save(scan_mode_t mode)
 {
     return (mode == SCAN_MODE_AUTOMEM || mode == SCAN_MODE_MANMEM);
+}
+
+  static bool brain_scan_mode_uses_memory(int mode)
+  {
+      return mode == SCAN_MODE_AUTOMEM || mode == SCAN_MODE_MANMEM;
+  }
+
+bool brain_should_bluetooth_be_enabled(void)
+{
+    if (current_page != PAGE_SCAN_PAGE) {
+        return false;
+    }
+    /*
+     * bl_auto_off == true:
+     * Bluetooth در مودهای ذخیره‌سازی خاموش می‌شود.
+     *
+     * bl_auto_off == false:
+     * Bluetooth در تمام مودها روشن می‌ماند.
+     */
+    if (g_settings.bl_auto_off &&
+        brain_scan_mode_uses_memory((scan_mode_t)current_scan_mode)) {
+        return false;
+    }
+    /// log
+    // const bool in_scan_page = (current_page == PAGE_SCAN_PAGE);
+    // const bool memory_mode = brain_scan_mode_uses_memory(current_scan_mode);
+    // const bool result =
+    //     in_scan_page &&
+    //     !(g_settings.bl_auto_off && memory_mode);
+
+    // ESP_LOGI(TAG,
+    //          "BT policy: page=%d scan_mode=%d auto_off=%d memory_mode=%d should_enable=%d",
+    //          current_page,
+    //          current_scan_mode,
+    //          g_settings.bl_auto_off,
+    //          memory_mode,
+    //          result);
+////log
+    return true;
+
+}
+
+static void brain_apply_bluetooth_policy(void)
+{
+    const bool should_enable = brain_should_bluetooth_be_enabled();
+    const bool is_enabled = bluetooth_is_enabled();
+
+    if (should_enable == is_enabled) {
+        return;
+    }
+
+    if (should_enable) {
+        esp_err_t err = bluetooth_enable();
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG,
+                     "Failed to enable Bluetooth: %s",
+                     esp_err_to_name(err));
+        } else {
+            ESP_LOGI(TAG, "Bluetooth enabled by scan-mode policy");
+        }
+    } else {
+        esp_err_t err = bluetooth_disable();
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG,
+                     "Failed to disable Bluetooth: %s",
+                     esp_err_to_name(err));
+        } else {
+            ESP_LOGI(TAG, "Bluetooth disabled by memory-mode policy");
+        }
+    }
 }
 
 
@@ -1233,6 +1307,11 @@ void brain_process_ui_cmds(void)
 {
     static app_page_t last_logged_current = -1;
     static app_page_t last_logged_loaded = -1;
+    brain_apply_bluetooth_policy();
+    if (current_page == PAGE_SCAN_PAGE &&
+    ui_ScanPage_is_ready()) {
+    ui_ScanPage_update_bluetooth_icon();
+}
 
     if (current_page != last_logged_current || loaded_page != last_logged_loaded) {
         ESP_LOGW(TAG, "STATE current=%d loaded=%d splash_done=%d",
@@ -1250,7 +1329,7 @@ void brain_process_ui_cmds(void)
             current_page = loaded_page;
         }
     }
-
+    brain_apply_bluetooth_policy();
     brain_apply_focus_if_needed();
 
     app_event_t events = brain_consume_events();
@@ -1283,6 +1362,14 @@ void brain_process_ui_cmds(void)
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
     }
+      if (ui_ScanPage_is_ready() && ui_Blutooth) {
+      if (bluetooth_is_enabled()) {
+          lv_obj_clear_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+      } else {
+          lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+      }
+  }
+
 }
 
 
