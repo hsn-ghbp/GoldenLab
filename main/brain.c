@@ -1171,6 +1171,16 @@ void brain_handle_key(key_evt_t evt)
                 }
             }
             else if (evt == KEY_TRIG) {
+                const bool pc_mode =
+                current_scan_mode == SCAN_MODE_MANPC ||
+                current_scan_mode == SCAN_MODE_AUTOPC;
+
+                if (pc_mode && !bluetooth_is_connected()) {
+                    ESP_LOGW(TAG,
+                            "TRIG ignored: Bluetooth is not connected (mode=%d)",
+                            current_scan_mode);
+                    break;
+                }
                 if (current_scan_sub_state == SCAN_STATE_RUNNING) {
                     switch (current_scan_mode) {
                         case SCAN_MODE_MANPC:
