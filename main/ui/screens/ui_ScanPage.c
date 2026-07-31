@@ -30,6 +30,7 @@ lv_obj_t * ui_CurentValue = NULL;
 lv_obj_t * ui_LblPulse = NULL;
 lv_obj_t * ui_stop = NULL;
 lv_obj_t * ui_play = NULL;
+lv_obj_t * ui_balance = NULL;
 
 
 // Prearear function
@@ -382,7 +383,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_width(ui_LblPulse, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblPulse, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_LblPulse, 33);
-    lv_obj_set_y(ui_LblPulse, 72);
+    lv_obj_set_y(ui_LblPulse, 81);
     lv_obj_set_align(ui_LblPulse, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblPulse, "پالس");
     lv_obj_set_style_base_dir(ui_LblPulse, LV_BASE_DIR_RTL, 0);
@@ -392,8 +393,8 @@ void ui_ScanPage_screen_init(void)
     lv_image_set_src(ui_stop, &ui_img_stop_png);
     lv_obj_set_width(ui_stop, LV_SIZE_CONTENT);   /// 20
     lv_obj_set_height(ui_stop, LV_SIZE_CONTENT);    /// 20
-    lv_obj_set_x(ui_stop, -53);
-    lv_obj_set_y(ui_stop, 44);
+    lv_obj_set_x(ui_stop, -52);
+    lv_obj_set_y(ui_stop, 46);
     lv_obj_set_align(ui_stop, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_stop, LV_OBJ_FLAG_CLICKABLE);     /// Flags
@@ -403,12 +404,22 @@ void ui_ScanPage_screen_init(void)
     lv_image_set_src(ui_play, &ui_img_play_png);
     lv_obj_set_width(ui_play, LV_SIZE_CONTENT);   /// 20
     lv_obj_set_height(ui_play, LV_SIZE_CONTENT);    /// 23
-    lv_obj_set_x(ui_play, -28);
-    lv_obj_set_y(ui_play, 44);
+    lv_obj_set_x(ui_play, -52);
+    lv_obj_set_y(ui_play, 46);
     lv_obj_set_align(ui_play, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN);
     //lv_obj_add_flag(ui_play, LV_OBJ_FLAG_HIDDEN | LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_play, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_balance = lv_image_create(ui_ScanPage);
+    lv_image_set_src(ui_balance, &ui_img_balance_png);
+    lv_obj_set_width(ui_balance, LV_SIZE_CONTENT);   /// 32
+    lv_obj_set_height(ui_balance, LV_SIZE_CONTENT);    /// 32
+    lv_obj_set_x(ui_balance, -19);
+    lv_obj_set_y(ui_balance, 46);
+    lv_obj_set_align(ui_balance, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_balance, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_balance, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     
     if (ui_Auto)      lv_obj_add_flag(ui_Auto, LV_OBJ_FLAG_HIDDEN);
     if (ui_Save)      lv_obj_add_flag(ui_Save, LV_OBJ_FLAG_HIDDEN);

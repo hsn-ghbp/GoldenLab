@@ -46,6 +46,9 @@ extern lv_obj_t * ui_BatL5;
 extern lv_obj_t * ui_needle;
 extern lv_obj_t * ui_CurentValue;
 extern lv_obj_t * ui_LblPulse;
+extern lv_obj_t * ui_stop;
+extern lv_obj_t * ui_play;
+extern lv_obj_t * ui_balance;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus
