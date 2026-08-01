@@ -73,6 +73,7 @@ LV_IMG_DECLARE(ui_img_needle_png);    // assets/needle.png
 LV_IMG_DECLARE(ui_img_stop_png);    // assets/stop.png
 LV_IMG_DECLARE(ui_img_play_png);    // assets/play.png
 LV_IMG_DECLARE(ui_img_balance_png);
+//extern lv_obj_t * ui_BtIcon;
 
 // FONTS
 LV_FONT_DECLARE(ui_font_Font1);

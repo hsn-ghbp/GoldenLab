@@ -394,7 +394,7 @@ static bool brain_scan_mode_should_save(scan_mode_t mode)
 
 bool brain_should_bluetooth_be_enabled(void)
 {
-    if (current_page != PAGE_SCAN_PAGE) {
+    if (current_page != PAGE_SCAN_PAGE && current_page != PAGE_SEND) {
         return false;
     }
     /*
@@ -487,7 +487,7 @@ static esp_err_t brain_save_current_scan(uint32_t *out_scan_id)
 static void brain_stop_scan_and_save(void)
 {
     uint32_t scan_id = 0;
-    esp_err_t err;
+   // esp_err_t err;
 
     scan_process_stop();
     if (brain_scan_mode_should_save(current_scan_mode)) {
@@ -1296,7 +1296,7 @@ void brain_handle_key(key_evt_t evt)
             }
             break;
 
-        case PAGE_MEMORY:
+        case PAGE_MEMORY:               //----------------Memory Page -------------------//
             if (evt == KEY_OK) {
                 brain_log_scan_index();
                 brain_log_last_scan();
@@ -1304,7 +1304,14 @@ void brain_handle_key(key_evt_t evt)
                 current_page = PAGE_MAIN_MENU;
             }
             break;
-
+        case PAGE_SEND:              //----------------Send Data Page -------------------//
+            if (evt == KEY_OK) {
+                brain_log_scan_index();
+                brain_log_last_scan();
+            } else if (evt == KEY_BACK) {
+                current_page = PAGE_MAIN_MENU;
+            }
+            break;
         default:
             break;
     }

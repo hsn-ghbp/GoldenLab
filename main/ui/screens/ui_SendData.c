@@ -4,9 +4,32 @@
 // Project name: MAGI_ESP
 
 #include "../ui.h"
+#include "bluetooth.h"
 
 lv_obj_t * ui_SendData = NULL;
+lv_obj_t * ui_BtIcon = NULL;
 // event funtions
+void ui_SendData_update_bluetooth_status(void)
+{
+    if (!ui_SendData_is_ready() || ui_BtIcon == NULL) {
+        return;
+    }
+
+    if (!bluetooth_is_enabled()) {
+        lv_obj_add_flag(ui_BtIcon, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    lv_obj_remove_flag(ui_BtIcon, LV_OBJ_FLAG_HIDDEN);
+
+    if (bluetooth_is_connected()) {
+        lv_obj_set_style_opa(ui_BtIcon, LV_OPA_COVER, LV_PART_MAIN);
+    } else {
+        lv_obj_set_style_opa(ui_BtIcon, 100, LV_PART_MAIN);
+    }
+}
+
+
 
 // build funtions
 
@@ -14,6 +37,20 @@ void ui_SendData_screen_init(void)
 {
     ui_SendData = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_SendData, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_SendData, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_SendData, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_BtIcon = lv_image_create(ui_SendData);
+    lv_image_set_src(ui_BtIcon, &ui_img_bluetooth_png);
+    lv_obj_set_width(ui_BtIcon, LV_SIZE_CONTENT);   /// 35
+    lv_obj_set_height(ui_BtIcon, LV_SIZE_CONTENT);    /// 48
+    lv_obj_set_x(ui_BtIcon, 0);
+    lv_obj_set_y(ui_BtIcon, -84);
+    lv_obj_set_align(ui_BtIcon, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_BtIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_BtIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_SendData_update_bluetooth_status();
 
 }
 
@@ -22,12 +59,12 @@ bool ui_SendData_is_ready(void)
     return (ui_SendData != NULL);
 }
 
-
 void ui_SendData_screen_destroy(void)
 {
     if(ui_SendData) lv_obj_del(ui_SendData);
 
     // NULL screen variables
     ui_SendData = NULL;
+    ui_BtIcon = NULL;
 
 }

@@ -109,6 +109,7 @@ static void lvgl_task(void *arg)
             brain_process_ui_cmds();
             ui_ScanPage_update_bluetooth_icon();
             ui_ScanPage_update_calibration_icon();
+            ui_SendData_update_bluetooth_status();
             delay = lv_timer_handler();
             xSemaphoreGive(lvgl_mux);
         }
