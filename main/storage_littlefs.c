@@ -157,8 +157,8 @@ esp_err_t storage_littlefs_load_index(scan_index_item_t *items,
 
     err = storage_read_index_file(&header, &loaded_items);
     ESP_RETURN_ON_ERROR(err, TAG, "failed to read index file");
-
-    copy_count = header.count;
+    *out_count = (size_t)header.count;
+    copy_count = (size_t)header.count;
     if (copy_count > max_items) {
         copy_count = max_items;
     }
@@ -167,7 +167,7 @@ esp_err_t storage_littlefs_load_index(scan_index_item_t *items,
         memcpy(items, loaded_items, copy_count * sizeof(scan_index_item_t));
     }
 
-    *out_count = copy_count;
+    //*out_count = copy_count;
     free(loaded_items);
     return ESP_OK;
 }

@@ -45,6 +45,14 @@ static const char *NVS_KEY_SETTINGS = "settings";
 static int g_setting_index = 0;
 static battery_level_t current_battery_level = BATTERY_LEVEL_EMPTY;
 static int s_scan_trigger_phase = 0;
+/* PAGE_SEND state: شماره نمایشی اسکن از 1 شروع می‌شود. */
+static uint32_t s_send_selected_scan_number = 1U;
+static uint32_t s_send_total_scan_count = 0U;
+
+/* وقتی true باشد، brain_process_ui_cmds باید label را render کند. */
+static bool s_send_selection_ui_dirty = false;
+
+
 /*
 phase:
 0 = هنوز شروع فاز اسکن نشده
@@ -382,6 +390,47 @@ app_event_t brain_consume_events(void)
 // -------------------------
 // Internal helpers
 // -------------------------
+static void brain_send_page_enter(void)
+{
+    size_t total_count = 0U;
+    esp_err_t err;
+
+    /*
+     * با اصلاحی که در storage_littlefs_load_index انجام دادی،
+     * وقتی items=NULL و max_items=0 باشد، out_count برابر
+     * تعداد واقعی رکوردهای index است.
+     */
+    if (!storage_littlefs_is_ready()) {
+        ESP_LOGW(TAG, "LittleFS is not ready; send scan count is 0");
+        s_send_total_scan_count = 0U;
+    } else {
+        err = storage_littlefs_load_index(NULL, 0U, &total_count);
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to load scan count: %s",
+                     esp_err_to_name(err));
+            s_send_total_scan_count = 0U;
+        } else {
+            s_send_total_scan_count = (uint32_t)total_count;
+        }
+    }
+
+    /*
+     * هر بار ورود به PAGE_SEND، انتخاب از شماره 1 شروع می‌شود؛
+     * همان پیش‌فرضی که خواستی.
+     *
+     * حتی اگر تعداد اسکن صفر باشد، Label شماره فعلی "1" می‌ماند
+     * ولی UP/DOWN هیچ حرکتی نخواهند داشت.
+     */
+    s_send_selected_scan_number = 1U;
+    s_send_selection_ui_dirty = true;
+
+    ESP_LOGI(TAG, "PAGE_SEND entered: total=%lu, selected=%lu",
+             (unsigned long)s_send_total_scan_count,
+             (unsigned long)s_send_selected_scan_number);
+}
+
+
 static bool brain_scan_mode_should_save(scan_mode_t mode)
 {
     return (mode == SCAN_MODE_AUTOMEM || mode == SCAN_MODE_MANMEM);
@@ -1305,13 +1354,65 @@ void brain_handle_key(key_evt_t evt)
             }
             break;
         case PAGE_SEND:              //----------------Send Data Page -------------------//
-            if (evt == KEY_OK) {
-                brain_log_scan_index();
-                brain_log_last_scan();
-            } else if (evt == KEY_BACK) {
+            if (evt == KEY_BACK) {
                 current_page = PAGE_MAIN_MENU;
             }
+            else if (evt == KEY_UP) {
+                if (s_send_total_scan_count > 0U) {
+
+                    /*
+                    * حرکت حلقوی:
+                    * 1 -> total
+                    * 2 -> 1
+                    * ...
+                    */
+                    if (s_send_selected_scan_number <= 1U) {
+                        s_send_selected_scan_number = s_send_total_scan_count;
+                    } else {
+                        s_send_selected_scan_number--;
+                    }
+
+                    s_send_selection_ui_dirty = true;
+
+                    ESP_LOGI(TAG, "Send selection: %lu/%lu",
+                            (unsigned long)s_send_selected_scan_number,
+                            (unsigned long)s_send_total_scan_count);
+                }
+            }
+            else if (evt == KEY_DOWN) {
+                if (s_send_total_scan_count > 0U) {
+
+                    /*
+                    * حرکت حلقوی:
+                    * total -> 1
+                    * 1 -> 2
+                    * ...
+                    */
+                    if (s_send_selected_scan_number >= s_send_total_scan_count) {
+                        s_send_selected_scan_number = 1U;
+                    } else {
+                        s_send_selected_scan_number++;
+                    }
+
+                    s_send_selection_ui_dirty = true;
+
+                    ESP_LOGI(TAG, "Send selection: %lu/%lu",
+                            (unsigned long)s_send_selected_scan_number,
+                            (unsigned long)s_send_total_scan_count);
+                }
+            }
+            else if (evt == KEY_OK) {
+                /*
+                * مرحله بعد:
+                * scan_id متناظر با s_send_selected_scan_number را از index
+                * دریافت می‌کنیم و ارسال Bluetooth SPP را آغاز می‌کنیم.
+                */
+                ESP_LOGI(TAG, "Send scan selected: %lu/%lu",
+                        (unsigned long)s_send_selected_scan_number,
+                        (unsigned long)s_send_total_scan_count);
+            }
             break;
+
         default:
             break;
     }
@@ -1320,15 +1421,108 @@ void brain_handle_key(key_evt_t evt)
 }
 
 
+// void brain_process_ui_cmds(void)
+// {
+//     static app_page_t last_logged_current = -1;
+//     static app_page_t last_logged_loaded = -1;
+//     brain_apply_bluetooth_policy();
+//     if (current_page == PAGE_SCAN_PAGE &&
+//     ui_ScanPage_is_ready()) {
+//     ui_ScanPage_update_bluetooth_icon();
+// }
+
+//     if (current_page != last_logged_current || loaded_page != last_logged_loaded) {
+//         ESP_LOGW(TAG, "STATE current=%d loaded=%d splash_done=%d",
+//                  current_page, loaded_page, splash_done);
+//         last_logged_current = current_page;
+//         last_logged_loaded = loaded_page;
+//     }
+
+//     if (current_page != loaded_page) {
+//         ESP_LOGW(TAG, "TRANSITION requested: %d -> %d", loaded_page, current_page);
+
+//         if (!brain_transition_to_page(current_page)) {
+//             ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d",
+//                      current_page, loaded_page);
+//             current_page = loaded_page;
+//         }
+//     }
+//     brain_apply_bluetooth_policy();
+//     brain_apply_focus_if_needed();
+
+//     // ----------------------------------------------------
+//     // کد جدید برای بروزرسانی صفحه PAGE_SEND
+//     // ----------------------------------------------------
+//     if (current_page == PAGE_SEND && ui_SendData_is_ready()) {
+//         size_t total_scans = 0;
+        
+//         // اگر حافظه LittleFS مونت و آماده است، تعداد کل را بدون مصرف رم اضافه می‌خوانیم
+//         if (storage_littlefs_is_ready()) {
+//             esp_err_t err = storage_littlefs_load_index(NULL, 0, &total_scans);
+//             if (err != ESP_OK) {
+//                 ESP_LOGE(TAG, "Failed to load index from LittleFS: %d", err);
+//                 total_scans = 0;
+//             }
+//         } else {
+//             ESP_LOGW(TAG, "LittleFS is not ready when entering PAGE_SEND");
+//         }
+        
+//         // ارسال مقدار به لایه نمایش (UI)
+//         ui_SendData_update_scan_count((uint32_t)total_scans);
+//         ui_SendData_update_scan_number(s_send_selected_scan_number);
+     
+//     }
+//     // ----------------------------------------------------
+
+//     app_event_t events = brain_consume_events();
+
+//     if ((events & APP_EVENT_SCAN_CHANGED) &&
+//         current_page == PAGE_SCAN_PAGE &&
+//         current_scan_sub_state == SCAN_STATE_RUNNING &&
+//         s_scan_trigger_phase == 2 &&
+//         (current_scan_mode == SCAN_MODE_AUTOPC || current_scan_mode == SCAN_MODE_AUTOMEM)) {
+
+//         if (g_settings.puls_max > 0 &&
+//             scan_process_get_pulse_count() >= g_settings.puls_max) {
+//             ESP_LOGI(TAG, "Auto scan reached puls_max=%d", g_settings.puls_max);
+//             brain_stop_scan_and_save();
+
+//             // چون brain_stop_scan_and_save خودش event تولید می‌کند،
+//             // فعلاً از render همین سیکل خارج می‌شویم
+//             return;
+//         }
+//     }
+
+//     if ((events & APP_EVENT_SCAN_CHANGED) &&
+//         current_page == PAGE_SCAN_PAGE &&
+//         ui_ScanPage_is_ready()) {
+//         ui_scanpage_render();
+//     }
+
+//     if ((events & APP_EVENT_BATTERY_CHANGED) &&
+//         current_page == PAGE_SCAN_PAGE &&
+//         ui_ScanPage_is_ready()) {
+//         ui_scanpage_render();
+//     }
+//       if (ui_ScanPage_is_ready() && ui_Blutooth) {
+//       if (bluetooth_is_enabled()) {
+//           lv_obj_clear_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+//       } else {
+//           lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+//       }
+//   }
+
+// }
 void brain_process_ui_cmds(void)
 {
     static app_page_t last_logged_current = -1;
     static app_page_t last_logged_loaded = -1;
+    
     brain_apply_bluetooth_policy();
-    if (current_page == PAGE_SCAN_PAGE &&
-    ui_ScanPage_is_ready()) {
-    ui_ScanPage_update_bluetooth_icon();
-}
+    
+    if (current_page == PAGE_SCAN_PAGE && ui_ScanPage_is_ready()) {
+        ui_ScanPage_update_bluetooth_icon();
+    }
 
     if (current_page != last_logged_current || loaded_page != last_logged_loaded) {
         ESP_LOGW(TAG, "STATE current=%d loaded=%d splash_done=%d",
@@ -1340,14 +1534,33 @@ void brain_process_ui_cmds(void)
     if (current_page != loaded_page) {
         ESP_LOGW(TAG, "TRANSITION requested: %d -> %d", loaded_page, current_page);
 
+        app_page_t prev_page = loaded_page;
         if (!brain_transition_to_page(current_page)) {
             ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d",
                      current_page, loaded_page);
             current_page = loaded_page;
+        } else {
+            /* فقط در صورت تغییر صفحه موفق به PAGE_SEND، مقداردهی اولیه انجام می‌شود */
+            if (current_page == PAGE_SEND) {
+                brain_send_page_enter();
+            }
         }
     }
+    
     brain_apply_bluetooth_policy();
     brain_apply_focus_if_needed();
+
+    // ----------------------------------------------------
+    // کد بهینه‌سازی‌شده برای بروزرسانی صفحه PAGE_SEND بدون تکرار دائم دیسک
+    // ----------------------------------------------------
+    if (current_page == PAGE_SEND && ui_SendData_is_ready()) {
+        if (s_send_selection_ui_dirty) {
+            ui_SendData_update_scan_count(s_send_total_scan_count);
+            ui_SendData_update_scan_number(s_send_selected_scan_number);
+            s_send_selection_ui_dirty = false;
+        }
+    }
+    // ----------------------------------------------------
 
     app_event_t events = brain_consume_events();
 
@@ -1361,9 +1574,6 @@ void brain_process_ui_cmds(void)
             scan_process_get_pulse_count() >= g_settings.puls_max) {
             ESP_LOGI(TAG, "Auto scan reached puls_max=%d", g_settings.puls_max);
             brain_stop_scan_and_save();
-
-            // چون brain_stop_scan_and_save خودش event تولید می‌کند،
-            // فعلاً از render همین سیکل خارج می‌شویم
             return;
         }
     }
@@ -1379,15 +1589,16 @@ void brain_process_ui_cmds(void)
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
     }
-      if (ui_ScanPage_is_ready() && ui_Blutooth) {
-      if (bluetooth_is_enabled()) {
-          lv_obj_clear_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
-      } else {
-          lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
-      }
-  }
-
+    
+    if (ui_ScanPage_is_ready() && ui_Blutooth) {
+        if (bluetooth_is_enabled()) {
+            lv_obj_clear_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 }
+
 
 
 

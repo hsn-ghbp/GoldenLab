@@ -5,6 +5,8 @@
 
 #include "../ui.h"
 #include "bluetooth.h"
+#include "ui_SendData.h"
+#include <stdio.h>
 
 lv_obj_t * ui_SendData = NULL;
 lv_obj_t * ui_BtIcon = NULL;
@@ -32,6 +34,35 @@ void ui_SendData_update_bluetooth_status(void)
         lv_obj_set_style_opa(ui_BtIcon, 100, LV_PART_MAIN);
     }
 }
+
+
+
+// این تابع تعداد کل اسکن‌ها را روی نمایشگر آپدیت می‌کند
+void ui_SendData_update_scan_count(uint32_t total_count)
+{
+    if (!ui_SendData_is_ready() || ui_LblScanNumAll == NULL) {
+        return;
+    }
+
+    char text[16];
+    // استفاده از lv_snprintf برای رعایت اصول و استانداردهای حافظه ایمن در LVGL
+    lv_snprintf(text, sizeof(text), "%lu", (unsigned long)total_count);
+    lv_label_set_text(ui_LblScanNumAll, text);
+}
+
+void ui_SendData_update_scan_number(uint32_t current_number)
+{
+    if (!ui_SendData_is_ready() || ui_LblScanNumNo == NULL) {
+        return;
+    }
+
+    lv_label_set_text_fmt(ui_LblScanNumNo,
+                          "%lu",
+                          (unsigned long)current_number);
+}
+
+
+
 
 
 
@@ -78,7 +109,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_x(ui_LblScanNumNo, -33);
     lv_obj_set_y(ui_LblScanNumNo, 0);
     lv_obj_set_align(ui_LblScanNumNo, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_LblScanNumNo, "88");
+    lv_label_set_text(ui_LblScanNumNo, "1");
     lv_obj_set_style_text_font(ui_LblScanNumNo, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_LblScanNumAll = lv_label_create(ui_BtnScanNum);
@@ -87,7 +118,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_x(ui_LblScanNumAll, -73);
     lv_obj_set_y(ui_LblScanNumAll, 0);
     lv_obj_set_align(ui_LblScanNumAll, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_LblScanNumAll, "88");
+    lv_label_set_text(ui_LblScanNumAll, "0");
     lv_obj_set_style_text_font(ui_LblScanNumAll, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
  
