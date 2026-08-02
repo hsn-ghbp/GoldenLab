@@ -1,7 +1,7 @@
 # PROJECT ARCHITECTURE REFERENCE
 
 Project:
-- ESP32-C3
+- ESP32
 - ESP-IDF
 - LVGL 9.3
 - SquareLine Studio 1.6.0

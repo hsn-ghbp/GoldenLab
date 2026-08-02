@@ -1570,11 +1570,16 @@ void brain_process_ui_cmds(void)
                 char time_buf[32];
                 
                 // فرمت‌دهی نوع اسکن
-                if (current_scan->mode == 2) { // فرض بر این است که mode=2 اتوماتیک است
+                if (current_scan->mode == 2) {
                     snprintf(mode_buf, sizeof(mode_buf), "اتوماتیک");
-                }else if (current_scan->mode == 3) {
+                }
+                else if (current_scan->mode == 3) {
                     snprintf(mode_buf, sizeof(mode_buf), "دستی");
                 }
+                else {
+                    snprintf(mode_buf, sizeof(mode_buf), "نامشخص");
+                }
+
                 
                 // فرمت‌دهی پالس‌ها
                 snprintf(pulse_buf, sizeof(pulse_buf), "%lu", (unsigned long)current_scan->point_count);
