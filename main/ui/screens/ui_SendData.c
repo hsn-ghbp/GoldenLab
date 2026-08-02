@@ -8,6 +8,10 @@
 
 lv_obj_t * ui_SendData = NULL;
 lv_obj_t * ui_BtIcon = NULL;
+lv_obj_t * ui_BtnScanNum = NULL;
+lv_obj_t * ui_LblScanNumTxt = NULL;
+lv_obj_t * ui_LblScanNumNo = NULL;
+lv_obj_t * ui_LblScanNumAll = NULL;
 // event funtions
 void ui_SendData_update_bluetooth_status(void)
 {
@@ -50,6 +54,45 @@ void ui_SendData_screen_init(void)
     lv_obj_add_flag(ui_BtIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_BtIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+     ui_BtnScanNum = lv_button_create(ui_SendData);
+    lv_obj_set_width(ui_BtnScanNum, 180);
+    lv_obj_set_height(ui_BtnScanNum, 30);
+    lv_obj_set_x(ui_BtnScanNum, 0);
+    lv_obj_set_y(ui_BtnScanNum, -40);
+    lv_obj_set_align(ui_BtnScanNum, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_BtnScanNum, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_BtnScanNum, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_LblScanNumTxt = lv_label_create(ui_BtnScanNum);
+    lv_obj_set_width(ui_LblScanNumTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanNumTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanNumTxt, 13);
+    lv_obj_set_y(ui_LblScanNumTxt, 0);
+    lv_obj_set_align(ui_LblScanNumTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanNumTxt, "اسکن شماره:      از");
+    lv_obj_set_style_text_font(ui_LblScanNumTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanNumNo = lv_label_create(ui_BtnScanNum);
+    lv_obj_set_width(ui_LblScanNumNo, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanNumNo, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanNumNo, -33);
+    lv_obj_set_y(ui_LblScanNumNo, 0);
+    lv_obj_set_align(ui_LblScanNumNo, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanNumNo, "88");
+    lv_obj_set_style_text_font(ui_LblScanNumNo, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanNumAll = lv_label_create(ui_BtnScanNum);
+    lv_obj_set_width(ui_LblScanNumAll, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanNumAll, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanNumAll, -73);
+    lv_obj_set_y(ui_LblScanNumAll, 0);
+    lv_obj_set_align(ui_LblScanNumAll, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanNumAll, "88");
+    lv_obj_set_style_text_font(ui_LblScanNumAll, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+ 
+
+
     ui_SendData_update_bluetooth_status();
 
 }
@@ -66,5 +109,9 @@ void ui_SendData_screen_destroy(void)
     // NULL screen variables
     ui_SendData = NULL;
     ui_BtIcon = NULL;
+    ui_BtnScanNum = NULL;
+    ui_LblScanNumTxt = NULL;
+    ui_LblScanNumNo = NULL;
+    ui_LblScanNumAll = NULL;
 
 }
