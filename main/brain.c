@@ -23,6 +23,7 @@
 #include "bluetooth.h"
 
 #define SEND_SCAN_CACHE_MAX 20U
+#define SEND_MAX_SAMPLES_BUFFER 1024U 
 
 static const char *TAG = "BRAIN";
 
@@ -50,6 +51,9 @@ static uint32_t s_send_selected_scan_number = 1U;
 static uint32_t s_send_total_scan_count = 0U;
 static scan_index_item_t s_send_scan_cache[SEND_SCAN_CACHE_MAX];;
 static bool s_send_selection_ui_dirty = false;
+// بافر استاتیک برای نگهداری داده‌ها در طول استریم بلوتوث
+static int32_t s_send_stream_buffer[SEND_MAX_SAMPLES_BUFFER];
+
 
 /* وقتی true باشد، brain_process_ui_cmds باید label را render کند. */
 
@@ -1403,17 +1407,86 @@ void brain_handle_key(key_evt_t evt)
                             (unsigned long)s_send_total_scan_count);
                 }
             }
-            else if (evt == KEY_OK) {
-                /*
-                * مرحله بعد:
-                * scan_id متناظر با s_send_selected_scan_number را از index
-                * دریافت می‌کنیم و ارسال Bluetooth SPP را آغاز می‌کنیم.
-                */
-                ESP_LOGI(TAG, "Send scan selected: %lu/%lu",
-                        (unsigned long)s_send_selected_scan_number,
+             else if (evt == KEY_OK) {
+                // بررسی اینکه آیا سیستم در حال حاضر مشغول ارسال است یا خیر
+                if (bluetooth_stream_is_active()) {
+                    ESP_LOGW(TAG, "Transmission in progress. Please wait...");
+                    break;
+                }
+
+                ESP_LOGI(TAG, "KEY_OK pressed. Preparing to transmit scan %lu/%lu...", 
+                        (unsigned long)s_send_selected_scan_number, 
                         (unsigned long)s_send_total_scan_count);
+
+                if (!bluetooth_is_connected()) {
+                    ESP_LOGW(TAG, "Transmission aborted: Bluetooth Classic is NOT connected.");
+                    break;
+                }
+
+                if (s_send_total_scan_count == 0 || s_send_selected_scan_number > s_send_total_scan_count) {
+                    ESP_LOGW(TAG, "No scans available or invalid selection.");
+                    break;
+                }
+
+                // پیدا کردن ID واقعی اسکن انتخاب شده از کش
+                uint32_t target_scan_id = s_send_scan_cache[s_send_selected_scan_number - 1].id;
+                
+                // خواندن هدر اسکن برای تعیین تعداد پالس‌ها
+                scan_record_header_t scan_hdr = {0};
+                esp_err_t err = storage_littlefs_load_scan_header(target_scan_id, &scan_hdr);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to load scan header for ID %lu: %s", (unsigned long)target_scan_id, esp_err_to_name(err));
+                    break;
+                }
+
+                uint32_t point_count = scan_hdr.point_count;
+                if (point_count == 0) {
+                    ESP_LOGW(TAG, "Scan record has 0 points.");
+                    break;
+                }
+
+                if (point_count > SEND_MAX_SAMPLES_BUFFER) {
+                    ESP_LOGW(TAG, "Scan point count (%lu) exceeds buffer limit (%u). Truncating.", 
+                            (unsigned long)point_count, SEND_MAX_SAMPLES_BUFFER);
+                    point_count = SEND_MAX_SAMPLES_BUFFER;
+                }
+
+                // بافر موقت برای خواندن داده خام int16_t از LittleFS
+                int16_t *raw_samples = malloc(point_count * sizeof(int16_t));
+                if (raw_samples == NULL) {
+                    ESP_LOGE(TAG, "Failed to allocate temporary buffer for raw samples");
+                    break;
+                }
+
+                size_t loaded_count = 0;
+                err = storage_littlefs_load_scan_samples(target_scan_id, raw_samples, point_count, &loaded_count);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to load scan samples: %s", esp_err_to_name(err));
+                    free(raw_samples);
+                    break;
+                }
+
+                // کپی و کست به بافر استاتیک انتقال
+                for (size_t i = 0; i < loaded_count; i++) {
+                    s_send_stream_buffer[i] = (int32_t)raw_samples[i];
+                }
+
+                // آزادسازی بافر موقت بلافاصله پس از کپی
+                free(raw_samples);
+
+                ESP_LOGI(TAG, "Starting Bluetooth stream for %d points...", (int)loaded_count);
+
+                // آغاز جریان ارسال استریم
+                err = bluetooth_send_int32_stream_begin(s_send_stream_buffer, loaded_count);
+                if (err == ESP_OK) {
+                    //s_send_is_streaming = true;
+                    ESP_LOGI(TAG, "Bluetooth stream started successfully.");
+                } else {
+                    ESP_LOGE(TAG, "Failed to start Bluetooth stream: %s", esp_err_to_name(err));
+                }
             }
             break;
+
 
         default:
             break;
@@ -1536,7 +1609,7 @@ void brain_process_ui_cmds(void)
     if (current_page != loaded_page) {
         ESP_LOGW(TAG, "TRANSITION requested: %d -> %d", loaded_page, current_page);
 
-        app_page_t prev_page = loaded_page;
+        //app_page_t prev_page = loaded_page;
         if (!brain_transition_to_page(current_page)) {
             ESP_LOGW(TAG, "Failed to transition to page %d, reverting to %d",
                      current_page, loaded_page);
