@@ -70,7 +70,10 @@ void ui_SendData_update_scan_number(uint32_t current_number)
 
 
 // اضافه کردن تابع جدید برای بروزرسانی جزئیات اسکن
-void ui_SendData_update_scan_details(const char *mode_str, const char *time_str, const char *pulse_str)
+void ui_SendData_update_scan_details(
+    const char *mode_str,
+    const char *time_str,
+    const char *pulse_str)
 {
     if (!ui_SendData_is_ready()) {
         return;
@@ -79,11 +82,11 @@ void ui_SendData_update_scan_details(const char *mode_str, const char *time_str,
     if (ui_LblScanMode != NULL && mode_str != NULL) {
         lv_label_set_text(ui_LblScanMode, mode_str);
     }
-    
+
     if (ui_LblScanTime != NULL && time_str != NULL) {
         lv_label_set_text(ui_LblScanTime, time_str);
     }
-    
+
     if (ui_LblScanPulse != NULL && pulse_str != NULL) {
         lv_label_set_text(ui_LblScanPulse, pulse_str);
     }

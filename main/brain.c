@@ -396,6 +396,18 @@ app_event_t brain_consume_events(void)
 // -------------------------
 // Internal helpers
 // -------------------------
+
+static uint32_t brain_send_effective_point_count(
+    uint32_t point_count,
+    uint32_t auto_calibration_pulse_count)
+{
+    if (point_count <= auto_calibration_pulse_count) {
+        return 0U;
+    }
+
+    return point_count - auto_calibration_pulse_count;
+}
+
 static void brain_send_page_enter(void)
 {
     size_t total_count = 0U;
@@ -529,12 +541,29 @@ static esp_err_t brain_save_current_scan(uint32_t *out_scan_id)
         return ESP_ERR_INVALID_STATE;
     }
 
+    uint32_t calibration_point_count =
+        scan_process_get_calibration_sample_count();
+
+    if (calibration_point_count > point_count) {
+        ESP_LOGW(TAG,
+                 "Invalid calibration count: calibration=%lu, total=%u; using 0",
+                 (unsigned long)calibration_point_count,
+                 (unsigned)point_count);
+        calibration_point_count = 0U;
+    }
+
     storage_scan_record_t record = {
         .mode = (uint32_t)current_scan_mode,
         .timestamp_sec = 0, // فعلا RTC نداریم
         .samples = samples,
         .sample_count = point_count,
+        .auto_calibration_pulse_count = calibration_point_count,
     };
+
+    ESP_LOGI(TAG,
+             "Saving scan: total=%u, calibration=%lu",
+             (unsigned)record.sample_count,
+             (unsigned long)record.auto_calibration_pulse_count);
 
     return storage_littlefs_save_scan(&record, out_scan_id);
 }
@@ -1632,10 +1661,17 @@ void brain_process_ui_cmds(void)
         if (s_send_selection_ui_dirty) {
             ui_SendData_update_scan_count(s_send_total_scan_count);
             ui_SendData_update_scan_number(s_send_selected_scan_number);
-            s_send_selection_ui_dirty = false;
+            if (s_send_total_scan_count > 0U &&
+            s_send_selected_scan_number > 0U &&
+            s_send_selected_scan_number <= s_send_total_scan_count) {
+
+            const scan_index_item_t *current_scan =
+                &s_send_scan_cache[
+                    s_send_selected_scan_number - 1U];
+            
              // ۲. استخراج جزئیات از کش و رندر روی پنل
-            if (s_send_total_scan_count > 0U && s_send_selected_scan_number <= s_send_total_scan_count) {
-                scan_index_item_t *current_scan = &s_send_scan_cache[s_send_selected_scan_number - 1U];
+            //if (s_send_total_scan_count > 0U && s_send_selected_scan_number <= s_send_total_scan_count) {
+             //   scan_index_item_t *current_scan = &s_send_scan_cache[s_send_selected_scan_number - 1U];
                 
                 // تولید متون برای سه پارامتر
                 char mode_buf[32];
@@ -1655,7 +1691,17 @@ void brain_process_ui_cmds(void)
 
                 
                 // فرمت‌دهی پالس‌ها
-                snprintf(pulse_buf, sizeof(pulse_buf), "%lu", (unsigned long)current_scan->point_count);
+                uint32_t displayed_point_count =
+                brain_send_effective_point_count(
+                    current_scan->point_count,
+                    current_scan->auto_calibration_pulse_count);
+                    ESP_LOGI(
+                        TAG,
+                        "Send UI: total=%lu, calibration=%lu, displayed=%lu",
+                        (unsigned long)current_scan->point_count,
+                        (unsigned long)current_scan->auto_calibration_pulse_count,
+                        (unsigned long)displayed_point_count);
+                snprintf(pulse_buf, sizeof(pulse_buf), "%lu", (unsigned long)displayed_point_count);
                 
                 // فرمت‌دهی زمان ثبت اسکن (نمایش تاریخ یا ثانیه‌های خام بر اساس نیاز شما)
                 // در اینجا برای نمونه ثانیه را به دقیقه تبدیل می‌کنیم
@@ -1668,6 +1714,9 @@ void brain_process_ui_cmds(void)
                 // اگر اسکنی موجود نبود نمایش مقادیر پیش‌فرض یا خط تیره
                 ui_SendData_update_scan_details("---", "--/--", "0");
             }
+
+            s_send_selection_ui_dirty = false;
+
         }
         
     }

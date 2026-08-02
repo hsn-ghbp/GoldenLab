@@ -87,5 +87,7 @@ int scan_process_get_positive_arc_value(void);
 int scan_process_get_negative_arc_value(void);
 int scan_process_get_needle_angle(void);
 int scan_process_get_pulse_count(void);
+uint32_t scan_process_get_calibration_sample_count(void);
+
 
 #endif

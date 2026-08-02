@@ -124,7 +124,12 @@ esp_err_t storage_littlefs_save_scan(const storage_scan_record_t *record,
     new_item.mode = record->mode;
     new_item.point_count = (uint32_t)record->sample_count;
     new_item.timestamp_sec = record->timestamp_sec;
-
+    new_item.auto_calibration_pulse_count = record->auto_calibration_pulse_count;
+    ESP_LOGI(TAG,
+         "Save scan index item: id=%lu, points=%lu, calibration=%lu",
+         (unsigned long)new_item.id,
+         (unsigned long)new_item.point_count,
+         (unsigned long)new_item.auto_calibration_pulse_count);
     new_items[header.count] = new_item;
     header.count += 1U;
     header.next_id += 1U;

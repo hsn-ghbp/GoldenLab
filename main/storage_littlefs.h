@@ -28,6 +28,7 @@ typedef struct {
     uint32_t mode;
     uint32_t point_count;
     uint32_t timestamp_sec;
+    uint32_t auto_calibration_pulse_count;
 } scan_index_item_t;
 
 typedef struct {
@@ -51,6 +52,7 @@ typedef struct {
 typedef struct {
     uint32_t mode;
     uint32_t timestamp_sec;
+    uint32_t auto_calibration_pulse_count;
     const int16_t *samples;
     size_t sample_count;
 } storage_scan_record_t;

@@ -21,12 +21,19 @@ static int s_positive_arc_value = 0;
 static int s_negative_arc_value = 0;
 static int s_needle_angle = 0;
 static int s_pulse_count = 0;
+static uint32_t s_calibration_sample_count = 0U;
 
 static int16_t s_temp_scan_buffer[MAX_SCAN_POINTS];
 static uint16_t s_temp_point_count = 0;
 static bool s_rand_seeded = false;
 
 static int s_multi_delay_ms = 0;
+
+
+uint32_t scan_process_get_calibration_sample_count(void)
+{
+    return s_calibration_sample_count;
+}
 
 static int16_t read_hardware_adc(void)
 {
@@ -156,6 +163,7 @@ void scan_process_start(int mode)
     s_positive_arc_value = 0;
     s_negative_arc_value = 0;
     s_needle_angle = 0;
+    s_calibration_sample_count = 0U;
 
     scan_process_clear_temp_buffer();
     scan_process_calculate_display_values();
@@ -272,6 +280,7 @@ bool scan_process_calibrate_now(void)
     }
 
     s_is_calibrated = true;
+    s_calibration_sample_count = sample_count;
     ESP_LOGI(TAG, "Calibration finished.");
     return true;
 }
