@@ -17,6 +17,7 @@ bool ui_SendData_is_ready(void);
 void ui_SendData_update_bluetooth_status(void);
 void ui_SendData_update_scan_count(uint32_t total_count);
 void ui_SendData_update_scan_number(uint32_t current_number);
+void ui_SendData_update_scan_details(const char *mode_str, const char *time_str, const char *pulse_str);
 
 extern lv_obj_t * ui_SendData;
 extern lv_obj_t * ui_BtIcon;

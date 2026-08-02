@@ -14,6 +14,13 @@ lv_obj_t * ui_BtnScanNum = NULL;
 lv_obj_t * ui_LblScanNumTxt = NULL;
 lv_obj_t * ui_LblScanNumNo = NULL;
 lv_obj_t * ui_LblScanNumAll = NULL;
+lv_obj_t * ui_PlnScanInfo = NULL;
+lv_obj_t * ui_LblScanPulseTxt = NULL;
+lv_obj_t * ui_LblScanTimeTxt = NULL;
+lv_obj_t * ui_LblScanModeTxt = NULL;
+lv_obj_t * ui_LblScanPulse = NULL;
+lv_obj_t * ui_LblScanTime = NULL;
+lv_obj_t * ui_LblScanMode = NULL;
 // event funtions
 void ui_SendData_update_bluetooth_status(void)
 {
@@ -62,7 +69,25 @@ void ui_SendData_update_scan_number(uint32_t current_number)
 }
 
 
+// اضافه کردن تابع جدید برای بروزرسانی جزئیات اسکن
+void ui_SendData_update_scan_details(const char *mode_str, const char *time_str, const char *pulse_str)
+{
+    if (!ui_SendData_is_ready()) {
+        return;
+    }
 
+    if (ui_LblScanMode != NULL && mode_str != NULL) {
+        lv_label_set_text(ui_LblScanMode, mode_str);
+    }
+    
+    if (ui_LblScanTime != NULL && time_str != NULL) {
+        lv_label_set_text(ui_LblScanTime, time_str);
+    }
+    
+    if (ui_LblScanPulse != NULL && pulse_str != NULL) {
+        lv_label_set_text(ui_LblScanPulse, pulse_str);
+    }
+}
 
 
 
@@ -121,6 +146,74 @@ void ui_SendData_screen_init(void)
     lv_label_set_text(ui_LblScanNumAll, "0");
     lv_obj_set_style_text_font(ui_LblScanNumAll, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_PlnScanInfo = lv_obj_create(ui_SendData);
+    lv_obj_set_width(ui_PlnScanInfo, 180);
+    lv_obj_set_height(ui_PlnScanInfo, 90);
+    lv_obj_set_x(ui_PlnScanInfo, 0);
+    lv_obj_set_y(ui_PlnScanInfo, 26);
+    lv_obj_set_align(ui_PlnScanInfo, LV_ALIGN_CENTER);
+    lv_obj_remove_flag(ui_PlnScanInfo, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_PlnScanInfo, lv_color_hex(0x83B5E8), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_PlnScanInfo, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_PlnScanInfo, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(ui_PlnScanInfo, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanPulseTxt = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanPulseTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanPulseTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanPulseTxt, 36);
+    lv_obj_set_y(ui_LblScanPulseTxt, 25);
+    lv_obj_set_align(ui_LblScanPulseTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanPulseTxt, "تعداد پالس");
+    lv_obj_set_style_text_font(ui_LblScanPulseTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanTimeTxt = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanTimeTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanTimeTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanTimeTxt, 36);
+    lv_obj_set_y(ui_LblScanTimeTxt, -27);
+    lv_obj_set_align(ui_LblScanTimeTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanTimeTxt, "زمان اسکن");
+    lv_obj_set_style_text_font(ui_LblScanTimeTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanModeTxt = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanModeTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanModeTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanModeTxt, 40);
+    lv_obj_set_y(ui_LblScanModeTxt, 0);
+    lv_obj_set_align(ui_LblScanModeTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanModeTxt, "نوع اسکن");
+    lv_obj_set_style_text_font(ui_LblScanModeTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanPulse = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanPulse, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanPulse, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanPulse, -65);
+    lv_obj_set_y(ui_LblScanPulse, 25);
+    lv_obj_set_align(ui_LblScanPulse, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanPulse, "300");
+    lv_obj_set_style_text_font(ui_LblScanPulse, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanTime = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanTime, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanTime, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanTime, -57);
+    lv_obj_set_y(ui_LblScanTime, -26);
+    lv_obj_set_align(ui_LblScanTime, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanTime, "24/3");
+    lv_obj_set_style_text_font(ui_LblScanTime, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanMode = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanMode, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanMode, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanMode, -55);
+    lv_obj_set_y(ui_LblScanMode, 0);
+    lv_obj_set_align(ui_LblScanMode, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanMode, "اتوماتیک");
+    lv_obj_set_style_text_font(ui_LblScanMode, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+
+
  
 
 
@@ -135,14 +228,21 @@ bool ui_SendData_is_ready(void)
 
 void ui_SendData_screen_destroy(void)
 {
-    if(ui_SendData) lv_obj_del(ui_SendData);
+    if (ui_SendData) {
+        lv_obj_del(ui_SendData);
+    }
 
-    // NULL screen variables
     ui_SendData = NULL;
     ui_BtIcon = NULL;
     ui_BtnScanNum = NULL;
     ui_LblScanNumTxt = NULL;
     ui_LblScanNumNo = NULL;
     ui_LblScanNumAll = NULL;
-
+    ui_PlnScanInfo = NULL;
+    ui_LblScanPulseTxt = NULL;
+    ui_LblScanTimeTxt = NULL;
+    ui_LblScanModeTxt = NULL;
+    ui_LblScanPulse = NULL;
+    ui_LblScanTime = NULL;
+    ui_LblScanMode = NULL;
 }

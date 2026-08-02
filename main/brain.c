@@ -22,7 +22,7 @@
 #include "storage_littlefs.h"
 #include "bluetooth.h"
 
-
+#define SEND_SCAN_CACHE_MAX 20U
 
 static const char *TAG = "BRAIN";
 
@@ -48,9 +48,11 @@ static int s_scan_trigger_phase = 0;
 /* PAGE_SEND state: شماره نمایشی اسکن از 1 شروع می‌شود. */
 static uint32_t s_send_selected_scan_number = 1U;
 static uint32_t s_send_total_scan_count = 0U;
+static scan_index_item_t s_send_scan_cache[SEND_SCAN_CACHE_MAX];;
+static bool s_send_selection_ui_dirty = false;
 
 /* وقتی true باشد، brain_process_ui_cmds باید label را render کند. */
-static bool s_send_selection_ui_dirty = false;
+
 
 
 /*
@@ -404,7 +406,7 @@ static void brain_send_page_enter(void)
         ESP_LOGW(TAG, "LittleFS is not ready; send scan count is 0");
         s_send_total_scan_count = 0U;
     } else {
-        err = storage_littlefs_load_index(NULL, 0U, &total_count);
+        err = storage_littlefs_load_index(s_send_scan_cache, SEND_SCAN_CACHE_MAX, &total_count);
 
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to load scan count: %s",
@@ -1558,7 +1560,38 @@ void brain_process_ui_cmds(void)
             ui_SendData_update_scan_count(s_send_total_scan_count);
             ui_SendData_update_scan_number(s_send_selected_scan_number);
             s_send_selection_ui_dirty = false;
+             // ۲. استخراج جزئیات از کش و رندر روی پنل
+            if (s_send_total_scan_count > 0U && s_send_selected_scan_number <= s_send_total_scan_count) {
+                scan_index_item_t *current_scan = &s_send_scan_cache[s_send_selected_scan_number - 1U];
+                
+                // تولید متون برای سه پارامتر
+                char mode_buf[32];
+                char pulse_buf[16];
+                char time_buf[32];
+                
+                // فرمت‌دهی نوع اسکن
+                if (current_scan->mode == 2) { // فرض بر این است که mode=2 اتوماتیک است
+                    snprintf(mode_buf, sizeof(mode_buf), "اتوماتیک");
+                }else if (current_scan->mode == 3) {
+                    snprintf(mode_buf, sizeof(mode_buf), "دستی");
+                }
+                
+                // فرمت‌دهی پالس‌ها
+                snprintf(pulse_buf, sizeof(pulse_buf), "%lu", (unsigned long)current_scan->point_count);
+                
+                // فرمت‌دهی زمان ثبت اسکن (نمایش تاریخ یا ثانیه‌های خام بر اساس نیاز شما)
+                // در اینجا برای نمونه ثانیه را به دقیقه تبدیل می‌کنیم
+                uint32_t minutes = current_scan->timestamp_sec / 60;
+                uint32_t seconds = current_scan->timestamp_sec % 60;
+                snprintf(time_buf, sizeof(time_buf), "%02lu:%02lu", (unsigned long)minutes, (unsigned long)seconds);
+                
+                ui_SendData_update_scan_details(mode_buf, time_buf, pulse_buf);
+            } else {
+                // اگر اسکنی موجود نبود نمایش مقادیر پیش‌فرض یا خط تیره
+                ui_SendData_update_scan_details("---", "--/--", "0");
+            }
         }
+        
     }
     // ----------------------------------------------------
 
