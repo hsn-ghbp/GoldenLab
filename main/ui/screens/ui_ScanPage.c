@@ -9,6 +9,7 @@
 #include "ui_ScanPage.h"
 #include"scan_process.h"
 #include "bluetooth.h"
+#include "esp_log.h"
 //#include "bluetooth_mgr.h"
 
 lv_obj_t * ui_ScanPage = NULL;
@@ -33,6 +34,8 @@ lv_obj_t * ui_stop = NULL;
 lv_obj_t * ui_play = NULL;
 lv_obj_t * ui_balance = NULL;
 
+
+static const char *TAG = "SCAN PAGE";
 
 // Prearear function
 
@@ -145,6 +148,7 @@ static void scanpage_apply_run_state(void)
 
 void ui_ScanPage_update_bluetooth_icon(void)
 {
+    static lv_obj_t *last_icon = NULL;
     static bool last_enabled = false;
     static bool last_connected = false;
     static bool initialized = false;
@@ -155,13 +159,14 @@ void ui_ScanPage_update_bluetooth_icon(void)
 
     const bool enabled = bluetooth_is_enabled();
     const bool connected = enabled && bluetooth_is_connected();
+    const bool icon_recreated = (last_icon != ui_Blutooth);
 
-    if (initialized &&
+    if (!icon_recreated &&initialized &&
         enabled == last_enabled &&
         connected == last_connected) {
         return;
     }
-
+    last_icon = ui_Blutooth;
     initialized = true;
     last_enabled = enabled;
     last_connected = connected;
@@ -178,9 +183,14 @@ void ui_ScanPage_update_bluetooth_icon(void)
         connected ? LV_OPA_COVER : 100,
         LV_PART_MAIN | LV_STATE_DEFAULT
     );
+
+    // ESP_LOGI(TAG,
+    //          "BT icon: visible, enabled=%d connected=%d opa=%d",
+    //          (int)enabled,
+    //          (int)connected);
 }
 
-#include "brain.h"
+
 
 void ui_ScanPage_update_calibration_icon(void)
 {
@@ -318,6 +328,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_y(ui_Blutooth, 31);
     lv_obj_set_align(ui_Blutooth, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_add_flag(ui_Blutooth, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_Blutooth, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     //lv_obj_set_style_image_recolor(ui_Blutooth, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
     //lv_obj_set_style_image_recolor_opa(ui_Blutooth, 150, LV_PART_MAIN | LV_STATE_DEFAULT);

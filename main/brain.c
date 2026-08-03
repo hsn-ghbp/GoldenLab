@@ -500,6 +500,15 @@ static void brain_apply_bluetooth_policy(void)
     const bool is_enabled = bluetooth_is_enabled();
 
     if (should_enable == is_enabled) {
+
+        // ESP_LOGI(TAG,
+        //  "BT apply: page=%d mode=%d auto_off=%d should=%d enabled=%d connected=%d",
+        //  (int)current_page,
+        //  (int)current_scan_mode,
+        //  (int)g_settings.bl_auto_off,
+        //  (int)should_enable,
+        //  (int)is_enabled,
+        //  (int)bluetooth_is_connected());
         return;
     }
 
