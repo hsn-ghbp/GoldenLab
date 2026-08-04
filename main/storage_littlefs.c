@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <stdlib.h>
+
 
 #include "esp_check.h"
 #include "esp_littlefs.h"
@@ -148,6 +150,41 @@ esp_err_t storage_littlefs_save_scan(const storage_scan_record_t *record,
     return ESP_OK;
 }
 
+esp_err_t storage_littlefs_mark_scan_sent(uint32_t scan_id, bool sent)
+{
+    scan_index_header_t header = {0};
+    scan_index_item_t *items = NULL;
+    esp_err_t err;
+    bool found = false;
+
+    ESP_RETURN_ON_FALSE(s_littlefs_ready, ESP_ERR_INVALID_STATE, TAG, "LittleFS not ready");
+
+    err = storage_read_index_file(&header, &items);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to read index file");
+
+    for (size_t i = 0; i < header.count; ++i) {
+        if (items[i].id == scan_id) {
+            if (sent) {
+                items[i].flags |= SCAN_FLAG_SENT;
+            } else {
+                items[i].flags &= ~SCAN_FLAG_SENT;
+            }
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        free(items);
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    err = storage_write_index_file(&header, items);
+    free(items);
+    return err;
+}
+
+
 esp_err_t storage_littlefs_load_index(scan_index_item_t *items,
                                       size_t max_items,
                                       size_t *out_count)
@@ -265,27 +302,93 @@ esp_err_t storage_littlefs_load_scan_samples(uint32_t scan_id,
     return ESP_OK;
 }
 
+// esp_err_t storage_littlefs_delete_scan(uint32_t scan_id)
+// {
+//     scan_index_header_t header = {0};
+//     scan_index_item_t *items = NULL;
+//     scan_index_item_t *new_items = NULL;
+//     char path[STORAGE_SCAN_FILE_NAME_MAX];
+//     size_t i;
+//     size_t keep_count = 0;
+//     bool found = false;
+//     esp_err_t err;
+
+//     ESP_RETURN_ON_FALSE(s_littlefs_ready, ESP_ERR_INVALID_STATE, TAG, "LittleFS not ready");
+
+//     err = storage_read_index_file(&header, &items);
+//     ESP_RETURN_ON_ERROR(err, TAG, "failed to read index file");
+
+//     for (i = 0; i < header.count; ++i) {
+//         if (items[i].id == scan_id) {
+//             found = true;
+//         } else {
+//             keep_count++;
+//         }
+//     }
+
+//     if (!found) {
+//         free(items);
+//         return ESP_ERR_NOT_FOUND;
+//     }
+
+//     if (keep_count > 0U) {
+//         new_items = calloc(keep_count, sizeof(scan_index_item_t));
+//         if (new_items == NULL) {
+//             free(items);
+//             return ESP_ERR_NO_MEM;
+//         }
+
+//         keep_count = 0;
+//         for (i = 0; i < header.count; ++i) {
+//             if (items[i].id != scan_id) {
+//                 new_items[keep_count++] = items[i];
+//             }
+//         }
+//     }
+
+//     header.count = (uint32_t)keep_count;
+
+//     err = storage_write_index_file(&header, new_items);
+//     if (err != ESP_OK) {
+//         free(items);
+//         free(new_items);
+//         return err;
+//     }
+
+//     err = storage_build_scan_path(scan_id, path, sizeof(path));
+//     if (err != ESP_OK) {
+//         free(items);
+//         free(new_items);
+//         return err;
+//     }
+
+//     if (remove(path) != 0) {
+//         free(items);
+//         free(new_items);
+//         return ESP_FAIL;
+//     }
+
+//     free(items);
+//     free(new_items);
+//     return ESP_OK;
+// }
+
 esp_err_t storage_littlefs_delete_scan(uint32_t scan_id)
 {
     scan_index_header_t header = {0};
     scan_index_item_t *items = NULL;
-    scan_index_item_t *new_items = NULL;
-    char path[STORAGE_SCAN_FILE_NAME_MAX];
-    size_t i;
-    size_t keep_count = 0;
-    bool found = false;
     esp_err_t err;
-
-    ESP_RETURN_ON_FALSE(s_littlefs_ready, ESP_ERR_INVALID_STATE, TAG, "LittleFS not ready");
 
     err = storage_read_index_file(&header, &items);
     ESP_RETURN_ON_ERROR(err, TAG, "failed to read index file");
 
-    for (i = 0; i < header.count; ++i) {
+    bool found = false;
+    for (size_t i = 0; i < header.count; ++i) {
         if (items[i].id == scan_id) {
+            // حذف منطقی: فقط پرچم را ست کن
+            items[i].flags |= SCAN_FLAG_DELETED;
             found = true;
-        } else {
-            keep_count++;
+            break; 
         }
     }
 
@@ -294,46 +397,11 @@ esp_err_t storage_littlefs_delete_scan(uint32_t scan_id)
         return ESP_ERR_NOT_FOUND;
     }
 
-    if (keep_count > 0U) {
-        new_items = calloc(keep_count, sizeof(scan_index_item_t));
-        if (new_items == NULL) {
-            free(items);
-            return ESP_ERR_NO_MEM;
-        }
-
-        keep_count = 0;
-        for (i = 0; i < header.count; ++i) {
-            if (items[i].id != scan_id) {
-                new_items[keep_count++] = items[i];
-            }
-        }
-    }
-
-    header.count = (uint32_t)keep_count;
-
-    err = storage_write_index_file(&header, new_items);
-    if (err != ESP_OK) {
-        free(items);
-        free(new_items);
-        return err;
-    }
-
-    err = storage_build_scan_path(scan_id, path, sizeof(path));
-    if (err != ESP_OK) {
-        free(items);
-        free(new_items);
-        return err;
-    }
-
-    if (remove(path) != 0) {
-        free(items);
-        free(new_items);
-        return ESP_FAIL;
-    }
-
+    // نوشتن مجدد ایندکس بدون حذف فایل فیزیکی
+    err = storage_write_index_file(&header, items);
+    
     free(items);
-    free(new_items);
-    return ESP_OK;
+    return err;
 }
 
 static esp_err_t storage_write_index_file(const scan_index_header_t *header,

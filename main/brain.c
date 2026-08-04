@@ -21,6 +21,7 @@
 #include "freertos/task.h"
 #include "storage_littlefs.h"
 #include "bluetooth.h"
+#include <inttypes.h>
 
 #define SEND_SCAN_CACHE_MAX 20U
 #define SEND_MAX_SAMPLES_BUFFER 1024U 
@@ -53,6 +54,13 @@ static scan_index_item_t s_send_scan_cache[SEND_SCAN_CACHE_MAX];;
 static bool s_send_selection_ui_dirty = false;
 // بافر استاتیک برای نگهداری داده‌ها در طول استریم بلوتوث
 static int32_t s_send_stream_buffer[SEND_MAX_SAMPLES_BUFFER];
+static volatile uint32_t s_pending_sent_scan_id = 0; // تعریف یک متغیر برای نگهداری درخواست علامت‌گذاری اسکن ارسال شده
+
+// memory
+static size_t g_memory_scan_count = 0;
+static size_t g_memory_sent_scan_count = 0;
+// volatile uint32_t g_memory_scan_count = 0;
+// volatile uint32_t g_memory_sent_scan_count = 0;
 
 
 /* وقتی true باشد، brain_process_ui_cmds باید label را render کند. */
@@ -99,29 +107,29 @@ extern system_settings_t g_settings;
 //-----------------------------
 
 
-static void brain_log_scan_index(void)
-{
-    scan_index_item_t items[16];
-    size_t count = 0;
+// static void brain_log_scan_index(void)
+// {
+//     scan_index_item_t items[16];
+//     size_t count = 0;
 
-    esp_err_t err = storage_littlefs_load_index(items, 16, &count);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
-        return;
-    }
+//     esp_err_t err = storage_littlefs_load_index(items, 16, &count);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
+//         return;
+//     }
 
-    ESP_LOGI(TAG, "Scan index count = %u", (unsigned)count);
+//     ESP_LOGI(TAG, "Scan index count = %u", (unsigned)count);
 
-    for (size_t i = 0; i < count; i++) {
-        ESP_LOGI(TAG,
-                 "[%u] id=%lu mode=%lu points=%lu ts=%lu",
-                 (unsigned)i,
-                 (unsigned long)items[i].id,
-                 (unsigned long)items[i].mode,
-                 (unsigned long)items[i].point_count,
-                 (unsigned long)items[i].timestamp_sec);
-    }
-}
+//     for (size_t i = 0; i < count; i++) {
+//         ESP_LOGI(TAG,
+//                  "[%u] id=%lu mode=%lu points=%lu ts=%lu",
+//                  (unsigned)i,
+//                  (unsigned long)items[i].id,
+//                  (unsigned long)items[i].mode,
+//                  (unsigned long)items[i].point_count,
+//                  (unsigned long)items[i].timestamp_sec);
+//     }
+// }
 
 static void brain_log_scan_by_id(uint32_t scan_id)
 {
@@ -158,39 +166,69 @@ static void brain_log_scan_by_id(uint32_t scan_id)
 }
 
 
-static void brain_log_last_scan(void)
-{
-    scan_index_item_t items[16];
-    size_t count = 0;
+// static void brain_log_last_scan(void)
+// {
+//     scan_index_item_t items[16];
+//     size_t count = 0;
 
-    esp_err_t err = storage_littlefs_load_index(items, 16, &count);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
-        return;
-    }
+//     esp_err_t err = storage_littlefs_load_index(items, 16, &count);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG, "load_index failed: %s", esp_err_to_name(err));
+//         return;
+//     }
 
-    if (count == 0) {
-        ESP_LOGW(TAG, "No saved scans found");
-        return;
-    }
+//     if (count == 0) {
+//         ESP_LOGW(TAG, "No saved scans found");
+//         return;
+//     }
 
-    scan_index_item_t *last = &items[count - 1];
+//     scan_index_item_t *last = &items[count - 1];
 
-    ESP_LOGI(TAG,
-             "Last scan => id=%lu mode=%lu points=%lu ts=%lu",
-             (unsigned long)last->id,
-             (unsigned long)last->mode,
-             (unsigned long)last->point_count,
-             (unsigned long)last->timestamp_sec);
+//     ESP_LOGI(TAG,
+//              "Last scan => id=%lu mode=%lu points=%lu ts=%lu",
+//              (unsigned long)last->id,
+//              (unsigned long)last->mode,
+//              (unsigned long)last->point_count,
+//              (unsigned long)last->timestamp_sec);
 
-    brain_log_scan_by_id(last->id);
-}
+//     brain_log_scan_by_id(last->id);
+// }
 
 
 
 // -------------------------
 // Public getters for state
 // -------------------------
+// ۱. تابع گتر تعداد کل اسکن‌های معتبر
+size_t brain_memory_get_scan_count(void)
+{
+    return g_memory_scan_count;
+}
+
+// ۲. تابع گتر تعداد اسکن‌های ارسال شده
+size_t brain_memory_get_sent_count(void)
+{
+    return g_memory_sent_scan_count;
+}
+
+// ۳. تابع گتر درصد حافظه باقی‌مانده واقعی LittleFS
+// uint8_t brain_memory_get_free_percent(void)
+// {
+//     size_t total = 0, used = 0;
+//     // گرفتن اطلاعات پارتیشن LittleFS با لیبل مورد استفاده در پروژه (مثلاً "storage")
+//     esp_err_t err = esp_littlefs_info("storage", &total, &used);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG, "Failed to get LittleFS info: %s", esp_err_to_name(err));
+//         return 100; // مقدار پیش‌فرض در صورت بروز خطا
+//     }
+
+//     if (total == 0) return 0;
+
+//     size_t free_space = total - used;
+//     uint8_t free_percent = (uint8_t)((free_space * 100) / total);
+//     return free_percent;
+// }
+
 int brain_get_scan_selected(void)
 {
     return scan_selected;
@@ -397,6 +435,159 @@ app_event_t brain_consume_events(void)
 // Internal helpers
 // -------------------------
 
+void brain_on_scan_sent(uint32_t scan_id)
+{
+    if (scan_id != 0) {
+        s_pending_sent_scan_id = scan_id;
+        // صادر کردن یک رویداد به سیستم برای پردازش ایمن خارج از Critical Section بلوتوث
+        brain_emit_event(APP_EVENT_SCAN_CHANGED); // یا هر رویدادی که باعث بررسی وضعیت در تسک اصلی می‌شود
+    }
+}
+
+static void brain_memory_read_info(void)
+{
+    size_t count = 0;
+    
+    // ۱. ابتدا تعداد کل آیتم‌های موجود در ایندکس را دریافت می‌کنیم
+    esp_err_t err = storage_littlefs_load_index(NULL, 0, &count);
+    if (err != ESP_OK || count == 0) {
+        g_memory_scan_count = 0;
+        g_memory_sent_scan_count = 0;
+        return;
+    }
+
+    // ۲. تخصیص حافظه برای خواندن آیتم‌ها
+    scan_index_item_t *items = malloc(count * sizeof(scan_index_item_t));
+    if (items == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for scan index items");
+        return;
+    }
+
+    // ۳. پر کردن آرایه با اطلاعات اصلی از هدر عمومی
+    size_t loaded_count = 0;
+    err = storage_littlefs_load_index(items, count, &loaded_count);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to load scan index: %s", esp_err_to_name(err));
+        free(items);
+        return;
+    }
+
+    size_t active_count = 0;
+    size_t sent_count = 0;
+
+    // ۴. اعمال منطق فیلتر فلش‌ها بر روی ساختار
+    for (size_t i = 0; i < loaded_count; i++) {
+        if (!(items[i].flags & SCAN_FLAG_DELETED)) {
+            active_count++;
+            if (items[i].flags & SCAN_FLAG_SENT) {
+                sent_count++;
+            }
+        }
+    }
+
+    g_memory_scan_count = active_count;
+    g_memory_sent_scan_count = sent_count;
+
+    free(items);
+    ESP_LOGI(TAG, "Memory loaded successfully. Active: %d, Sent: %d", active_count, sent_count);
+}
+// static void brain_memory_read_info(void)
+// {
+//     size_t count = 0;
+
+//     g_memory_scan_count = 0;
+//     g_memory_sent_scan_count = 0;
+
+//     esp_err_t err = storage_littlefs_load_index(NULL, 0, &count);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG,
+//                  "Failed to get scan index count: %s",
+//                  esp_err_to_name(err));
+//         return;
+//     }
+
+//     if (count == 0) {
+//         ESP_LOGI(TAG, "Memory index is empty");
+//         return;
+//     }
+
+//     scan_index_item_t *items = calloc(count, sizeof(scan_index_item_t));
+//     if (items == NULL) {
+//         ESP_LOGE(TAG,
+//                  "Failed to allocate %zu bytes for scan index",
+//                  count * sizeof(scan_index_item_t));
+//         return;
+//     }
+
+//     size_t loaded_count = 0;
+
+//     err = storage_littlefs_load_index(items, count, &loaded_count);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG,
+//                  "Failed to load scan index: %s",
+//                  esp_err_to_name(err));
+//         free(items);
+//         return;
+//     }
+
+//     ESP_LOGI(TAG,
+//              "Index requested=%zu loaded=%zu",
+//              count,
+//              loaded_count);
+
+//     size_t active_count = 0;
+//     size_t sent_count = 0;
+
+//     for (size_t i = 0; i < loaded_count; ++i) {
+//         const bool is_deleted =
+//             (items[i].flags & SCAN_FLAG_DELETED) != 0;
+
+//         const bool is_sent =
+//             (items[i].flags & SCAN_FLAG_SENT) != 0;
+
+//         ESP_LOGI(TAG,
+//                  "INDEX[%zu]: id=%" PRIu32
+//                  " flags=0x%08" PRIX32
+//                  " deleted=%d sent=%d",
+//                  i,
+//                  items[i].id,
+//                  (uint32_t)items[i].flags,
+//                  is_deleted,
+//                  is_sent);
+
+//         if (is_deleted) {
+//             continue;
+//         }
+
+//         active_count++;
+
+//         if (is_sent) {
+//             sent_count++;
+//         }
+//     }
+
+//     g_memory_scan_count = active_count;
+//     g_memory_sent_scan_count = sent_count;
+
+//     free(items);
+
+//     ESP_LOGI(TAG,
+//              "Memory loaded successfully. Active: %zu, Sent: %zu",
+//              active_count,
+//              sent_count);
+// }
+
+
+// size_t brain_memory_get_scan_count(void)
+// {
+//     return g_memory_scan_count;
+// }
+
+// size_t brain_memory_get_sent_scan_count(void)
+// {
+//     return g_memory_sent_scan_count;
+// }
+
 static uint32_t brain_send_effective_point_count(
     uint32_t point_count,
     uint32_t auto_calibration_pulse_count)
@@ -410,43 +601,56 @@ static uint32_t brain_send_effective_point_count(
 
 static void brain_send_page_enter(void)
 {
-    size_t total_count = 0U;
-    esp_err_t err;
+    s_send_total_scan_count = 0U;
 
-    /*
-     * با اصلاحی که در storage_littlefs_load_index انجام دادی،
-     * وقتی items=NULL و max_items=0 باشد، out_count برابر
-     * تعداد واقعی رکوردهای index است.
-     */
     if (!storage_littlefs_is_ready()) {
         ESP_LOGW(TAG, "LittleFS is not ready; send scan count is 0");
-        s_send_total_scan_count = 0U;
     } else {
-        err = storage_littlefs_load_index(s_send_scan_cache, SEND_SCAN_CACHE_MAX, &total_count);
+        size_t raw_count = 0;
+        // ۱. ابتدا تعداد کل رکوردهای ثبت شده روی دیسک را دریافت می‌کنیم
+        esp_err_t err = storage_littlefs_load_index(NULL, 0, &raw_count);
 
         if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to load scan count: %s",
-                     esp_err_to_name(err));
-            s_send_total_scan_count = 0U;
-        } else {
-            s_send_total_scan_count = (uint32_t)total_count;
+            ESP_LOGE(TAG, "Failed to load scan count: %s", esp_err_to_name(err));
+        } else if (raw_count > 0) {
+            // ۲. تخصیص موقت برای خواندن کل ایندکس‌ها از دیسک
+            scan_index_item_t *temp_items = malloc(raw_count * sizeof(scan_index_item_t));
+            if (temp_items != NULL) {
+                size_t loaded_count = 0;
+                err = storage_littlefs_load_index(temp_items, raw_count, &loaded_count);
+                
+                if (err == ESP_OK) {
+                    size_t active_count = 0;
+                    
+                    // ۳. فیلتر کردن موارد حذف‌نشده و کپی کردن آنها در کش (تا سقف ظرفیت کش)
+                    for (size_t i = 0; i < loaded_count; i++) {
+                        if (!(temp_items[i].flags & SCAN_FLAG_DELETED)) {
+                            if (active_count < SEND_SCAN_CACHE_MAX) {
+                                s_send_scan_cache[active_count] = temp_items[i];
+                            }
+                            active_count++;
+                        }
+                    }
+                    s_send_total_scan_count = (uint32_t)active_count;
+                } else {
+                    ESP_LOGE(TAG, "Failed to read index payload: %s", esp_err_to_name(err));
+                }
+                free(temp_items);
+            } else {
+                ESP_LOGE(TAG, "Failed to allocate temp memory for filtering scans");
+            }
         }
     }
 
-    /*
-     * هر بار ورود به PAGE_SEND، انتخاب از شماره 1 شروع می‌شود؛
-     * همان پیش‌فرضی که خواستی.
-     *
-     * حتی اگر تعداد اسکن صفر باشد، Label شماره فعلی "1" می‌ماند
-     * ولی UP/DOWN هیچ حرکتی نخواهند داشت.
-     */
+    // انتخاب پیش‌فرض از اولین آیتم شروع می‌شود
     s_send_selected_scan_number = 1U;
     s_send_selection_ui_dirty = true;
 
-    ESP_LOGI(TAG, "PAGE_SEND entered: total=%lu, selected=%lu",
+    ESP_LOGI(TAG, "PAGE_SEND entered: total_active=%lu, selected=%lu",
              (unsigned long)s_send_total_scan_count,
              (unsigned long)s_send_selected_scan_number);
 }
+
 
 
 static bool brain_scan_mode_should_save(scan_mode_t mode)
@@ -1206,6 +1410,7 @@ void brain_handle_key(key_evt_t evt)
                         break;
 
                     case 2:
+                        brain_memory_read_info();
                         current_page = PAGE_MEMORY;
                         break;
 
@@ -1391,8 +1596,7 @@ void brain_handle_key(key_evt_t evt)
 
         case PAGE_MEMORY:               //----------------Memory Page -------------------//
             if (evt == KEY_OK) {
-                brain_log_scan_index();
-                brain_log_last_scan();
+                
             } else if (evt == KEY_BACK) {
                 current_page = PAGE_MAIN_MENU;
             }
@@ -1515,7 +1719,7 @@ void brain_handle_key(key_evt_t evt)
                 ESP_LOGI(TAG, "Starting Bluetooth stream for %d points...", (int)loaded_count);
 
                 // آغاز جریان ارسال استریم
-                err = bluetooth_send_int32_stream_begin(s_send_stream_buffer, loaded_count);
+                err = bluetooth_send_int32_stream_begin(target_scan_id, s_send_stream_buffer, loaded_count);
                 if (err == ESP_OK) {
                     //s_send_is_streaming = true;
                     ESP_LOGI(TAG, "Bluetooth stream started successfully.");
@@ -1628,6 +1832,47 @@ void brain_handle_key(key_evt_t evt)
 // }
 void brain_process_ui_cmds(void)
 {
+    // if (s_pending_sent_scan_id != 0) {
+    //     uint32_t target_id = s_pending_sent_scan_id;
+    //     s_pending_sent_scan_id = 0; // ریست کردن برای جلوگیری از اجرای مجدد
+
+    //     ESP_LOGI("BRAIN", "Marking scan %lu as sent in LittleFS...", (unsigned long)target_id);
+        
+    //     // در گام‌های بعدی، این تابع را در storage_littlefs پیاده‌سازی می‌کنیم:
+    //      storage_littlefs_mark_scan_sent(target_id, true);
+    // }
+    if (s_pending_sent_scan_id != 0) {
+    const uint32_t target_id = s_pending_sent_scan_id;
+
+    ESP_LOGI(TAG,
+             "Marking scan %lu as sent in LittleFS...",
+             (unsigned long)target_id);
+
+    esp_err_t err =
+        storage_littlefs_mark_scan_sent(target_id, true);
+
+    if (err == ESP_OK) {
+            /*
+            * فقط پس از ذخیره موفق پاک شود.
+            * در صورت خطا امکان تلاش مجدد باقی می‌ماند.
+            */
+            s_pending_sent_scan_id = 0;
+
+            ESP_LOGI(TAG,
+                    "Scan %lu marked as sent successfully",
+                    (unsigned long)target_id);
+
+            /*
+            * به‌روزرسانی cache آماری صفحه Memory.
+            */
+            brain_memory_read_info();
+        } else {
+            ESP_LOGE(TAG,
+                    "Failed to mark scan %lu as sent: %s",
+                    (unsigned long)target_id,
+                    esp_err_to_name(err));
+        }
+    }
     static app_page_t last_logged_current = -1;
     static app_page_t last_logged_loaded = -1;
     

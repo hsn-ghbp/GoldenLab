@@ -27,7 +27,9 @@ static int16_t s_temp_scan_buffer[MAX_SCAN_POINTS];
 static uint16_t s_temp_point_count = 0;
 static bool s_rand_seeded = false;
 
+
 static int s_multi_delay_ms = 0;
+uint16_t actual_count = 0;
 
 
 uint32_t scan_process_get_calibration_sample_count(void)
@@ -178,54 +180,54 @@ void scan_process_stop(void)
     ESP_LOGI(TAG, "Scan process stop requested");
 }
 
-static bool scan_process_send_calibration_block_from_buffer(const int16_t *data, uint16_t count)
-{
-    if (data == NULL || count == 0) {
-        ESP_LOGW(TAG, "Calibration send skipped: empty buffer");
-        return false;
-    }
+// static bool scan_process_send_calibration_block_from_buffer(const int16_t *data, uint16_t count)
+// {
+//     if (data == NULL || count == 0) {
+//         ESP_LOGW(TAG, "Calibration send skipped: empty buffer");
+//         return false;
+//     }
 
-    if (!bluetooth_is_enabled() || !bluetooth_is_connected()) {
-        ESP_LOGW(TAG, "Calibration send skipped: bluetooth not connected");
-        return false;
-    }
+//     if (!bluetooth_is_enabled() || !bluetooth_is_connected()) {
+//         ESP_LOGW(TAG, "Calibration send skipped: bluetooth not connected");
+//         return false;
+//     }
 
-    char tx_buffer[256];
-    int offset = 0;
+//     char tx_buffer[256];
+//     int offset = 0;
 
-    for (uint16_t i = 0; i < count; i++) {
-        int written = snprintf(
-            tx_buffer + offset,
-            sizeof(tx_buffer) - offset,
-            (i == 0) ? "%d" : ",%d",
-            data[i]
-        );
+//     for (uint16_t i = 0; i < count; i++) {
+//         int written = snprintf(
+//             tx_buffer + offset,
+//             sizeof(tx_buffer) - offset,
+//             (i == 0) ? "%d" : ",%d",
+//             data[i]
+//         );
 
-        if (written < 0 || written >= (int)(sizeof(tx_buffer) - offset)) {
-            ESP_LOGE(TAG, "Calibration tx buffer overflow at index=%u", i);
-            return false;
-        }
+//         if (written < 0 || written >= (int)(sizeof(tx_buffer) - offset)) {
+//             ESP_LOGE(TAG, "Calibration tx buffer overflow at index=%u", i);
+//             return false;
+//         }
 
-        offset += written;
-    }
+//         offset += written;
+//     }
 
-    if (offset + 2 >= (int)sizeof(tx_buffer)) {
-        ESP_LOGE(TAG, "Calibration tx buffer has no room for line ending");
-        return false;
-    }
+//     if (offset + 2 >= (int)sizeof(tx_buffer)) {
+//         ESP_LOGE(TAG, "Calibration tx buffer has no room for line ending");
+//         return false;
+//     }
 
-    tx_buffer[offset++] = '\r';
-    tx_buffer[offset++] = '\n';
+//     tx_buffer[offset++] = '\r';
+//     tx_buffer[offset++] = '\n';
 
-    esp_err_t err = bluetooth_send_raw((const uint8_t *)tx_buffer, offset);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Calibration block send failed: %s", esp_err_to_name(err));
-        return false;
-    }
+//     esp_err_t err = bluetooth_send_raw((const uint8_t *)tx_buffer, offset);
+//     if (err != ESP_OK) {
+//         ESP_LOGE(TAG, "Calibration block send failed: %s", esp_err_to_name(err));
+//         return false;
+//     }
 
-    ESP_LOGI(TAG, "Calibration block sent. count=%u, bytes=%d", count, offset);
-    return true;
-}
+//     ESP_LOGI(TAG, "Calibration block sent. count=%u, bytes=%d", count, offset);
+//     return true;
+// }
 
 
 
@@ -235,14 +237,17 @@ bool scan_process_calibrate_now(void)
 
     if (sample_count == 0) {
         s_is_calibrated = true;
+        s_calibration_sample_count = 0;
         ESP_LOGI(TAG, "Calibration skipped because auto_cal_pls=0");
         return true;
     }
 
     ESP_LOGI(TAG, "Calibration started. samples=%u mode=%d", sample_count, s_current_mode);
 
+    uint16_t actual_count = 0;
+
     if (scan_mode_is_pc_send(s_current_mode)) {
-        static int32_t bt_samples[1024];   // اندازه را متناسب با حداکثر نیازت تنظیم کن
+        static int32_t bt_samples[1024];
 
         if (sample_count > (sizeof(bt_samples) / sizeof(bt_samples[0]))) {
             ESP_LOGW(TAG, "Calibration sample_count=%u exceeds bt_samples capacity=%u",
@@ -256,15 +261,15 @@ bool scan_process_calibrate_now(void)
             s_current_adc_value = raw;
             scan_process_calculate_display_values();
             bt_samples[i] = (int32_t)raw;
+            actual_count++;
         }
 
-        esp_err_t err = bluetooth_send_int32_stream_begin(bt_samples, sample_count);
+        esp_err_t err = bluetooth_send_int32_stream_begin(0, bt_samples, actual_count);
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "Calibration send array failed: %s", esp_err_to_name(err));
             return false;
         }
-    }
-    else {
+    } else {
         for (uint16_t i = 0; i < sample_count; i++) {
             int16_t raw = read_hardware_adc();
             s_current_adc_value = raw;
@@ -275,15 +280,17 @@ bool scan_process_calibrate_now(void)
                     ESP_LOGW(TAG, "Calibration buffer full at sample %u", i);
                     break;
                 }
+                actual_count++;
             }
         }
     }
 
     s_is_calibrated = true;
-    s_calibration_sample_count = sample_count;
-    ESP_LOGI(TAG, "Calibration finished.");
+    s_calibration_sample_count = actual_count;
+    ESP_LOGI(TAG, "Calibration finished. actual=%u", actual_count);
     return true;
 }
+
 
 
 

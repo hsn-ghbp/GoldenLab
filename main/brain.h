@@ -103,6 +103,7 @@ bool brain_should_bluetooth_be_enabled(void);
 bool brain_settings_load(void);
 bool brain_settings_save(void);
 void brain_settings_set_defaults(void);
+void brain_on_scan_sent(uint32_t scan_id);
 
 //int brain_get_scan_mode(void);
 
@@ -115,6 +116,14 @@ bool brain_is_menu_loaded(void);
 scan_mode_t brain_get_scan_mode(void);
 battery_level_t brain_get_battery_level(void);
 uint8_t brain_get_battery_percent(void);
+// متغیرهای سراسری نگهدارنده آمار حافظه (تعریف به عنوان extern برای دسترسی سایر فایل‌ها)
+// extern volatile uint32_t g_memory_scan_count;
+// extern volatile uint32_t g_memory_sent_scan_count;
+
+// توابع گتر اطلاعات
+size_t brain_memory_get_scan_count(void);
+size_t brain_memory_get_sent_count(void);
+uint8_t brain_memory_get_free_percent(void);
 
 
 /* Setting state accessors */

@@ -24,7 +24,8 @@ extern lv_obj_t * ui_LblSendCount;
 extern lv_obj_t * ui_LblPercent;
 // CUSTOM VARIABLES
 
-
+void ui_Memory_render(void);
+void ui_memory_set_warning_visible(bool visible);
 
 
 

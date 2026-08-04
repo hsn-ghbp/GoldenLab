@@ -22,6 +22,8 @@ extern "C" {
 #define STORAGE_SCAN_INDEX_MAGIC       0x58444E49UL /* "INDX" */
 #define STORAGE_SCAN_RECORD_MAGIC      0x4E414353UL /* "SCAN" */
 #define STORAGE_SCAN_VERSION           1U
+#define SCAN_FLAG_DELETED (1 << 0) // بیت 0 برای حذف منطقی
+#define SCAN_FLAG_SENT    (1 << 1) // بیت 1 برای وضعیت ارسال
 
 typedef struct {
     uint32_t id;
@@ -29,6 +31,7 @@ typedef struct {
     uint32_t point_count;
     uint32_t timestamp_sec;
     uint32_t auto_calibration_pulse_count;
+    uint32_t flags; // اضافه شده برای مدیریت وضعیت
 } scan_index_item_t;
 
 typedef struct {
@@ -60,6 +63,8 @@ typedef struct {
 esp_err_t storage_littlefs_init(void);
 esp_err_t storage_littlefs_deinit(void);
 bool storage_littlefs_is_ready(void);
+esp_err_t storage_littlefs_mark_scan_sent(uint32_t scan_id, bool sent);
+
 
 esp_err_t storage_littlefs_save_scan(const storage_scan_record_t *record,
                                      uint32_t *out_scan_id);

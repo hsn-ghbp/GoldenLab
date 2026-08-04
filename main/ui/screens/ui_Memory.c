@@ -4,6 +4,10 @@
 // Project name: MAGI_ESP
 
 #include "../ui.h"
+#include "esp_log.h"
+#include "brain.h"
+#include <stdio.h>
+
 
 lv_obj_t * ui_Memory = NULL;
 lv_obj_t * ui_Image2 = NULL;
@@ -22,7 +26,91 @@ lv_obj_t * ui_PnlWarnning = NULL;
 lv_obj_t * ui_LblQuastionPart1 = NULL;
 lv_obj_t * ui_LblQuastionPart2 = NULL;
 lv_obj_t * ui_LblQuastionPart3 = NULL;
+
+
+
+#define TAG_MEM_UI "UI_MEM"
+
+
 // event funtions
+
+
+// UI functions
+
+
+// به‌روزرسانی اطلاعات متنی صفحه حافظه
+// void ui_memory_update_info(uint32_t total_scans, uint32_t sent_scans, uint8_t free_percent)
+// {
+//     if (!ui_Memory_is_ready()) return;
+
+//     char buf[32];
+    
+//     // تعداد کل اسکن‌ها
+//     snprintf(buf, sizeof(buf), "%lu", (unsigned long)total_scans);
+//     lv_label_set_text(ui_LblScanCount, buf);
+
+//     // تعداد اسکن‌های ارسال شده
+//     snprintf(buf, sizeof(buf), "%lu", (unsigned long)sent_scans);
+//     lv_label_set_text(ui_LblSendCount, buf);
+
+//     // درصد حافظه باقی‌مانده
+//     snprintf(buf, sizeof(buf), "%d %%", free_percent);
+//     lv_label_set_text(ui_LblPercent, buf);
+// }
+
+// نمایش یا مخفی کردن پنجره هشدار حذف
+void ui_memory_set_warning_visible(bool visible)
+{
+    if (!ui_Memory_is_ready() || !ui_PnlWarnning) return;
+
+    if (visible) {
+        lv_obj_remove_flag(ui_PnlWarnning, LV_OBJ_FLAG_HIDDEN);
+        // آوردن به جلو
+        lv_obj_move_foreground(ui_PnlWarnning);
+    } else {
+        lv_obj_add_flag(ui_PnlWarnning, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+void ui_Memory_render(void)
+{
+    if (!ui_Memory_is_ready()) {
+        ESP_LOGW(TAG_MEM_UI, "Memory screen is not ready");
+        return;
+    }
+
+    const size_t scan_count =
+        brain_memory_get_scan_count();
+
+    const size_t sent_scan_count =
+        brain_memory_get_sent_count();
+
+    char text[24];
+
+    /* تعداد کل اسکن‌های فعال */
+    if (ui_LblScanCount != NULL) {
+        snprintf(text, sizeof(text), "%zu", scan_count);
+        lv_label_set_text(ui_LblScanCount, text);
+    }
+
+    /* تعداد اسکن‌های ارسال‌شده */
+    if (ui_LblSendCount != NULL) {
+        snprintf(text, sizeof(text), "%zu", sent_scan_count);
+        lv_label_set_text(ui_LblSendCount, text);
+    }
+
+    /* پنل هشدار در شروع نمایش صفحه مخفی باشد */
+    ui_memory_set_warning_visible(false);
+
+    ESP_LOGI(
+        TAG_MEM_UI,
+        "Memory UI rendered: scans=%zu, sent=%zu",
+        scan_count,
+        sent_scan_count
+    );
+}
+
+
 
 // build funtions
 
@@ -186,6 +274,8 @@ void ui_Memory_screen_init(void)
     lv_obj_set_style_text_color(ui_LblQuastionPart3, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_LblQuastionPart3, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_LblQuastionPart3, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Memory_render();
 
 }
 

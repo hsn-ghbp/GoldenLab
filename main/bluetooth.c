@@ -40,6 +40,7 @@ static int32_t s_bt_tx_queue[BT_TX_QUEUE_SIZE];
 static uint16_t s_bt_tx_head = 0;
 static uint16_t s_bt_tx_tail = 0;
 static uint16_t s_bt_tx_count = 0;
+static bool s_stream_has_scan_id = false;
 
 static bool s_bt_tx_busy = false;
 
@@ -54,6 +55,7 @@ static size_t s_stream_count = 0;
 static size_t s_stream_idx = 0;
 static bool s_stream_active = false;   // stream in progress
 static bool s_stream_waiting = false;  // one write is outstanding
+static uint32_t s_stream_scan_id = 0;   // <--- شناسه اسکن در حال استریم
 
 static TimerHandle_t s_stream_retry_timer = NULL;
 
@@ -240,6 +242,8 @@ static void bt_stream_stop_locked(void)
     s_stream_data = NULL;
     s_stream_count = 0;
     s_stream_idx = 0;
+    s_stream_scan_id = 0;
+    s_stream_has_scan_id = false;
 }
 
 static void bt_stream_retry_timer_cb(TimerHandle_t xTimer)
@@ -270,12 +274,34 @@ static esp_err_t bt_stream_try_send_locked(void)
 {
     if (!s_enabled || !s_connected || s_spp_handle == 0) return ESP_ERR_INVALID_STATE;
     if (!s_stream_active) return ESP_OK;
-
     if (s_stream_waiting) return ESP_OK;
 
     if (s_stream_idx >= s_stream_count) {
-        //ESP_LOGI(TAG, "Stream finished. count=%u", (unsigned)s_stream_count);
+        // ۱. ابتدا کپی کردن شناسه اسکن فرستاده شده و پرچم‌ها
+        uint32_t completed_scan_id = s_stream_scan_id;
+        bool should_mark_sent = s_stream_has_scan_id;
+
+        // ۲. متوقف کردن استریم و ریست وضعیت‌های بلوتوث (زیر قفل)
         bt_stream_stop_locked();
+
+        // ۳. از آنجا که این تابع از بیرون با spinlock یا portENTER_CRITICAL فراخوانی شده است،
+        // نباید کارهای سنگینی مثل فایل‌سیستم یا اطلاع‌رسانی مستقیم به مغز سیستم را اینجا انجام دهیم.
+        // یک متغیر موقت استاتیک یا یک فلگ خارج از لاک پر می‌کنیم یا از مکانیزم تسک استفاده می‌کنیم.
+        // اما راه ساده و امن: ارسال سیگنال با استفاده از xTimer یا یک تسک جداگانه.
+        // برای حل مشکل در این گام، تابع اطلاع‌رسانی را موقتاً به شکلی فراخوانی می‌کنیم که
+        // کار سنگین نکند، یا قفل را برای لحظه‌ای باز می‌کنیم (اگر معماری فراخوانی اجازه دهد).
+        
+        // راه ایمن‌تر: چون bt_stream_try_send_locked همیشه تحت قفل s_bt_tx_mux فراخوانی می‌شود،
+        // ما فراخوانی brain_on_scan_sent را به بعد از آزاد شدن قفل در فراخواننده‌ها منتقل می‌کنیم.
+        
+        // برای ساده ماندن کد و عدم کرش، حتماً مطمئن شوید brain_on_scan_sent در brain.c
+        // هیچ کار بلاک‌کننده‌ای (مانند نوشتن مستقیم روی LittleFS یا کار با mutex) انجام نمی‌دهد 
+        // و صرفاً یک رویداد یا فلگ سبک را ست می‌کند.
+        
+        if (should_mark_sent && completed_scan_id != 0) {
+            brain_on_scan_sent(completed_scan_id);
+        }
+
         return ESP_OK;
     }
 
@@ -287,9 +313,6 @@ static esp_err_t bt_stream_try_send_locked(void)
     if (err == ESP_OK) {
         s_stream_waiting = true; /* wait for WRITE_EVT */
     } else {
-        // ESP_LOGW(TAG, "stream esp_spp_write err=%s (idx=%u). retry scheduled",
-        //          esp_err_to_name(err), (unsigned)s_stream_idx);
-
         s_stream_waiting = false;
         if (s_stream_retry_timer) {
             xTimerStart(s_stream_retry_timer, 0);
@@ -297,6 +320,7 @@ static esp_err_t bt_stream_try_send_locked(void)
     }
     return err;
 }
+
 
 /* =========================
  *  SPP callback
@@ -668,7 +692,7 @@ esp_err_t bluetooth_send_array(const int32_t *data, size_t count)
  * - next item only after ESP_SPP_WRITE_EVT SUCCESS
  * - on congestion/fail: retries same item (no drop)
  * ========================================================= */
-esp_err_t bluetooth_send_int32_stream_begin(const int32_t *data, size_t count)
+esp_err_t bluetooth_send_int32_stream_begin(uint32_t scan_id, const int32_t *data, size_t count)
 {
     if (!s_enabled || !s_connected || s_spp_handle == 0) return ESP_ERR_INVALID_STATE;
     if (data == NULL || count == 0) return ESP_ERR_INVALID_ARG;
@@ -689,6 +713,12 @@ esp_err_t bluetooth_send_int32_stream_begin(const int32_t *data, size_t count)
     s_stream_data = data;
     s_stream_count = count;
     s_stream_idx = 0;
+    /*
+     * scan_id == 0 یعنی این استریم مربوط به اسکن ذخیره‌شده نیست
+     * مثل calibration/live send
+     */
+    s_stream_scan_id = scan_id; // ذخیره شناسه اسکن فعال
+    s_stream_has_scan_id = (scan_id != 0);
     s_stream_active = true;
     s_stream_waiting = false;
 
