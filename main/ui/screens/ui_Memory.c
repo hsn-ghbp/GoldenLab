@@ -6,6 +6,22 @@
 #include "../ui.h"
 
 lv_obj_t * ui_Memory = NULL;
+lv_obj_t * ui_Image2 = NULL;
+lv_obj_t * ui_PnlMemInfo = NULL;
+lv_obj_t * ui_LblScanCountTxt = NULL;
+lv_obj_t * ui_LblSendCountTxt = NULL;
+lv_obj_t * ui_LblPercentTxt = NULL;
+lv_obj_t * ui_LblScanCount = NULL;
+lv_obj_t * ui_LblSendCount = NULL;
+lv_obj_t * ui_LblPercent = NULL;
+lv_obj_t * ui_BtnDelAll = NULL;
+lv_obj_t * ui_LblDelAll = NULL;
+lv_obj_t * ui_BtnDelLast = NULL;
+lv_obj_t * ui_LblDelLast = NULL;
+lv_obj_t * ui_PnlWarnning = NULL;
+lv_obj_t * ui_LblQuastionPart1 = NULL;
+lv_obj_t * ui_LblQuastionPart2 = NULL;
+lv_obj_t * ui_LblQuastionPart3 = NULL;
 // event funtions
 
 // build funtions
@@ -14,15 +30,169 @@ void ui_Memory_screen_init(void)
 {
     ui_Memory = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_Memory, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_Memory, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Memory, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Image2 = lv_image_create(ui_Memory);
+    lv_image_set_src(ui_Image2, &ui_img_memory_png);
+    lv_obj_set_width(ui_Image2, LV_SIZE_CONTENT);   /// 48
+    lv_obj_set_height(ui_Image2, LV_SIZE_CONTENT);    /// 48
+    lv_obj_set_x(ui_Image2, 0);
+    lv_obj_set_y(ui_Image2, -97);
+    lv_obj_set_align(ui_Image2, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Image2, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_Image2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_image_set_scale(ui_Image2, 200);
+
+    ui_PnlMemInfo = lv_obj_create(ui_Memory);
+    lv_obj_set_width(ui_PnlMemInfo, 200);
+    lv_obj_set_height(ui_PnlMemInfo, 90);
+    lv_obj_set_x(ui_PnlMemInfo, 0);
+    lv_obj_set_y(ui_PnlMemInfo, -26);
+    lv_obj_set_align(ui_PnlMemInfo, LV_ALIGN_CENTER);
+    lv_obj_remove_flag(ui_PnlMemInfo, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_PnlMemInfo, lv_color_hex(0x83B5E8), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_PnlMemInfo, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_PnlMemInfo, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(ui_PnlMemInfo, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanCountTxt = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblScanCountTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanCountTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanCountTxt, 47);
+    lv_obj_set_y(ui_LblScanCountTxt, -26);
+    lv_obj_set_align(ui_LblScanCountTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanCountTxt, "تعداد اسکن");
+    lv_obj_set_style_text_font(ui_LblScanCountTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblSendCountTxt = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblSendCountTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblSendCountTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblSendCountTxt, 28);
+    lv_obj_set_y(ui_LblSendCountTxt, 0);
+    lv_obj_set_align(ui_LblSendCountTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblSendCountTxt, "اسکن ارسال شده");
+    lv_obj_set_style_text_font(ui_LblSendCountTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblPercentTxt = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblPercentTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblPercentTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblPercentTxt, 33);
+    lv_obj_set_y(ui_LblPercentTxt, 26);
+    lv_obj_set_align(ui_LblPercentTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblPercentTxt, "حافظه باقیمانده");
+    lv_obj_set_style_text_font(ui_LblPercentTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanCount = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblScanCount, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanCount, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanCount, -70);
+    lv_obj_set_y(ui_LblScanCount, -26);
+    lv_obj_set_align(ui_LblScanCount, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanCount, "0");
+    lv_obj_set_style_text_font(ui_LblScanCount, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblSendCount = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblSendCount, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblSendCount, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblSendCount, -70);
+    lv_obj_set_y(ui_LblSendCount, 0);
+    lv_obj_set_align(ui_LblSendCount, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblSendCount, "0");
+    lv_obj_set_style_text_font(ui_LblSendCount, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblPercent = lv_label_create(ui_PnlMemInfo);
+    lv_obj_set_width(ui_LblPercent, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblPercent, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblPercent, -70);
+    lv_obj_set_y(ui_LblPercent, 26);
+    lv_obj_set_align(ui_LblPercent, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblPercent, "100 %");
+    lv_obj_set_style_text_font(ui_LblPercent, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    ui_BtnDelAll = lv_button_create(ui_Memory);
+    lv_obj_set_width(ui_BtnDelAll, 170);
+    lv_obj_set_height(ui_BtnDelAll, 30);
+    lv_obj_set_x(ui_BtnDelAll, 0);
+    lv_obj_set_y(ui_BtnDelAll, 56);
+    lv_obj_set_align(ui_BtnDelAll, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_BtnDelAll, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_BtnDelAll, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    //lv_obj_add_flag(ui_BtnDelAll,LV_OBJ_FLAG_HIDDEN),
+
+    ui_LblDelAll = lv_label_create(ui_BtnDelAll);
+    lv_obj_set_width(ui_LblDelAll, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblDelAll, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_LblDelAll, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblDelAll, "حذف همه اسکن ها");
+    lv_obj_set_style_text_font(ui_LblDelAll, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+
+    ui_BtnDelLast = lv_button_create(ui_Memory);
+    lv_obj_set_width(ui_BtnDelLast, 170);
+    lv_obj_set_height(ui_BtnDelLast, 30);
+    lv_obj_set_x(ui_BtnDelLast, 0);
+    lv_obj_set_y(ui_BtnDelLast, 56);
+    lv_obj_set_align(ui_BtnDelLast, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_BtnDelLast, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_BtnDelLast, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_add_flag(ui_BtnDelLast,LV_OBJ_FLAG_HIDDEN),
+
+    ui_LblDelLast = lv_label_create(ui_BtnDelLast);
+    lv_obj_set_width(ui_LblDelLast, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblDelLast, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_LblDelLast, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblDelLast, "حذف آخرین اسکن");
+    lv_obj_set_style_text_font(ui_LblDelLast, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_PnlWarnning = lv_obj_create(ui_Memory);
+    lv_obj_set_width(ui_PnlWarnning, 180);
+    lv_obj_set_height(ui_PnlWarnning, 100);
+    lv_obj_set_align(ui_PnlWarnning, LV_ALIGN_CENTER);
+    //lv_obj_add_flag(ui_PnlWarnning, LV_OBJ_FLAG_HIDDEN);     /// Flags
+    lv_obj_remove_flag(ui_PnlWarnning, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_radius(ui_PnlWarnning, 10, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_PnlWarnning, lv_color_hex(0xF6E8A2), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_PnlWarnning, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_PnlWarnning, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(ui_PnlWarnning, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblQuastionPart1 = lv_label_create(ui_PnlWarnning);
+    lv_obj_set_width(ui_LblQuastionPart1, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblQuastionPart1, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblQuastionPart1, 0);
+    lv_obj_set_y(ui_LblQuastionPart1, -30);
+    lv_obj_set_align(ui_LblQuastionPart1, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblQuastionPart1, "آیا از");
+    lv_obj_set_style_text_color(ui_LblQuastionPart1, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_LblQuastionPart1, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_LblQuastionPart1, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblQuastionPart2 = lv_label_create(ui_PnlWarnning);
+    lv_obj_set_width(ui_LblQuastionPart2, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblQuastionPart2, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_LblQuastionPart2, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblQuastionPart2, "حذف همه اسکن ها");
+    lv_obj_set_style_text_color(ui_LblQuastionPart2, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_LblQuastionPart2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_LblQuastionPart2, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblQuastionPart3 = lv_label_create(ui_PnlWarnning);
+    lv_obj_set_width(ui_LblQuastionPart3, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblQuastionPart3, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblQuastionPart3, 0);
+    lv_obj_set_y(ui_LblQuastionPart3, 23);
+    lv_obj_set_align(ui_LblQuastionPart3, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblQuastionPart3, "مطمئن هستید؟");
+    lv_obj_set_style_text_color(ui_LblQuastionPart3, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_LblQuastionPart3, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_LblQuastionPart3, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
 }
-
 
 bool ui_Memory_is_ready(void)
 {
     return (ui_Memory != NULL);
 }
-
 
 void ui_Memory_screen_destroy(void)
 {
@@ -30,5 +200,21 @@ void ui_Memory_screen_destroy(void)
 
     // NULL screen variables
     ui_Memory = NULL;
+    ui_Image2 = NULL;
+    ui_PnlMemInfo = NULL;
+    ui_LblScanCountTxt = NULL;
+    ui_LblSendCountTxt = NULL;
+    ui_LblPercentTxt = NULL;
+    ui_LblScanCount = NULL;
+    ui_LblSendCount = NULL;
+    ui_LblPercent = NULL;
+    ui_BtnDelAll = NULL;
+    ui_LblDelAll = NULL;
+    ui_BtnDelLast = NULL;
+    ui_LblDelLast = NULL;
+    ui_PnlWarnning = NULL;
+    ui_LblQuastionPart1 = NULL;
+    ui_LblQuastionPart2 = NULL;
+    ui_LblQuastionPart3 = NULL;
 
 }

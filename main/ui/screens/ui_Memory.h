@@ -13,9 +13,22 @@ extern "C" {
 // SCREEN: ui_Memory
 extern void ui_Memory_screen_init(void);
 extern void ui_Memory_screen_destroy(void);
-bool ui_Memory_is_ready(void);
 extern lv_obj_t * ui_Memory;
+extern lv_obj_t * ui_Image2;
+extern lv_obj_t * ui_PnlMemInfo;
+extern lv_obj_t * ui_LblScanCountTxt;
+extern lv_obj_t * ui_LblSendCountTxt;
+extern lv_obj_t * ui_LblPercentTxt;
+extern lv_obj_t * ui_LblScanCount;
+extern lv_obj_t * ui_LblSendCount;
+extern lv_obj_t * ui_LblPercent;
 // CUSTOM VARIABLES
+
+
+
+
+
+bool ui_Memory_is_ready(void);
 
 #ifdef __cplusplus
 } /*extern "C"*/

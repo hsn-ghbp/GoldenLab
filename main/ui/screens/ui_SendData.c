@@ -10,6 +10,7 @@
 
 lv_obj_t * ui_SendData = NULL;
 lv_obj_t * ui_BtIcon = NULL;
+lv_obj_t * ui_SendIcon = NULL;
 lv_obj_t * ui_BtnScanNum = NULL;
 lv_obj_t * ui_LblScanNumTxt = NULL;
 lv_obj_t * ui_LblScanNumNo = NULL;
@@ -112,6 +113,16 @@ void ui_SendData_screen_init(void)
     lv_obj_set_align(ui_BtIcon, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BtIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_BtIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_SendIcon = lv_image_create(ui_SendData);
+    lv_image_set_src(ui_SendIcon, &ui_img_send_png);
+    lv_obj_set_width(ui_SendIcon, LV_SIZE_CONTENT);   /// 48
+    lv_obj_set_height(ui_SendIcon, LV_SIZE_CONTENT);    /// 48
+    lv_obj_set_x(ui_SendIcon, 21);
+    lv_obj_set_y(ui_SendIcon, -82);
+    lv_obj_set_align(ui_SendIcon, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_SendIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_SendIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
      ui_BtnScanNum = lv_button_create(ui_SendData);
     lv_obj_set_width(ui_BtnScanNum, 180);
@@ -248,4 +259,5 @@ void ui_SendData_screen_destroy(void)
     ui_LblScanPulse = NULL;
     ui_LblScanTime = NULL;
     ui_LblScanMode = NULL;
+    ui_SendIcon = NULL;
 }

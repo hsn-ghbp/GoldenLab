@@ -99,6 +99,7 @@ lv_obj_t * ui_LblBlAutoConnectOff = NULL;
 lv_obj_t * ui_LblBlAutoConnectOn = NULL;
 lv_obj_t * ui_LblBlutoothName = NULL;
 lv_obj_t * ui_LblBlutoothNameShow = NULL;
+lv_obj_t * ui_SettingIco = NULL;
 
 
 
@@ -1302,7 +1303,15 @@ void ui_Setting_screen_init(void)
     lv_obj_set_style_text_font(ui_LblBlutoothNameShow, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_add_flag(ui_LblBlutoothNameShow, LV_OBJ_FLAG_HIDDEN);
 
-
+    ui_SettingIco = lv_image_create(ui_Setting);
+    lv_image_set_src(ui_SettingIco, &ui_img_setting_png);
+    lv_obj_set_width(ui_SettingIco, LV_SIZE_CONTENT);   /// 48
+    lv_obj_set_height(ui_SettingIco, LV_SIZE_CONTENT);    /// 48
+    lv_obj_set_x(ui_SettingIco, 0);
+    lv_obj_set_y(ui_SettingIco, -88);
+    lv_obj_set_align(ui_SettingIco, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_SettingIco, LV_OBJ_FLAG_CLICKABLE);     /// Flags
+    lv_obj_remove_flag(ui_SettingIco, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
 
 
@@ -1404,6 +1413,7 @@ void ui_Setting_screen_destroy(void)
     ui_LblBlAutoConnectOn = NULL;
     ui_LblBlutoothName = NULL;
     ui_LblBlutoothNameShow = NULL;
+    ui_SettingIco = NULL;
 
 
     
