@@ -37,6 +37,7 @@ static app_page_t loaded_page  = PAGE_SPLASH;
 static scan_sub_state_t current_scan_sub_state = SCAN_STATE_IDLE;
 static app_event_t pending_events = APP_EVENT_NONE;
 static setting_state_t current_setting_state = SETTING_STATE_LIST;
+static memory_state_t current_memory_state = MEMORY_STATE_LIST;
 static int selected_menu = 0;
 static int scan_selected = 0;
 scan_mode_t current_scan_mode = SCAN_MODE_MANPC;
@@ -1624,25 +1625,44 @@ void brain_handle_key(key_evt_t evt)
             break;
 
         case PAGE_MEMORY:
-            if (evt == KEY_UP) {
-                ui_Memory_focus_prev_btn();
-            } else if (evt == KEY_DOWN) {
-                ui_Memory_focus_next_btn();
-            } else if (evt == KEY_OK) {
-                int focused = ui_Memory_get_focused_btn();
-                if (focused == 0) {
-                    /* حذف همه اسکن‌ها */
-                    ESP_LOGI(TAG, "Delete all scans action");
-                    ui_memory_set_warning_visible(true);
-                } else if (focused == 1) {
-                    /* حذف آخرین اسکن */
-                    ESP_LOGI(TAG, "Delete last scan action");
-                } else if (focused == 2) {
-                    /* حذف ارسال شده‌ها */
-                    ESP_LOGI(TAG, "Delete sent scans action");
+            if (current_memory_state == MEMORY_STATE_LIST) {
+                if (evt == KEY_UP) {
+                    ui_Memory_focus_prev_btn();
+                } else if (evt == KEY_DOWN) {
+                    ui_Memory_focus_next_btn();
+                } else if (evt == KEY_OK) {
+                    /* اولین OK: فقط نمایش هشدار، حذف انجام نمی‌شود */
+                    int focused = ui_Memory_get_focused_btn();
+                    ui_memory_show_warning(focused);
+                    current_memory_state = MEMORY_STATE_CONFIRM;
+                    ESP_LOGI(TAG, "Memory: waiting confirm for action %d", focused);
+                } else if (evt == KEY_BACK) {
+                    current_page = PAGE_MAIN_MENU;
                 }
-            } else if (evt == KEY_BACK) {
-                current_page = PAGE_MAIN_MENU;
+            }
+            else if (current_memory_state == MEMORY_STATE_CONFIRM) {
+                if (evt == KEY_OK) {
+                    /* دومین OK: تایید و اجرای حذف */
+                    int focused = ui_Memory_get_focused_btn();
+                    if (focused == 0) {
+                        /* حذف همه اسکن‌ها */
+                        ESP_LOGI(TAG, "Delete all scans confirmed");
+                    } else if (focused == 1) {
+                        /* حذف آخرین اسکن */
+                        ESP_LOGI(TAG, "Delete last scan confirmed");
+                    } else if (focused == 2) {
+                        /* حذف ارسال شده‌ها */
+                        ESP_LOGI(TAG, "Delete sent scans confirmed");
+                    }
+                    current_memory_state = MEMORY_STATE_LIST;
+                    ui_Memory_render(); /* به‌روزرسانی شمارنده‌ها + مخفی کردن هشدار */
+                } else if (evt == KEY_BACK) {
+                    /* لغو حذف و بستن هشدار */
+                    ui_memory_set_warning_visible(false);
+                    current_memory_state = MEMORY_STATE_LIST;
+                    ESP_LOGI(TAG, "Memory: delete canceled");
+                }
+                /* در حالت تایید، UP/DOWN نادیده گرفته می‌شود */
             }
             break;
         case PAGE_SEND:              //----------------Send Data Page -------------------//

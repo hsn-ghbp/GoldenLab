@@ -322,6 +322,37 @@ void ui_memory_set_warning_visible(bool visible)
     }
 }
 
+/* 0=حذف همه، 1=حذف آخرین، 2=حذف ارسال‌شده‌ها */
+void ui_memory_show_warning(int btn_index)
+{
+    if (!ui_Memory_is_ready() || !ui_PnlWarnning) return;
+
+    const char *action_text = NULL;
+
+    switch (btn_index) {
+        case 0:
+            action_text = "حذف همه اسکن ها";
+            break;
+
+        case 1:
+            action_text = "حذف آخرین اسکن";
+            break;
+
+        case 2:
+            action_text = "حذف ارسال شده ها";
+            break;
+
+        default:
+            return;
+    }
+
+    if (ui_LblQuastionPart2) {
+        lv_label_set_text(ui_LblQuastionPart2, action_text);
+    }
+
+    ui_memory_set_warning_visible(true);
+}
+
 void ui_Memory_render(void)
 {
     if (!ui_Memory_is_ready()) {

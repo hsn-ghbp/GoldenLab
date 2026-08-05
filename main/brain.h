@@ -47,6 +47,11 @@ typedef enum {
     SETTING_STATE_CLOSING,
 } setting_state_t;
 
+typedef enum {
+    MEMORY_STATE_LIST = 0,
+    MEMORY_STATE_CONFIRM,
+} memory_state_t;
+
 
 // تعاریف اندیس‌های منو برای خوانایی بیشتر کد
 typedef enum {
