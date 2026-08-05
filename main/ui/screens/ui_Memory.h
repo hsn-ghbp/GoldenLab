@@ -28,10 +28,14 @@ extern lv_obj_t * ui_LblDelSent;
 
 void ui_Memory_render(void);
 void ui_memory_set_warning_visible(bool visible);
-
-
-
 bool ui_Memory_is_ready(void);
+void ui_Memory_focus_next_btn(void);
+void ui_Memory_focus_prev_btn(void);
+int ui_Memory_get_focused_btn(void);
+void ui_Memory_reset_focus(void);
+
+
+
 
 #ifdef __cplusplus
 } /*extern "C"*/

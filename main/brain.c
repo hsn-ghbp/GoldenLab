@@ -1623,9 +1623,24 @@ void brain_handle_key(key_evt_t evt)
             }
             break;
 
-        case PAGE_MEMORY:               //----------------Memory Page -------------------//
-            if (evt == KEY_OK) {
-                
+        case PAGE_MEMORY:
+            if (evt == KEY_UP) {
+                ui_Memory_focus_prev_btn();
+            } else if (evt == KEY_DOWN) {
+                ui_Memory_focus_next_btn();
+            } else if (evt == KEY_OK) {
+                int focused = ui_Memory_get_focused_btn();
+                if (focused == 0) {
+                    /* حذف همه اسکن‌ها */
+                    ESP_LOGI(TAG, "Delete all scans action");
+                    ui_memory_set_warning_visible(true);
+                } else if (focused == 1) {
+                    /* حذف آخرین اسکن */
+                    ESP_LOGI(TAG, "Delete last scan action");
+                } else if (focused == 2) {
+                    /* حذف ارسال شده‌ها */
+                    ESP_LOGI(TAG, "Delete sent scans action");
+                }
             } else if (evt == KEY_BACK) {
                 current_page = PAGE_MAIN_MENU;
             }
