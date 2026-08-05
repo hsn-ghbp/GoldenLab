@@ -22,6 +22,8 @@ extern lv_obj_t * ui_LblPercentTxt;
 extern lv_obj_t * ui_LblScanCount;
 extern lv_obj_t * ui_LblSendCount;
 extern lv_obj_t * ui_LblPercent;
+extern lv_obj_t * ui_BtnDelSent;
+extern lv_obj_t * ui_LblDelSent;
 // CUSTOM VARIABLES
 
 void ui_Memory_render(void);

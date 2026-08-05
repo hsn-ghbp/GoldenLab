@@ -601,4 +601,50 @@ static bool storage_file_exists(const char *path)
     }
 
     return stat(path, &st) == 0;
+
+}
+
+esp_err_t storage_littlefs_force_cleanup_deleted(void)
+{
+    scan_index_header_t header = {0};
+    scan_index_item_t *items = NULL;
+    esp_err_t err;
+    size_t cleaned = 0;
+
+    ESP_RETURN_ON_FALSE(s_littlefs_ready, ESP_ERR_INVALID_STATE, TAG, "LittleFS not ready");
+
+    err = storage_read_index_file(&header, &items);
+    ESP_RETURN_ON_ERROR(err, TAG, "failed to read index for GC");
+
+    for (size_t i = 0; i < header.count; ++i) {
+        if (items[i].flags & SCAN_FLAG_DELETED) {
+            char path[STORAGE_SCAN_FILE_NAME_MAX];
+            err = storage_build_scan_path(items[i].id, path, sizeof(path));
+            if (err != ESP_OK) {
+                continue;
+            }
+
+            if (remove(path) == 0) {
+                ESP_LOGI(TAG, "GC: removed deleted scan file id=%lu", (unsigned long)items[i].id);
+                cleaned++;
+            } else {
+                ESP_LOGW(TAG, "GC: failed to remove scan file id=%lu", (unsigned long)items[i].id);
+            }
+
+            /* حذف منطقی هم از ایندکس */
+            items[i].flags |= SCAN_FLAG_DELETED;
+        }
+    }
+
+    if (cleaned > 0) {
+        err = storage_write_index_file(&header, items);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "GC: failed to rewrite index after cleanup");
+        } else {
+            ESP_LOGI(TAG, "GC: cleaned %zu deleted scan files", cleaned);
+        }
+    }
+
+    free(items);
+    return ESP_OK;
 }

@@ -82,6 +82,7 @@ esp_err_t storage_littlefs_load_scan_samples(uint32_t scan_id,
                                              size_t *out_count);
 
 esp_err_t storage_littlefs_delete_scan(uint32_t scan_id);
+esp_err_t storage_littlefs_force_cleanup_deleted(void);
 
 #ifdef __cplusplus
 }

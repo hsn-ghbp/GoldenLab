@@ -126,6 +126,7 @@ size_t brain_memory_get_sent_count(void);
 uint8_t brain_memory_get_free_percent(void);
 
 
+
 /* Setting state accessors */
 int brain_get_setting_index(void);
 void brain_set_setting_index(int index);

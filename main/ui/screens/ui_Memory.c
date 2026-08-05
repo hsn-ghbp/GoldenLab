@@ -26,6 +26,8 @@ lv_obj_t * ui_PnlWarnning = NULL;
 lv_obj_t * ui_LblQuastionPart1 = NULL;
 lv_obj_t * ui_LblQuastionPart2 = NULL;
 lv_obj_t * ui_LblQuastionPart3 = NULL;
+lv_obj_t * ui_BtnDelSent = NULL;
+lv_obj_t * ui_LblDelSent = NULL;
 
 
 
@@ -38,25 +40,7 @@ lv_obj_t * ui_LblQuastionPart3 = NULL;
 // UI functions
 
 
-// به‌روزرسانی اطلاعات متنی صفحه حافظه
-// void ui_memory_update_info(uint32_t total_scans, uint32_t sent_scans, uint8_t free_percent)
-// {
-//     if (!ui_Memory_is_ready()) return;
 
-//     char buf[32];
-    
-//     // تعداد کل اسکن‌ها
-//     snprintf(buf, sizeof(buf), "%lu", (unsigned long)total_scans);
-//     lv_label_set_text(ui_LblScanCount, buf);
-
-//     // تعداد اسکن‌های ارسال شده
-//     snprintf(buf, sizeof(buf), "%lu", (unsigned long)sent_scans);
-//     lv_label_set_text(ui_LblSendCount, buf);
-
-//     // درصد حافظه باقی‌مانده
-//     snprintf(buf, sizeof(buf), "%d %%", free_percent);
-//     lv_label_set_text(ui_LblPercent, buf);
-// }
 
 // نمایش یا مخفی کردن پنجره هشدار حذف
 void ui_memory_set_warning_visible(bool visible)
@@ -79,11 +63,9 @@ void ui_Memory_render(void)
         return;
     }
 
-    const size_t scan_count =
-        brain_memory_get_scan_count();
-
-    const size_t sent_scan_count =
-        brain_memory_get_sent_count();
+    const size_t scan_count = brain_memory_get_scan_count();
+    const size_t sent_scan_count = brain_memory_get_sent_count();
+    const uint8_t free_percent = brain_memory_get_free_percent();
 
     char text[24];
 
@@ -99,14 +81,21 @@ void ui_Memory_render(void)
         lv_label_set_text(ui_LblSendCount, text);
     }
 
+    /* درصد فضای آزاد LittleFS */
+    if (ui_LblPercent != NULL) {
+        snprintf(text, sizeof(text), "%d %%", free_percent);
+        lv_label_set_text(ui_LblPercent, text);
+    }
+
     /* پنل هشدار در شروع نمایش صفحه مخفی باشد */
     ui_memory_set_warning_visible(false);
 
     ESP_LOGI(
         TAG_MEM_UI,
-        "Memory UI rendered: scans=%zu, sent=%zu",
+        "Memory UI rendered: scans=%zu, sent=%zu, free=%d%%",
         scan_count,
-        sent_scan_count
+        sent_scan_count,
+        free_percent
     );
 }
 
@@ -275,6 +264,24 @@ void ui_Memory_screen_init(void)
     lv_obj_set_style_text_opa(ui_LblQuastionPart3, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_LblQuastionPart3, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    /* --- دکمه حذف ارسال شده‌ها --- */
+ui_BtnDelSent = lv_button_create(ui_Memory);
+lv_obj_set_width(ui_BtnDelSent, 170);
+lv_obj_set_height(ui_BtnDelSent, 30);
+lv_obj_set_x(ui_BtnDelSent, 0);
+lv_obj_set_y(ui_BtnDelSent, 56);
+lv_obj_set_align(ui_BtnDelSent, LV_ALIGN_CENTER);
+lv_obj_add_flag(ui_BtnDelSent, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+lv_obj_remove_flag(ui_BtnDelSent, LV_OBJ_FLAG_SCROLLABLE);
+lv_obj_add_flag(ui_BtnDelSent, LV_OBJ_FLAG_HIDDEN);
+
+ui_LblDelSent = lv_label_create(ui_BtnDelSent);
+lv_obj_set_width(ui_LblDelSent, LV_SIZE_CONTENT);
+lv_obj_set_height(ui_LblDelSent, LV_SIZE_CONTENT);
+lv_obj_set_align(ui_LblDelSent, LV_ALIGN_CENTER);
+lv_label_set_text(ui_LblDelSent, "حذف ارسال شده ها");
+lv_obj_set_style_text_font(ui_LblDelSent, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
     ui_Memory_render();
 
 }
@@ -306,5 +313,7 @@ void ui_Memory_screen_destroy(void)
     ui_LblQuastionPart1 = NULL;
     ui_LblQuastionPart2 = NULL;
     ui_LblQuastionPart3 = NULL;
+    ui_BtnDelSent = NULL;
+    ui_LblDelSent = NULL;
 
 }

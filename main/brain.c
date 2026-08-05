@@ -22,6 +22,7 @@
 #include "storage_littlefs.h"
 #include "bluetooth.h"
 #include <inttypes.h>
+#include "esp_littlefs.h"
 
 #define SEND_SCAN_CACHE_MAX 20U
 #define SEND_MAX_SAMPLES_BUFFER 1024U 
@@ -434,6 +435,20 @@ app_event_t brain_consume_events(void)
 // -------------------------
 // Internal helpers
 // -------------------------
+uint8_t brain_memory_get_free_percent(void)
+{
+    size_t total = 0, used = 0;
+    esp_err_t err = esp_littlefs_info(STORAGE_LFS_PARTITION_LABEL, &total, &used);
+    
+    if (err != ESP_OK || total == 0) {
+        ESP_LOGW(TAG, "Failed to get LittleFS info: %s", esp_err_to_name(err));
+        return 100; // مقدار پیش‌فرض
+    }
+
+    size_t free_bytes = total - used;
+    uint8_t free_percent = (uint8_t)((free_bytes * 100) / total);
+    return free_percent;
+}
 
 void brain_on_scan_sent(uint32_t scan_id)
 {
@@ -778,7 +793,21 @@ static esp_err_t brain_save_current_scan(uint32_t *out_scan_id)
              (unsigned)record.sample_count,
              (unsigned long)record.auto_calibration_pulse_count);
 
-    return storage_littlefs_save_scan(&record, out_scan_id);
+    //return storage_littlefs_save_scan(&record, out_scan_id);
+    esp_err_t err = storage_littlefs_save_scan(&record, out_scan_id);
+    /* اگر ذخیره‌سازی ناموفق بود، پاک‌سازی فایل‌های حذف‌شده و تلاش مجدد */
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Save failed: %s, running garbage collection...", esp_err_to_name(err));
+
+        storage_littlefs_force_cleanup_deleted();
+
+        /* تلاش مجدد برای ذخیره‌سازی */
+        err = storage_littlefs_save_scan(&record, out_scan_id);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Save failed even after GC: %s", esp_err_to_name(err));
+        }
+    }
+    return err;
 }
 
 static void brain_stop_scan_and_save(void)
