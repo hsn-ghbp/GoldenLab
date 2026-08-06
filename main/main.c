@@ -16,6 +16,7 @@
 #include "pcf8574.h"
 #include "brain.h"
 #include "bluetooth.h"
+#include "ads1115.h"
 
 #define TAG "MAIN"
 
@@ -142,6 +143,29 @@ static void clear_screen_black(void)
     }
     free(buf);
 }
+
+// ── ADS1115 test task: prove I2C + differential read works ────
+static void ads1115_test_task(void *arg)
+{
+    while (1)
+    {
+        int16_t raw = 0;
+        float mv = 0.0f;
+
+        esp_err_t ret = ads1115_read_diff_0_1(&raw, &mv);
+        if (ret == ESP_OK)
+        {
+            float b_ut = (mv / 1000.0f) * 50.0f;   // 1V / 50uT nominal
+            ESP_LOGI(TAG, "ADS1115 raw=%6d  Vdiff=%8.3f mV  B=%8.3f uT", raw, mv, b_ut);
+        }
+        else
+        {
+            ESP_LOGE(TAG, "read failed: %s", esp_err_to_name(ret));
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
 void app_main(void)
 {
     // ── SPI bus ───────────────────────────────────────────────
@@ -262,4 +286,15 @@ void app_main(void)
         printf("PCF = 0x%02X\n", keys);
     } 
     
+
+    // ── ADS1115 sensor test: read diff AIN0-AIN1 and log it ──
+    esp_err_t ads_ret = ads1115_init();
+    if (ads_ret == ESP_OK)
+    {
+        xTaskCreate(ads1115_test_task, "ads1115", 4096, NULL, 4, NULL);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "ads1115_init failed: %s", esp_err_to_name(ads_ret));
+    }
 };
