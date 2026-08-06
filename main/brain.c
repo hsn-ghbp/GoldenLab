@@ -756,12 +756,14 @@ bool brain_should_bluetooth_be_enabled(void)
     }
     /*
      * bl_auto_off == true:
-     * Bluetooth در مودهای ذخیره‌سازی خاموش می‌شود.
+     * Bluetooth فقط در صفحه اسکن و در مودهای ذخیره‌سازی خاموش می‌شود.
+     * در صفحه ارسال داده (PAGE_SEND) همیشه روشن می‌ماند چون ارسال به PC به آن نیاز دارد.
      *
      * bl_auto_off == false:
      * Bluetooth در تمام مودها روشن می‌ماند.
      */
-    if (g_settings.bl_auto_off &&
+    if (current_page == PAGE_SCAN_PAGE &&
+        g_settings.bl_auto_off &&
         brain_scan_mode_uses_memory((scan_mode_t)current_scan_mode)) {
         return false;
     }
