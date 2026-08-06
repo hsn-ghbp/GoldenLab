@@ -507,6 +507,76 @@ static void brain_memory_read_info(void)
     free(items);
     ESP_LOGI(TAG, "Memory loaded successfully. Active: %d, Sent: %d", active_count, sent_count);
 }
+
+/*
+ * اجرای واقعی حذف پس از تایید کاربر (دومین OK).
+ * action: 0=حذف همه اسکن‌ها، 1=حذف آخرین اسکن، 2=حذف اسکن‌های ارسال‌شده
+ * حذف منطقی است: فقط SCAN_FLAG_DELETED در ایندکس ست می‌شود.
+ */
+static void brain_memory_delete_confirmed(int action)
+{
+    if (!storage_littlefs_is_ready()) {
+        ESP_LOGW(TAG, "LittleFS not ready; delete skipped");
+        return;
+    }
+
+    size_t count = 0;
+    esp_err_t err = storage_littlefs_load_index(NULL, 0, &count);
+    if (err != ESP_OK || count == 0) {
+        ESP_LOGW(TAG, "Delete skipped: index empty or unreadable");
+        return;
+    }
+
+    scan_index_item_t *items = malloc(count * sizeof(scan_index_item_t));
+    if (items == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for delete");
+        return;
+    }
+
+    size_t loaded_count = 0;
+    err = storage_littlefs_load_index(items, count, &loaded_count);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to load scan index: %s", esp_err_to_name(err));
+        free(items);
+        return;
+    }
+
+    size_t deleted = 0;
+
+    if (action == 1) {
+        /* حذف آخرین اسکن: بیشترین id در میان اسکن‌های فعال */
+        uint32_t last_id = 0;
+        bool found = false;
+        for (size_t i = 0; i < loaded_count; i++) {
+            if (!(items[i].flags & SCAN_FLAG_DELETED) &&
+                (!found || items[i].id > last_id)) {
+                last_id = items[i].id;
+                found = true;
+            }
+        }
+        if (found && storage_littlefs_delete_scan(last_id) == ESP_OK) {
+            deleted = 1;
+        }
+    } else {
+        for (size_t i = 0; i < loaded_count; i++) {
+            if (items[i].flags & SCAN_FLAG_DELETED) {
+                continue;
+            }
+            if (action == 0 ||
+                (action == 2 && (items[i].flags & SCAN_FLAG_SENT))) {
+                if (storage_littlefs_delete_scan(items[i].id) == ESP_OK) {
+                    deleted++;
+                }
+            }
+        }
+    }
+
+    free(items);
+    ESP_LOGI(TAG, "Memory delete action=%d deleted=%zu", action, deleted);
+
+    /* به‌روزرسانی شمارنده‌های صفحه Memory پس از حذف */
+    brain_memory_read_info();
+}
 // static void brain_memory_read_info(void)
 // {
 //     size_t count = 0;
@@ -1644,16 +1714,7 @@ void brain_handle_key(key_evt_t evt)
                 if (evt == KEY_OK) {
                     /* دومین OK: تایید و اجرای حذف */
                     int focused = ui_Memory_get_focused_btn();
-                    if (focused == 0) {
-                        /* حذف همه اسکن‌ها */
-                        ESP_LOGI(TAG, "Delete all scans confirmed");
-                    } else if (focused == 1) {
-                        /* حذف آخرین اسکن */
-                        ESP_LOGI(TAG, "Delete last scan confirmed");
-                    } else if (focused == 2) {
-                        /* حذف ارسال شده‌ها */
-                        ESP_LOGI(TAG, "Delete sent scans confirmed");
-                    }
+                    brain_memory_delete_confirmed(focused);
                     current_memory_state = MEMORY_STATE_LIST;
                     ui_Memory_render(); /* به‌روزرسانی شمارنده‌ها + مخفی کردن هشدار */
                 } else if (evt == KEY_BACK) {
