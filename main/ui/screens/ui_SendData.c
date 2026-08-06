@@ -22,6 +22,8 @@ lv_obj_t * ui_LblScanModeTxt = NULL;
 lv_obj_t * ui_LblScanPulse = NULL;
 lv_obj_t * ui_LblScanTime = NULL;
 lv_obj_t * ui_LblScanMode = NULL;
+lv_obj_t * ui_LblScanSentTxt = NULL;
+lv_obj_t * ui_ChkScanSent = NULL;
 // event funtions
 void ui_SendData_update_bluetooth_status(void)
 {
@@ -93,6 +95,20 @@ void ui_SendData_update_scan_details(
     }
 }
 
+// نمایش وضعیت ارسال اسکن انتخاب‌شده با یک چک‌باکس (فقط نمایشی، غیرقابل کلیک)
+void ui_SendData_update_sent_status(bool sent)
+{
+    if (!ui_SendData_is_ready() || ui_ChkScanSent == NULL) {
+        return;
+    }
+
+    if (sent) {
+        lv_obj_add_state(ui_ChkScanSent, LV_STATE_CHECKED);
+    } else {
+        lv_obj_remove_state(ui_ChkScanSent, LV_STATE_CHECKED);
+    }
+}
+
 
 
 // build funtions
@@ -106,10 +122,11 @@ void ui_SendData_screen_init(void)
 
     ui_BtIcon = lv_image_create(ui_SendData);
     lv_image_set_src(ui_BtIcon, &ui_img_bluetooth_png);
+    lv_image_set_scale(ui_BtIcon, 200);
     lv_obj_set_width(ui_BtIcon, LV_SIZE_CONTENT);   /// 35
     lv_obj_set_height(ui_BtIcon, LV_SIZE_CONTENT);    /// 48
-    lv_obj_set_x(ui_BtIcon, 0);
-    lv_obj_set_y(ui_BtIcon, -84);
+    lv_obj_set_x(ui_BtIcon, -35);
+    lv_obj_set_y(ui_BtIcon, -93);
     lv_obj_set_align(ui_BtIcon, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BtIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_BtIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -119,7 +136,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_width(ui_SendIcon, LV_SIZE_CONTENT);   /// 48
     lv_obj_set_height(ui_SendIcon, LV_SIZE_CONTENT);    /// 48
     lv_obj_set_x(ui_SendIcon, 21);
-    lv_obj_set_y(ui_SendIcon, -82);
+    lv_obj_set_y(ui_SendIcon, -90);
     lv_obj_set_align(ui_SendIcon, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_SendIcon, LV_OBJ_FLAG_CLICKABLE);     /// Flags
     lv_obj_remove_flag(ui_SendIcon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -128,7 +145,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_width(ui_BtnScanNum, 180);
     lv_obj_set_height(ui_BtnScanNum, 30);
     lv_obj_set_x(ui_BtnScanNum, 0);
-    lv_obj_set_y(ui_BtnScanNum, -40);
+    lv_obj_set_y(ui_BtnScanNum, -53);
     lv_obj_set_align(ui_BtnScanNum, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BtnScanNum, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_remove_flag(ui_BtnScanNum, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -162,9 +179,9 @@ void ui_SendData_screen_init(void)
 
     ui_PlnScanInfo = lv_obj_create(ui_SendData);
     lv_obj_set_width(ui_PlnScanInfo, 180);
-    lv_obj_set_height(ui_PlnScanInfo, 90);
+    lv_obj_set_height(ui_PlnScanInfo, 110);
     lv_obj_set_x(ui_PlnScanInfo, 0);
-    lv_obj_set_y(ui_PlnScanInfo, 26);
+    lv_obj_set_y(ui_PlnScanInfo, 20);
     lv_obj_set_align(ui_PlnScanInfo, LV_ALIGN_CENTER);
     lv_obj_remove_flag(ui_PlnScanInfo, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     lv_obj_set_style_bg_color(ui_PlnScanInfo, lv_color_hex(0x83B5E8), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -175,8 +192,8 @@ void ui_SendData_screen_init(void)
     ui_LblScanPulseTxt = lv_label_create(ui_PlnScanInfo);
     lv_obj_set_width(ui_LblScanPulseTxt, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanPulseTxt, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_LblScanPulseTxt, 36);
-    lv_obj_set_y(ui_LblScanPulseTxt, 25);
+    lv_obj_set_x(ui_LblScanPulseTxt, 38);
+    lv_obj_set_y(ui_LblScanPulseTxt, 13);
     lv_obj_set_align(ui_LblScanPulseTxt, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanPulseTxt, "تعداد پالس");
     lv_obj_set_style_text_font(ui_LblScanPulseTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -184,8 +201,8 @@ void ui_SendData_screen_init(void)
     ui_LblScanTimeTxt = lv_label_create(ui_PlnScanInfo);
     lv_obj_set_width(ui_LblScanTimeTxt, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanTimeTxt, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_LblScanTimeTxt, 36);
-    lv_obj_set_y(ui_LblScanTimeTxt, -27);
+    lv_obj_set_x(ui_LblScanTimeTxt, 38);
+    lv_obj_set_y(ui_LblScanTimeTxt, -39);
     lv_obj_set_align(ui_LblScanTimeTxt, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanTimeTxt, "زمان اسکن");
     lv_obj_set_style_text_font(ui_LblScanTimeTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -193,8 +210,8 @@ void ui_SendData_screen_init(void)
     ui_LblScanModeTxt = lv_label_create(ui_PlnScanInfo);
     lv_obj_set_width(ui_LblScanModeTxt, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanModeTxt, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_LblScanModeTxt, 40);
-    lv_obj_set_y(ui_LblScanModeTxt, 0);
+    lv_obj_set_x(ui_LblScanModeTxt, 38);
+    lv_obj_set_y(ui_LblScanModeTxt, -13);
     lv_obj_set_align(ui_LblScanModeTxt, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanModeTxt, "نوع اسکن");
     lv_obj_set_style_text_font(ui_LblScanModeTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -203,7 +220,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_width(ui_LblScanPulse, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanPulse, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_LblScanPulse, -65);
-    lv_obj_set_y(ui_LblScanPulse, 25);
+    lv_obj_set_y(ui_LblScanPulse, 13);
     lv_obj_set_align(ui_LblScanPulse, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanPulse, "300");
     lv_obj_set_style_text_font(ui_LblScanPulse, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -212,7 +229,7 @@ void ui_SendData_screen_init(void)
     lv_obj_set_width(ui_LblScanTime, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanTime, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_LblScanTime, -57);
-    lv_obj_set_y(ui_LblScanTime, -26);
+    lv_obj_set_y(ui_LblScanTime, -39);
     lv_obj_set_align(ui_LblScanTime, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanTime, "24/3");
     lv_obj_set_style_text_font(ui_LblScanTime, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -221,10 +238,31 @@ void ui_SendData_screen_init(void)
     lv_obj_set_width(ui_LblScanMode, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_LblScanMode, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_LblScanMode, -55);
-    lv_obj_set_y(ui_LblScanMode, 0);
+    lv_obj_set_y(ui_LblScanMode, -13);
     lv_obj_set_align(ui_LblScanMode, LV_ALIGN_CENTER);
     lv_label_set_text(ui_LblScanMode, "اتوماتیک");
     lv_obj_set_style_text_font(ui_LblScanMode, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_LblScanSentTxt = lv_label_create(ui_PlnScanInfo);
+    lv_obj_set_width(ui_LblScanSentTxt, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_LblScanSentTxt, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_LblScanSentTxt, 38);
+    lv_obj_set_y(ui_LblScanSentTxt, 39);
+    lv_obj_set_align(ui_LblScanSentTxt, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_LblScanSentTxt, "ارسال شده");
+    lv_obj_set_style_text_font(ui_LblScanSentTxt, &ui_font_vazir20, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_ChkScanSent = lv_checkbox_create(ui_PlnScanInfo);
+    lv_checkbox_set_text(ui_ChkScanSent, "");
+    lv_obj_set_width(ui_ChkScanSent, 24);
+    lv_obj_set_height(ui_ChkScanSent, 24);
+    lv_obj_set_x(ui_ChkScanSent, -55);
+    lv_obj_set_y(ui_ChkScanSent, 39);
+    lv_obj_set_align(ui_ChkScanSent, LV_ALIGN_CENTER);
+    lv_obj_remove_flag(ui_ChkScanSent, LV_OBJ_FLAG_CLICKABLE);      /// فقط نمایش وضعیت است
+    lv_obj_set_style_bg_opa(ui_ChkScanSent, LV_OPA_TRANSP, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_ChkScanSent, LV_OPA_TRANSP, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_image_recolor(ui_ChkScanSent, lv_color_hex(0x00C853), LV_PART_INDICATOR | LV_STATE_CHECKED);
 
 
 
@@ -259,5 +297,7 @@ void ui_SendData_screen_destroy(void)
     ui_LblScanPulse = NULL;
     ui_LblScanTime = NULL;
     ui_LblScanMode = NULL;
+    ui_LblScanSentTxt = NULL;
+    ui_ChkScanSent = NULL;
     ui_SendIcon = NULL;
 }

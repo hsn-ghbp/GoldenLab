@@ -1993,6 +1993,22 @@ void brain_process_ui_cmds(void)
             * به‌روزرسانی cache آماری صفحه Memory.
             */
             brain_memory_read_info();
+
+            /*
+            * به‌روزرسانی flag در cache صفحه Send تا چک‌باکس «ارسال شده»
+            * بلافاصله و بدون خروج از صفحه نمایش داده شود.
+            */
+            for (uint32_t i = 0U;
+                 i < s_send_total_scan_count && i < SEND_SCAN_CACHE_MAX;
+                 i++) {
+                if (s_send_scan_cache[i].id == target_id) {
+                    s_send_scan_cache[i].flags |= SCAN_FLAG_SENT;
+                    if (current_page == PAGE_SEND) {
+                        s_send_selection_ui_dirty = true;
+                    }
+                    break;
+                }
+            }
         } else {
             ESP_LOGE(TAG,
                     "Failed to mark scan %lu as sent: %s",
@@ -2091,9 +2107,12 @@ void brain_process_ui_cmds(void)
                 snprintf(time_buf, sizeof(time_buf), "%02lu:%02lu", (unsigned long)minutes, (unsigned long)seconds);
                 
                 ui_SendData_update_scan_details(mode_buf, time_buf, pulse_buf);
+                ui_SendData_update_sent_status(
+                    (current_scan->flags & SCAN_FLAG_SENT) != 0U);
             } else {
                 // اگر اسکنی موجود نبود نمایش مقادیر پیش‌فرض یا خط تیره
                 ui_SendData_update_scan_details("---", "--/--", "0");
+                ui_SendData_update_sent_status(false);
             }
 
             s_send_selection_ui_dirty = false;
