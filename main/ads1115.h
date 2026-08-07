@@ -42,8 +42,13 @@ typedef enum
 
 esp_err_t ads1115_init(void);
 
-// Differential read: AIN0(+) - AIN1(-)
-esp_err_t ads1115_read_diff_0_1(int16_t *raw, float *voltage_mv);
+// Differential read: AIN2(+) - AIN3(-)
+esp_err_t ads1115_read_diff_2_3(int16_t *raw, float *voltage_mv);
+
+// Auto-PGA differential read: start mid-range, step PGA up/down based on the
+// 8-sample peak to avoid clipping while maximising resolution, then return the
+// averaged differential voltage in mV. Optionally reports the PGA that settled.
+esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used);
 
 // Change gain (also updates the mV scale used by reads)
 esp_err_t ads1115_set_pga(ads1115_pga_t pga);

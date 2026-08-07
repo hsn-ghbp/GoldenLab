@@ -13,7 +13,7 @@ static const char *TAG = "ADS1115";
 
 // Config bit fields
 #define CFG_OS_SINGLE     (1 << 15)
-#define CFG_MUX_A0_A1     (4 << 12)   // AINP=AIN0, AINN=AIN1
+#define CFG_MUX_A2_A3     (3 << 12)   // AINP=AIN2, AINN=AIN3
 #define CFG_MODE_SINGLE   (1 << 8)    // single-shot
 #define CFG_COMP_DISABLE  0x0003
 
@@ -28,7 +28,7 @@ static const float pga_fs_mv[] = { 6144.0f, 4096.0f, 2048.0f, 1024.0f, 512.0f, 2
 static esp_err_t write_config(void)
 {
     uint16_t cfg = CFG_OS_SINGLE
-                 | CFG_MUX_A0_A1
+                 | CFG_MUX_A2_A3
                  | ((uint16_t)cur_pga << 9)
                  | CFG_MODE_SINGLE
                  | ((uint16_t)cur_dr << 5)
@@ -105,7 +105,7 @@ static esp_err_t read_once(int16_t *raw, float *voltage_mv)
     return ESP_OK;
 }
 
-esp_err_t ads1115_read_diff_0_1(int16_t *raw, float *voltage_mv)
+esp_err_t ads1115_read_diff_2_3(int16_t *raw, float *voltage_mv)
 {
     ESP_RETURN_ON_FALSE(raw != NULL, ESP_ERR_INVALID_ARG, TAG, "raw is NULL");
 
@@ -120,6 +120,77 @@ esp_err_t ads1115_read_diff_0_1(int16_t *raw, float *voltage_mv)
         vTaskDelay(pdMS_TO_TICKS(5));
     }
     return ret;
+}
+
+// ── Auto-PGA acquisition ───────────────────────────────────────
+// Take N samples, look at the peak, step the PGA up (larger FS) if near
+// saturation or down (smaller FS) if there is lots of headroom, then average
+// the N samples at the settled PGA. Averaging on the raw count keeps full
+// resolution; the mV conversion is done once at the end.
+#define AVG_N            8        // samples per measurement
+#define AVG_MAX_STEPS    6        // bound on PGA re-ranging attempts
+#define SAT_HI_FRAC      0.93f    // >= 93% FS  -> step to a larger  FS (less gain)
+#define SAT_LO_FRAC      0.40f    // <  40% FS  -> step to a smaller FS (more gain)
+
+esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used)
+{
+    ESP_RETURN_ON_FALSE(voltage_mv != NULL, ESP_ERR_INVALID_ARG, TAG, "voltage_mv is NULL");
+
+    for (int step = 0; step < AVG_MAX_STEPS; step++)
+    {
+        int16_t  raw[AVG_N];
+        int32_t  acc = 0;
+        int16_t  max_abs = 0;
+        bool     fail = false;
+
+        for (int i = 0; i < AVG_N; i++)
+        {
+            int16_t r = 0;
+            esp_err_t ret = read_once(&r, NULL);   // convert once at the end
+            if (ret != ESP_OK)
+            {
+                ESP_LOGW(TAG, "sample %d/%d failed: %s", i + 1, AVG_N, esp_err_to_name(ret));
+                fail = true;
+                break;
+            }
+            raw[i] = r;
+            acc   += r;
+            int16_t a = (r < 0) ? (int16_t)(-r) : r;
+            if (a > max_abs)
+                max_abs = a;
+        }
+        if (fail)
+            return ESP_FAIL;
+
+        float frac = (float)max_abs / 32768.0f;
+
+        // Near saturation -> back off to a larger full-scale range
+        if (frac >= SAT_HI_FRAC && cur_pga > ADS1115_PGA_6_144V)
+        {
+            cur_pga = (ads1115_pga_t)(cur_pga - 1);
+            write_config();
+            ESP_LOGI(TAG, "PGA -> %d (FS %.0fmV), peak %.0f%%; re-ranging up", (int)cur_pga, pga_fs_mv[(int)cur_pga], frac * 100.0f);
+            continue;
+        }
+        // Lots of headroom -> drop to a smaller range for finer resolution
+        if (frac < SAT_LO_FRAC && cur_pga < ADS1115_PGA_0_256V)
+        {
+            cur_pga = (ads1115_pga_t)(cur_pga + 1);
+            write_config();
+            ESP_LOGI(TAG, "PGA -> %d (FS %.0fmV), peak %.0f%%; re-ranging down", (int)cur_pga, pga_fs_mv[(int)cur_pga], frac * 100.0f);
+            continue;
+        }
+
+        // Settled: average the raw counts, convert once with this PGA's scale
+        int16_t avg_raw = (int16_t)(acc / AVG_N);
+        *voltage_mv = (float)avg_raw * pga_fs_mv[(int)cur_pga] / 32768.0f;
+        if (pga_used)
+            *pga_used = cur_pga;
+        return ESP_OK;
+    }
+
+    ESP_LOGE(TAG, "auto-PGA did not settle within %d steps", AVG_MAX_STEPS);
+    return ESP_ERR_TIMEOUT;
 }
 
 esp_err_t ads1115_set_pga(ads1115_pga_t pga)

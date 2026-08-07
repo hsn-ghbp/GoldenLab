@@ -144,19 +144,19 @@ static void clear_screen_black(void)
     free(buf);
 }
 
-// ── ADS1115 test task: prove I2C + differential read works ────
+// ── ADS1115 test task: prove I2C + differential read works (AIN2-AIN3) ─
 static void ads1115_test_task(void *arg)
 {
     while (1)
     {
-        int16_t raw = 0;
         float mv = 0.0f;
+        ads1115_pga_t pga = ADS1115_PGA_2_048V;
 
-        esp_err_t ret = ads1115_read_diff_0_1(&raw, &mv);
+        esp_err_t ret = ads1115_read_diff_avg8(&mv, &pga);
         if (ret == ESP_OK)
         {
             float b_ut = (mv / 1000.0f) * 50.0f;   // 1V / 50uT nominal
-            ESP_LOGI(TAG, "ADS1115 raw=%6d  Vdiff=%8.3f mV  B=%8.3f uT", raw, mv, b_ut);
+            ESP_LOGI(TAG, "ADS1115 avg Vdiff=%8.3f mV  B=%8.3f uT  PGA=%d", mv, b_ut, (int)pga);
         }
         else
         {
