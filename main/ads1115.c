@@ -132,58 +132,48 @@ esp_err_t ads1115_read_diff_2_3(int16_t *raw, float *voltage_mv)
 #define SAT_HI_FRAC      0.93f    // >= 93% FS  -> step to a larger  FS (less gain)
 #define SAT_LO_FRAC      0.40f    // <  40% FS  -> step to a smaller FS (more gain)
 
-esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used)
+static esp_err_t ads1115_read_avg_raw8(int16_t *avg_raw, ads1115_pga_t *pga_used)
 {
-    ESP_RETURN_ON_FALSE(voltage_mv != NULL, ESP_ERR_INVALID_ARG, TAG, "voltage_mv is NULL");
+    ESP_RETURN_ON_FALSE(avg_raw != NULL, ESP_ERR_INVALID_ARG, TAG, "avg_raw is NULL");
 
     for (int step = 0; step < AVG_MAX_STEPS; step++)
     {
-        int16_t  raw[AVG_N];
         int32_t  acc = 0;
-        int16_t  max_abs = 0;
-        bool     fail = false;
+        int32_t  max_abs = 0;
 
         for (int i = 0; i < AVG_N; i++)
         {
             int16_t r = 0;
-            esp_err_t ret = read_once(&r, NULL);   // convert once at the end
+            esp_err_t ret = read_once(&r, NULL);
             if (ret != ESP_OK)
             {
                 ESP_LOGW(TAG, "sample %d/%d failed: %s", i + 1, AVG_N, esp_err_to_name(ret));
-                fail = true;
-                break;
+                return ret;
             }
-            raw[i] = r;
-            acc   += r;
-            int16_t a = (r < 0) ? (int16_t)(-r) : r;
-            if (a > max_abs)
-                max_abs = a;
+            acc += r;
+            int32_t absolute_raw = (r < 0) ? -(int32_t)r : (int32_t)r;
+            if (absolute_raw > max_abs)
+                max_abs = absolute_raw;
         }
-        if (fail)
-            return ESP_FAIL;
 
         float frac = (float)max_abs / 32768.0f;
 
-        // Near saturation -> back off to a larger full-scale range
         if (frac >= SAT_HI_FRAC && cur_pga > ADS1115_PGA_6_144V)
         {
             cur_pga = (ads1115_pga_t)(cur_pga - 1);
-            write_config();
+            ESP_RETURN_ON_ERROR(write_config(), TAG, "PGA re-range failed");
             ESP_LOGI(TAG, "PGA -> %d (FS %.0fmV), peak %.0f%%; re-ranging up", (int)cur_pga, pga_fs_mv[(int)cur_pga], frac * 100.0f);
             continue;
         }
-        // Lots of headroom -> drop to a smaller range for finer resolution
         if (frac < SAT_LO_FRAC && cur_pga < ADS1115_PGA_0_256V)
         {
             cur_pga = (ads1115_pga_t)(cur_pga + 1);
-            write_config();
+            ESP_RETURN_ON_ERROR(write_config(), TAG, "PGA re-range failed");
             ESP_LOGI(TAG, "PGA -> %d (FS %.0fmV), peak %.0f%%; re-ranging down", (int)cur_pga, pga_fs_mv[(int)cur_pga], frac * 100.0f);
             continue;
         }
 
-        // Settled: average the raw counts, convert once with this PGA's scale
-        int16_t avg_raw = (int16_t)(acc / AVG_N);
-        *voltage_mv = (float)avg_raw * pga_fs_mv[(int)cur_pga] / 32768.0f;
+        *avg_raw = (int16_t)(acc / AVG_N);
         if (pga_used)
             *pga_used = cur_pga;
         return ESP_OK;
@@ -191,6 +181,28 @@ esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used)
 
     ESP_LOGE(TAG, "auto-PGA did not settle within %d steps", AVG_MAX_STEPS);
     return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used)
+{
+    int16_t avg_raw = 0;
+
+    ESP_RETURN_ON_FALSE(voltage_mv != NULL, ESP_ERR_INVALID_ARG, TAG, "voltage_mv is NULL");
+    ESP_RETURN_ON_ERROR(ads1115_read_avg_raw8(&avg_raw, pga_used), TAG, "auto-PGA read failed");
+
+    *voltage_mv = (float)avg_raw * pga_fs_mv[(int)cur_pga] / 32768.0f;
+    return ESP_OK;
+}
+
+esp_err_t ads1115_read_sample_u16(uint16_t *out, ads1115_pga_t *pga_used)
+{
+    int16_t avg_raw = 0;
+
+    ESP_RETURN_ON_FALSE(out != NULL, ESP_ERR_INVALID_ARG, TAG, "out is NULL");
+    ESP_RETURN_ON_ERROR(ads1115_read_avg_raw8(&avg_raw, pga_used), TAG, "auto-PGA read failed");
+
+    *out = (uint16_t)((int32_t)avg_raw + 32768);
+    return ESP_OK;
 }
 
 esp_err_t ads1115_set_pga(ads1115_pga_t pga)

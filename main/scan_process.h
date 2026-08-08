@@ -62,8 +62,8 @@
 #include <stdbool.h>
 
 #define MAX_SCAN_POINTS        512
-#define ADC_MAX_RESOLUTION     4095
-#define ADC_MID_RESOLUTION     (ADC_MAX_RESOLUTION / 2)
+#define ADC_MAX_RESOLUTION     65535
+#define ADC_MID_RESOLUTION     32768
 #define SCAN_NEEDLE_MAX_ANGLE  900
 
 void scan_process_init(void);
@@ -78,8 +78,8 @@ bool scan_process_is_running(void);
 bool scan_process_is_calibrated(void);
 
 void scan_process_clear_temp_buffer(void);
-bool scan_process_add_point_to_buffer(int16_t adc_val);
-const int16_t* scan_process_get_buffer_data(uint16_t *out_count);
+bool scan_process_add_point_to_buffer(uint16_t adc_val);
+const uint16_t* scan_process_get_buffer_data(uint16_t *out_count);
 
 int scan_process_get_current_adc_value(void);
 int scan_process_get_signed_value(void);

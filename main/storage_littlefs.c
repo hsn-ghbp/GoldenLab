@@ -248,7 +248,7 @@ esp_err_t storage_littlefs_load_scan_header(uint32_t scan_id,
 }
 
 esp_err_t storage_littlefs_load_scan_samples(uint32_t scan_id,
-                                             int16_t *out_samples,
+                                             uint16_t *out_samples,
                                              size_t max_samples,
                                              size_t *out_count)
 {
@@ -288,7 +288,7 @@ esp_err_t storage_littlefs_load_scan_samples(uint32_t scan_id,
         return ESP_ERR_INVALID_SIZE;
     }
 
-    sample_bytes = sample_count * sizeof(int16_t);
+    sample_bytes = sample_count * sizeof(uint16_t);
     if ((sample_count > 0U) && (out_samples != NULL)) {
         nread = fread(out_samples, 1, sample_bytes, fp);
         if (nread != sample_bytes) {
@@ -567,7 +567,7 @@ static esp_err_t storage_write_scan_file(uint32_t scan_id,
         return ESP_ERR_INVALID_SIZE;
     }
 
-    sample_bytes = record->sample_count * sizeof(int16_t);
+    sample_bytes = record->sample_count * sizeof(uint16_t);
     sample_written = fwrite(record->samples, 1, sample_bytes, fp);
     if (sample_written != sample_bytes) {
         fclose(fp);

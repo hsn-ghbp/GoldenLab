@@ -362,7 +362,7 @@ In `brain_process_ui_cmds()`: when phase==2 && scan_mode is AUTO && pulse_count 
 | `scan_process_get_needle_angle()` | int32_t | ±900 (±90.0° ×10) |
 | `scan_process_get_pulse_count()` | uint32_t | Captured pulse count |
 | `scan_process_is_calibrated()` | bool | True if calibrated |
-| `scan_process_get_buffer_data(&count)` | const int16_t* | Pointer to ADC buffer |
+| `scan_process_get_buffer_data(&count)` | const uint16_t* | Pointer to ADC buffer |
 | `scan_process_add_point_to_buffer(val)` | bool | Add point, false if full |
 
 ---
@@ -785,7 +785,7 @@ if (lvgl_lock(1000)) {
 | KEY_SCAN_MS | defined in pcf8574.h | key scan interval |
 | KEY_NAV_DEBOUNCE_MS | 500 | main.c |
 | MAX_SCAN_POINTS | 512 | scan_process.h |
-| ADC_MAX_RESOLUTION | 4095 | scan_process.h |
+| ADC_MAX_RESOLUTION | 65535 | scan_process.h |
 | SCAN_NEEDLE_MAX_ANGLE | 900 (±90.0°) | scan_process.h |
 | SETTING_ITEM_COUNT | 10 | brain.h |
 | BT_TX_QUEUE_SIZE | 64 | bluetooth.c |

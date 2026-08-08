@@ -50,6 +50,12 @@ esp_err_t ads1115_read_diff_2_3(int16_t *raw, float *voltage_mv);
 // averaged differential voltage in mV. Optionally reports the PGA that settled.
 esp_err_t ads1115_read_diff_avg8(float *voltage_mv, ads1115_pga_t *pga_used);
 
+// Same auto-PGA 8-sample acquisition, but returns the averaged sample as an
+// offset-binary unsigned 16-bit value in [0..65535] where 32768 == zero field
+// (i.e. (uint16_t)(avg_raw + 32768)). Suitable for display/storage/send paths
+// that need a 0..65535 number. Optionally reports the PGA that settled.
+esp_err_t ads1115_read_sample_u16(uint16_t *out, ads1115_pga_t *pga_used);
+
 // Change gain (also updates the mV scale used by reads)
 esp_err_t ads1115_set_pga(ads1115_pga_t pga);
 

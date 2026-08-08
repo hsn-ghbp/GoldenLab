@@ -2,10 +2,10 @@
 #include "brain.h"
 #include "esp_log.h"
 #include <string.h>
-#include <stdlib.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "bluetooth.h"
+#include "ads1115.h"
 
 static const char *TAG = "SCAN_PROCESS";
 
@@ -23,9 +23,8 @@ static int s_needle_angle = 0;
 static int s_pulse_count = 0;
 static uint32_t s_calibration_sample_count = 0U;
 
-static int16_t s_temp_scan_buffer[MAX_SCAN_POINTS];
+static uint16_t s_temp_scan_buffer[MAX_SCAN_POINTS];
 static uint16_t s_temp_point_count = 0;
-static bool s_rand_seeded = false;
 
 
 static int s_multi_delay_ms = 0;
@@ -37,10 +36,18 @@ uint32_t scan_process_get_calibration_sample_count(void)
     return s_calibration_sample_count;
 }
 
-static int16_t read_hardware_adc(void)
+static uint16_t read_hardware_adc(void)
 {
-    // در پروژه واقعی: return adc_read_raw_value();
-    return (int16_t)(ADC_MID_RESOLUTION + (rand() % 400 - 200));
+    // Real ADC: averaged 8-sample auto-PGA read from ADS1115, returned as an
+    // offset-binary unsigned value in [0..65535] where 32768 == zero field.
+    // On failure the mid (zero-field) value is reported so the UI does not jump.
+    uint16_t sample = (uint16_t)ADC_MID_RESOLUTION;
+    esp_err_t ret = ads1115_read_sample_u16(&sample, NULL);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "ads1115_read_sample_u16 failed: %s", esp_err_to_name(ret));
+        sample = (uint16_t)ADC_MID_RESOLUTION;
+    }
+    return sample;
 }
 
 static int clamp_int(int value, int min_value, int max_value)
@@ -93,11 +100,11 @@ static bool scan_mode_is_pc_send(int mode)
     return (mode == SCAN_MODE_AUTOPC || mode == SCAN_MODE_MANPC);
 }
 
-static void scan_process_send_bt_placeholder(int16_t value)
+static void scan_process_send_bt_placeholder(uint16_t value)
 {
     if (bluetooth_is_enabled()) {
         bluetooth_send_int32((int32_t)value);
-        ESP_LOGD(TAG, "Sent to BT: %d", value);
+        ESP_LOGD(TAG, "Sent to BT: %u", (unsigned)value);
     }
 }
 
@@ -107,7 +114,7 @@ void scan_process_clear_temp_buffer(void)
     memset(s_temp_scan_buffer, 0, sizeof(s_temp_scan_buffer));
 }
 
-bool scan_process_add_point_to_buffer(int16_t adc_val)
+bool scan_process_add_point_to_buffer(uint16_t adc_val)
 {
     if (s_temp_point_count >= MAX_SCAN_POINTS) {
         ESP_LOGW(TAG, "Scan buffer full");
@@ -118,7 +125,7 @@ bool scan_process_add_point_to_buffer(int16_t adc_val)
     return true;
 }
 
-const int16_t* scan_process_get_buffer_data(uint16_t *out_count)
+const uint16_t* scan_process_get_buffer_data(uint16_t *out_count)
 {
     if (out_count) {
         *out_count = s_temp_point_count;
@@ -128,11 +135,6 @@ const int16_t* scan_process_get_buffer_data(uint16_t *out_count)
 
 void scan_process_init(void)
 {
-    if (!s_rand_seeded) {
-        srand(12345);
-        s_rand_seeded = true;
-    }
-
     s_current_mode = SCAN_MODE_MANPC;
     s_running = false;
     s_is_calibrated = false;
@@ -257,7 +259,7 @@ bool scan_process_calibrate_now(void)
         }
 
         for (uint16_t i = 0; i < sample_count; i++) {
-            int16_t raw = read_hardware_adc();
+            uint16_t raw = read_hardware_adc();
             s_current_adc_value = raw;
             scan_process_calculate_display_values();
             bt_samples[i] = (int32_t)raw;
@@ -271,7 +273,7 @@ bool scan_process_calibrate_now(void)
         }
     } else {
         for (uint16_t i = 0; i < sample_count; i++) {
-            int16_t raw = read_hardware_adc();
+            uint16_t raw = read_hardware_adc();
             s_current_adc_value = raw;
             scan_process_calculate_display_values();
 
@@ -344,7 +346,7 @@ bool scan_process_capture_one_pulse(void)
         return false;
     }
 
-    int16_t raw = read_hardware_adc();
+    uint16_t raw = read_hardware_adc();
     s_current_adc_value = raw;
 
     if (scan_mode_is_memory(s_current_mode)) {
@@ -360,7 +362,7 @@ bool scan_process_capture_one_pulse(void)
     s_pulse_count++;
     scan_process_calculate_display_values();
 
-    ESP_LOGI(TAG, "capture_one raw=%d pulse=%d", raw, s_pulse_count);
+    ESP_LOGI(TAG, "capture_one raw=%u pulse=%d", (unsigned)raw, s_pulse_count);
     return true;
 }
 

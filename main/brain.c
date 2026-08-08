@@ -136,7 +136,7 @@ extern system_settings_t g_settings;
 static void brain_log_scan_by_id(uint32_t scan_id)
 {
     scan_record_header_t header;
-    int16_t samples[MAX_SCAN_POINTS];
+    uint16_t samples[MAX_SCAN_POINTS];
     size_t count = 0;
 
     esp_err_t err = storage_littlefs_load_scan_header(scan_id, &header);
@@ -163,7 +163,7 @@ static void brain_log_scan_by_id(uint32_t scan_id)
     ESP_LOGI(TAG, "Loaded sample count = %u", (unsigned)count);
 
     for (size_t i = 0; i < count; i++) {
-        ESP_LOGI(TAG, "sample[%u] = %d", (unsigned)i, samples[i]);
+        ESP_LOGI(TAG, "sample[%u] = %u", (unsigned)i, (unsigned)samples[i]);
     }
 }
 
@@ -835,7 +835,7 @@ static esp_err_t brain_save_current_scan(uint32_t *out_scan_id)
         return ESP_ERR_NOT_SUPPORTED;
     }
     uint16_t point_count = 0;
-    const int16_t *samples = scan_process_get_buffer_data(&point_count);
+    const uint16_t *samples = scan_process_get_buffer_data(&point_count);
 
     if (samples == NULL || point_count == 0) {
         ESP_LOGW(TAG, "No scan data available to save");
@@ -1820,8 +1820,8 @@ void brain_handle_key(key_evt_t evt)
                     point_count = SEND_MAX_SAMPLES_BUFFER;
                 }
 
-                // بافر موقت برای خواندن داده خام int16_t از LittleFS
-                int16_t *raw_samples = malloc(point_count * sizeof(int16_t));
+                // بافر موقت برای خواندن داده خام uint16_t از LittleFS
+                uint16_t *raw_samples = malloc(point_count * sizeof(uint16_t));
                 if (raw_samples == NULL) {
                     ESP_LOGE(TAG, "Failed to allocate temporary buffer for raw samples");
                     break;
