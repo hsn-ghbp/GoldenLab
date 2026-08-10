@@ -10,6 +10,8 @@
 #include"scan_process.h"
 #include "bluetooth.h"
 #include "esp_log.h"
+#include "battery_process.h"
+
 //#include "bluetooth_mgr.h"
 
 lv_obj_t * ui_ScanPage = NULL;
@@ -49,35 +51,49 @@ static void scanpage_hide_mode_icons(void)
 
 static void ui_scanpage_set_battery_level(battery_level_t level)
 {
+
+    ESP_LOGI("ui_ScanPage",
+             "battery ui level=%d L1=%p L2=%p L3=%p L4=%p L5=%p",
+             level,
+             ui_BatL1,
+             ui_BatL2,
+             ui_BatL3,
+             ui_BatL4,
+             ui_BatL5);
+    // اگر آبجکت‌ها هنوز ایجاد نشده‌اند، کاری انجام نده
+    if (!ui_BatL1 || !ui_BatL2 || !ui_BatL3 || !ui_BatL4 || !ui_BatL5) {
+        return;
+    }
+
+    // پنهان کردن تمام سطوح باتری
     lv_obj_add_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
 
+    // نمایان کردن سطح باتری فعلی
     switch (level) {
-    case BATTERY_LEVEL_EMPTY:
-        lv_obj_clear_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
-        break;
-
-    case BATTERY_LEVEL_25:
-        lv_obj_clear_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
-        break;
-
-    case BATTERY_LEVEL_50:
-        lv_obj_clear_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
-        break;
-
-    case BATTERY_LEVEL_75:
-        lv_obj_clear_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
-        break;
-
-    case BATTERY_LEVEL_FULL:
-    default:
-        lv_obj_clear_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
-        break;
+        case BATTERY_LEVEL_EMPTY:
+            lv_obj_clear_flag(ui_BatL1, LV_OBJ_FLAG_HIDDEN);
+            break;
+        case BATTERY_LEVEL_25:
+            lv_obj_clear_flag(ui_BatL2, LV_OBJ_FLAG_HIDDEN);
+            break;
+        case BATTERY_LEVEL_50:
+            lv_obj_clear_flag(ui_BatL3, LV_OBJ_FLAG_HIDDEN);
+            break;
+        case BATTERY_LEVEL_75:
+            lv_obj_clear_flag(ui_BatL4, LV_OBJ_FLAG_HIDDEN);
+            break;
+        case BATTERY_LEVEL_FULL:
+        default:
+            lv_obj_clear_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
+            break;
     }
+
 }
+
 
 
 static void scanpage_apply_logic_mode(void)
@@ -232,7 +248,11 @@ void ui_scanpage_render(void)
     scanpage_apply_logic_mode();
     scanpage_apply_run_state();
     scanpage_apply_value();
+    //ui_scanpage_set_battery_level(brain_get_battery_level());
+    //ui_scanpage_set_battery_level(battery_process_get_level());
     ui_scanpage_set_battery_level(brain_get_battery_level());
+
+
 
     // اگر بعداً label / arc / needle / adc text هم داشتی،
     // همین‌جا فقط از getterها بخوان و update کن.
@@ -429,7 +449,7 @@ void ui_ScanPage_screen_init(void)
     lv_obj_set_y(ui_BatL5, 19);
     lv_obj_set_align(ui_BatL5, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_CLICKABLE);     /// Flags
-   // lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_BatL5, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(ui_BatL5, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_needle = lv_image_create(ui_ScanPage);
@@ -518,15 +538,18 @@ bool ui_ScanPage_is_ready(void)
            (ui_ArcN != NULL) &&
            (ui_ArcP != NULL) &&
            (ui_MeterBack != NULL) &&
-           
            (ui_CurentValue != NULL) &&
            (ui_PulseCount != NULL) &&
            (ui_Blutooth != NULL) &&
            (ui_SendDataa != NULL) &&
-           (ui_Save != NULL);
-           
-           
+           (ui_Save != NULL) &&
+           (ui_BatL1 != NULL) &&
+           (ui_BatL2 != NULL) &&
+           (ui_BatL3 != NULL) &&
+           (ui_BatL4 != NULL) &&
+           (ui_BatL5 != NULL);
 }
+
 
 
 void ui_ScanPage_screen_destroy(void)

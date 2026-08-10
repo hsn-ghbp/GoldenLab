@@ -231,6 +231,11 @@ size_t brain_memory_get_sent_count(void)
 //     return free_percent;
 // }
 
+battery_level_t brain_get_battery_level(void)
+{
+    return battery_process_get_level();
+}
+
 int brain_get_scan_selected(void)
 {
     return scan_selected;
@@ -241,10 +246,7 @@ scan_mode_t brain_get_scan_mode(void)
     return current_scan_mode;
 }
 
-battery_level_t brain_get_battery_level(void)
-{
-    return current_battery_level;
-}
+
 
 uint8_t brain_get_battery_percent(void)
 {
@@ -1861,7 +1863,7 @@ void brain_handle_key(key_evt_t evt)
             break;
     }
 
-    brain_update_battery();
+    //brain_update_battery();
 }
 
 
@@ -2149,6 +2151,9 @@ void brain_process_ui_cmds(void)
         ui_ScanPage_is_ready()) {
         ui_scanpage_render();
     }
+
+        //ui_scanpage_render();
+    
     
     if (ui_ScanPage_is_ready() && ui_Blutooth) {
         if (bluetooth_is_enabled()) {

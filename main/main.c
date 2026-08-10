@@ -17,6 +17,8 @@
 #include "brain.h"
 #include "bluetooth.h"
 #include "ads1115.h"
+#include "battery_process.h"
+
 
 #define TAG "MAIN"
 
@@ -101,12 +103,24 @@ static void lvgl_task(void *arg)
 {
     vTaskDelay(pdMS_TO_TICKS(5));
     uint32_t delay = 5;
+    uint32_t last_battery_check_ms = 0;
+
+    // مقداردهی اولیه پردازش باتری قبل از حلقه اصلی
+    battery_process_init();
 
     while (1)
     {
+        uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+
+        // بررسی و خواندن ADC باتری هر 10 ثانیه یک‌بار بدون قفل کردن لوپ
+        if (now - last_battery_check_ms >= 10000)
+        {
+            last_battery_check_ms = now;
+            battery_process_update(); 
+        }
+
         if (lvgl_mux && xSemaphoreTake(lvgl_mux, pdMS_TO_TICKS(20)) == pdTRUE)
         {
-            // فراخوانی تابع جدید در brain.c برای مدیریت وضعیت نمایش صفحات
             brain_process_ui_cmds();
             ui_ScanPage_update_bluetooth_icon();
             ui_ScanPage_update_calibration_icon();
@@ -121,6 +135,7 @@ static void lvgl_task(void *arg)
         vTaskDelay(pdMS_TO_TICKS(delay));
     }
 }
+
 
 
 // ── lock/unlock helpers (use these around any LVGL API call) ──
@@ -156,7 +171,7 @@ static void ads1115_test_task(void *arg)
         if (ret == ESP_OK)
         {
             float b_ut = (mv / 1000.0f) * 50.0f;   // 1V / 50uT nominal
-            ESP_LOGI(TAG, "ADS1115 avg Vdiff=%8.3f mV  B=%8.3f uT  PGA=%d", mv, b_ut, (int)pga);
+            //ESP_LOGI(TAG, "ADS1115 avg Vdiff=%8.3f mV  B=%8.3f uT  PGA=%d", mv, b_ut, (int)pga);
         }
         else
         {
@@ -203,8 +218,8 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
-    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, false));
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false));
+    ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, false, false));
     clear_screen_black();
     vTaskDelay(pdMS_TO_TICKS(10));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));

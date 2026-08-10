@@ -94,6 +94,7 @@ void brain_toggle_bool_setting(setting_item_index_t index);
 void brain_setting_detail_step(bool increase);
 scan_sub_state_t brain_get_scan_sub_state(void);
 void brain_emit_event(app_event_t event);
+
 app_event_t brain_consume_events(void);
 
 // توابع اصلی Brain
